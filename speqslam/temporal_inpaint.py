@@ -49,7 +49,8 @@ def temporal_fill(get, t, n, window=3):
     return filled
 
 
-def process(in_seq, out_seq, window=3, k=2.0, lo=225, hi=245, dilate=1):
+def process(in_seq, out_seq, window=3, method="adaptive", k=2.0, lo=225, hi=245,
+            fixed_thr=220, dilate=1, max_area=None):
     header, entries = load_rgb_txt(in_seq)
     n = len(entries)
     cache = {}
@@ -57,7 +58,8 @@ def process(in_seq, out_seq, window=3, k=2.0, lo=225, hi=245, dilate=1):
     def get(i):
         if i not in cache:
             bgr = cv2.imread(os.path.join(in_seq, entries[i][1]))
-            cache[i] = (bgr, specular_mask(bgr, method="adaptive", k=k, lo=lo, hi=hi, dilate=dilate))
+            cache[i] = (bgr, specular_mask(bgr, method=method, k=k, lo=lo, hi=hi,
+                                           fixed_thr=fixed_thr, dilate=dilate, max_area=max_area))
         return cache[i]
 
     os.makedirs(out_seq, exist_ok=True)

@@ -18,20 +18,32 @@ Methods:
 import cv2, numpy as np, glob, os, argparse, csv
 
 
-def specular_mask(img, method="adaptive", k=1.5, lo=200, hi=235, fixed_thr=220, dilate=2):
+def specular_mask(img, method="adaptive", k=1.5, lo=200, hi=235, fixed_thr=220, dilate=2, max_area=None):
     """Return a uint8 mask (255 = glare) for a BGR image.
 
     Specular highlights are bright in every channel, so the per-pixel channel MAX is a clean
     "how white is this pixel" signal. The adaptive threshold adjusts to each frame's brightness
     but is CLAMPED to [lo, hi] so it never runs away above the near-saturated glare (the bug that
     made it catch nothing before) and never dips into normal tissue.
+
+    max_area (optional): keep only connected bright components with area <= max_area pixels. Real
+    specular highlights are compact blobs; large bright regions are just brightly-lit tissue. This
+    is needed on evenly-lit footage (e.g. the C3VD phantom) where a plain threshold over-masks.
     """
     bright = img.max(axis=2).astype(np.float32)
     if method == "fixed":
         thr = fixed_thr  # one global threshold for the prior-work condition
     else:  # adaptive
         thr = float(np.clip(bright.mean() + k * bright.std(), lo, hi))
-    mask = (bright >= thr).astype(np.uint8) * 255
+    mask = (bright >= thr).astype(np.uint8)
+    if max_area is not None:
+        n, labels, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
+        keep = np.zeros_like(mask)
+        for i in range(1, n):
+            if stats[i, cv2.CC_STAT_AREA] <= max_area:
+                keep[labels == i] = 1
+        mask = keep
+    mask = mask * 255
     if dilate > 0:
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * dilate + 1, 2 * dilate + 1))
         mask = cv2.dilate(mask, kernel)  # grow the mask to cover the soft halo around each highlight
