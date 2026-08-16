@@ -1,4 +1,4 @@
-# Argus
+# Argus: End-to-End Specular Removal for Endoscopic Monocular SLAM
 
 **Adaptive specular-glare removal for monocular endoscopic SLAM.**
 
