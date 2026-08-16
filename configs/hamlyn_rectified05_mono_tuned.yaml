@@ -1,0 +1,46 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Argus — Hamlyn rectified05, LEFT camera, MONOCULAR.
+# TUNED for low-texture endoscopy: many more features + very low FAST thresholds so the
+# extractor accepts faint corners on smooth tissue. Shipped intrinsics (off-center PP made
+# no difference). Purpose: see if a hungrier extractor lets the tracker survive past init.
+#--------------------------------------------------------------------------------------------
+File.version: "1.0"
+
+Camera.type: "PinHole"
+
+Camera1.fx: 579.05693
+Camera1.fy: 579.05693
+Camera1.cx: 139.9316005706787
+Camera1.cy: 159.0189905166626
+
+Camera1.k1: 0.0
+Camera1.k2: 0.0
+Camera1.p1: 0.0
+Camera1.p2: 0.0
+Camera1.k3: 0.0
+
+Camera.fps: 30
+Camera.RGB: 1
+
+Camera.width: 360
+Camera.height: 288
+
+# Hungry extractor for low-texture tissue
+ORBextractor.nFeatures: 4000
+ORBextractor.scaleFactor: 1.2
+ORBextractor.nLevels: 10
+ORBextractor.iniThFAST: 5
+ORBextractor.minThFAST: 2
+
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1.0
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2.0
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3.0
+Viewer.ViewpointX: 0.0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500.0

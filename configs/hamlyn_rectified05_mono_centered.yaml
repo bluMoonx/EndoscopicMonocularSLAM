@@ -1,0 +1,46 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Argus — Hamlyn rectified05, LEFT camera, MONOCULAR.
+# TEST CONFIG: principal point forced to image center (180, 144) because the shipped
+# intrinsics_rectified05.txt principal point (139.9, 159.0) does not match these 360x288
+# images (it implies a ~280x318 image). fx/fy kept at the shipped 579.05693.
+# Purpose: check whether the off-center principal point was causing tracking to collapse.
+#--------------------------------------------------------------------------------------------
+File.version: "1.0"
+
+Camera.type: "PinHole"
+
+Camera1.fx: 579.05693
+Camera1.fy: 579.05693
+Camera1.cx: 180.0
+Camera1.cy: 144.0
+
+Camera1.k1: 0.0
+Camera1.k2: 0.0
+Camera1.p1: 0.0
+Camera1.p2: 0.0
+Camera1.k3: 0.0
+
+Camera.fps: 30
+Camera.RGB: 1
+
+Camera.width: 360
+Camera.height: 288
+
+ORBextractor.nFeatures: 2000
+ORBextractor.scaleFactor: 1.2
+ORBextractor.nLevels: 8
+ORBextractor.iniThFAST: 10
+ORBextractor.minThFAST: 5
+
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1.0
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2.0
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3.0
+Viewer.ViewpointX: 0.0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500.0

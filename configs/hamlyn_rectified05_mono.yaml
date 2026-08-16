@@ -1,0 +1,54 @@
+%YAML:1.0
+
+#--------------------------------------------------------------------------------------------
+# Argus — Hamlyn rectified05, LEFT camera, MONOCULAR.
+# Intrinsics taken verbatim from vslamlab intrinsics_rectified05.txt (rectified => no distortion).
+# Principal point is intentionally off-center (rectified stereo); used as-is, matching the VSLAM-LAB benchmark.
+#--------------------------------------------------------------------------------------------
+File.version: "1.0"
+
+Camera.type: "PinHole"
+
+Camera1.fx: 579.05693
+Camera1.fy: 579.05693
+Camera1.cx: 139.9316005706787
+Camera1.cy: 159.0189905166626
+
+# Rectified images -> zero distortion
+Camera1.k1: 0.0
+Camera1.k2: 0.0
+Camera1.p1: 0.0
+Camera1.p2: 0.0
+Camera1.k3: 0.0
+
+Camera.fps: 30
+Camera.RGB: 1
+
+Camera.width: 360
+Camera.height: 288
+
+#--------------------------------------------------------------------------------------------
+# ORB Parameters
+# Endoscopy is low-texture and low-contrast, so we give the extractor more features and
+# lower FAST thresholds. These stay FIXED across all four experimental conditions — only the
+# glare handling changes, so any difference in results is caused by the glare handling alone.
+#--------------------------------------------------------------------------------------------
+ORBextractor.nFeatures: 2000
+ORBextractor.scaleFactor: 1.2
+ORBextractor.nLevels: 8
+ORBextractor.iniThFAST: 10
+ORBextractor.minThFAST: 5
+
+#--------------------------------------------------------------------------------------------
+# Viewer Parameters
+#--------------------------------------------------------------------------------------------
+Viewer.KeyFrameSize: 0.05
+Viewer.KeyFrameLineWidth: 1.0
+Viewer.GraphLineWidth: 0.9
+Viewer.PointSize: 2.0
+Viewer.CameraSize: 0.08
+Viewer.CameraLineWidth: 3.0
+Viewer.ViewpointX: 0.0
+Viewer.ViewpointY: -0.7
+Viewer.ViewpointZ: -1.8
+Viewer.ViewpointF: 500.0

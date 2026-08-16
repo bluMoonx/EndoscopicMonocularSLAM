@@ -1,0 +1,448 @@
+<title>Argus — Field Guide</title>
+<style>
+  :root {
+    --paper: #F5F3EF;
+    --surface: #FFFFFF;
+    --surface-2: #FBF9F6;
+    --ink: #191C22;
+    --muted: #6C655E;
+    --faint: #938B82;
+    --line: #E6E0D8;
+    --tissue: #BC5346;      /* mucosal coral — primary accent / "plain" layer */
+    --tissue-soft: #F5E6E2;
+    --teal: #2C7B74;        /* surgical teal — "technical" layer */
+    --teal-soft: #E2EEEC;
+    --amber: #B67F26;       /* specular glare highlight — used sparingly */
+    --amber-soft: #F4E9D3;
+    --shadow: 0 1px 2px rgba(25,28,34,.05), 0 6px 20px rgba(25,28,34,.06);
+
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+    --sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --mono: "Consolas", "SF Mono", "JetBrains Mono", ui-monospace, "Courier New", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #121519;
+      --surface: #1A1E24;
+      --surface-2: #171B20;
+      --ink: #E9E5DF;
+      --muted: #A29A90;
+      --faint: #786F66;
+      --line: #2A2F37;
+      --tissue: #E0796B;
+      --tissue-soft: #2B1E1B;
+      --teal: #5FB5AD;
+      --teal-soft: #14242699;
+      --amber: #DCA645;
+      --amber-soft: #2A2312;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 26px rgba(0,0,0,.34);
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #F5F3EF; --surface: #FFFFFF; --surface-2: #FBF9F6; --ink: #191C22;
+    --muted: #6C655E; --faint: #938B82; --line: #E6E0D8;
+    --tissue: #BC5346; --tissue-soft: #F5E6E2; --teal: #2C7B74; --teal-soft: #E2EEEC;
+    --amber: #B67F26; --amber-soft: #F4E9D3;
+    --shadow: 0 1px 2px rgba(25,28,34,.05), 0 6px 20px rgba(25,28,34,.06);
+  }
+  :root[data-theme="dark"] {
+    --paper: #121519; --surface: #1A1E24; --surface-2: #171B20; --ink: #E9E5DF;
+    --muted: #A29A90; --faint: #786F66; --line: #2A2F37;
+    --tissue: #E0796B; --tissue-soft: #2B1E1B; --teal: #5FB5AD; --teal-soft: #14242699;
+    --amber: #DCA645; --amber-soft: #2A2312;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 26px rgba(0,0,0,.34);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .page {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    padding: 0 20px 96px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+
+  /* ---- Masthead ---- */
+  .masthead { padding: 60px 0 34px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--tissue); font-weight: 600; margin: 0 0 18px;
+  }
+  h1 {
+    font-family: var(--serif); font-weight: 600; font-size: clamp(2.1rem, 6vw, 3rem);
+    line-height: 1.08; letter-spacing: -.01em; margin: 0 0 12px; text-wrap: balance;
+  }
+  h1 .sub { display:block; font-style: italic; font-weight: 400; color: var(--muted); font-size: clamp(1.05rem,2.8vw,1.35rem); margin-top: 10px; letter-spacing: 0; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 22px; font-family: var(--mono); font-size: 12.5px; color: var(--faint); }
+  .meta b { color: var(--muted); font-weight: 600; }
+
+  /* ---- TOC ---- */
+  nav.toc {
+    margin: 34px 0 8px; padding: 22px 26px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; box-shadow: var(--shadow);
+  }
+  nav.toc p { margin: 0 0 12px; font-family: var(--mono); font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+  nav.toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; columns: 2; column-gap: 34px; }
+  nav.toc li { counter-increment: toc; break-inside: avoid; margin: 0 0 9px; padding-left: 30px; position: relative; }
+  nav.toc li::before { content: counter(toc, decimal-leading-zero); position: absolute; left: 0; top: 1px; font-family: var(--mono); font-size: 11.5px; color: var(--tissue); font-weight: 600; }
+  nav.toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid transparent; }
+  nav.toc a:hover { border-bottom-color: var(--tissue); }
+
+  /* ---- Sections ---- */
+  section { padding: 46px 0 8px; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: none; }
+  h2 {
+    font-family: var(--serif); font-weight: 600; font-size: clamp(1.5rem, 3.6vw, 1.95rem);
+    line-height: 1.15; letter-spacing: -.01em; margin: 0 0 6px; text-wrap: balance;
+  }
+  h2 .num { font-family: var(--mono); font-size: 13px; color: var(--tissue); font-weight: 600; margin-right: 12px; letter-spacing: .04em; }
+  h3 { font-family: var(--sans); font-weight: 700; font-size: 1.12rem; margin: 30px 0 8px; letter-spacing: -.01em; }
+  p { margin: 0 0 16px; }
+  a { color: var(--tissue); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+  .lead { font-size: 1.12rem; color: var(--muted); }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; }
+  li { margin: 0 0 8px; }
+  code { font-family: var(--mono); font-size: .86em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+
+  /* ---- Two-layer callouts ---- */
+  .layer { border-radius: 10px; padding: 16px 20px; margin: 0 0 16px; border: 1px solid var(--line); }
+  .layer .tag { display: inline-block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .15em; text-transform: uppercase; font-weight: 700; margin-bottom: 8px; }
+  .layer p:last-child { margin-bottom: 0; }
+  .plain { background: var(--tissue-soft); border-color: color-mix(in srgb, var(--tissue) 26%, transparent); }
+  .plain .tag { color: var(--tissue); }
+  .tech { background: var(--teal-soft); border-color: color-mix(in srgb, var(--teal) 30%, transparent); }
+  .tech .tag { color: var(--teal); }
+  .tech code { background: color-mix(in srgb, var(--teal) 9%, var(--surface)); border-color: color-mix(in srgb, var(--teal) 22%, transparent); }
+
+  /* ---- Callout: the rule / note ---- */
+  .rule {
+    background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--amber);
+    border-radius: 10px; padding: 18px 22px; margin: 20px 0; box-shadow: var(--shadow);
+  }
+  .rule .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--amber); font-weight: 700; display:block; margin-bottom: 6px; }
+  .rule p { margin: 0; font-size: 1.06rem; }
+
+  /* ---- Phase roadmap ---- */
+  .phases { list-style: none; margin: 8px 0 8px; padding: 0; counter-reset: ph; }
+  .phase { position: relative; padding: 0 0 26px 56px; }
+  .phase::before {
+    counter-increment: ph; content: counter(ph); position: absolute; left: 0; top: 0;
+    width: 38px; height: 38px; border-radius: 50%; background: var(--surface); color: var(--tissue);
+    border: 1.5px solid var(--tissue); display: grid; place-items: center;
+    font-family: var(--mono); font-weight: 700; font-size: 15px;
+  }
+  .phase::after { content: ""; position: absolute; left: 19px; top: 40px; bottom: 0; width: 1.5px; background: var(--line); }
+  .phase:last-child::after { display: none; }
+  .phase h4 { margin: 4px 0 2px; font-family: var(--sans); font-weight: 700; font-size: 1.06rem; }
+  .phase .when { font-family: var(--mono); font-size: 11.5px; color: var(--faint); text-transform: uppercase; letter-spacing: .08em; }
+  .phase p { margin: 8px 0 0; font-size: .97rem; color: var(--muted); }
+  .phase .done { margin-top: 8px; font-size: .92rem; }
+  .phase .done b { color: var(--teal); }
+
+  /* ---- Table ---- */
+  .tablewrap { overflow-x: auto; margin: 12px 0 20px; border: 1px solid var(--line); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+  th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--surface-2); }
+  tr:last-child td { border-bottom: none; }
+  td .chip { font-family: var(--mono); font-size: 11px; padding: 1px 7px; border-radius: 20px; white-space: nowrap; }
+  .chip.cpu { background: var(--teal-soft); color: var(--teal); border: 1px solid color-mix(in srgb, var(--teal) 30%, transparent); }
+  .chip.gpu { background: var(--amber-soft); color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 34%, transparent); }
+  .chip.disk { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+
+  /* ---- Novelty ladder ---- */
+  .ladder { display: grid; gap: 14px; margin: 14px 0 8px; }
+  .rung { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; box-shadow: var(--shadow); }
+  .rung .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+  .rung.core .kicker { color: var(--tissue); }
+  .rung.flag .kicker { color: var(--amber); }
+  .rung.stretch .kicker { color: var(--teal); }
+  .rung h4 { margin: 0 0 8px; font-family: var(--serif); font-weight: 600; font-size: 1.22rem; }
+  .rung p { margin: 0 0 10px; }
+  .rung .line { font-size: .95rem; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 4px; }
+  .rung .line b { color: var(--ink); }
+
+  /* ---- Glossary ---- */
+  dl.gloss { margin: 8px 0; }
+  dl.gloss div { padding: 13px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 190px 1fr; gap: 18px; }
+  dl.gloss div:last-child { border-bottom: none; }
+  dl.gloss dt { font-family: var(--mono); font-size: .84rem; color: var(--tissue); font-weight: 600; line-height: 1.5; }
+  dl.gloss dd { margin: 0; font-size: .96rem; }
+  @media (max-width: 560px) { dl.gloss div { grid-template-columns: 1fr; gap: 4px; } nav.toc ol { columns: 1; } }
+
+  .verdict { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 26px 28px; box-shadow: var(--shadow); }
+  .verdict .grade { font-family: var(--serif); font-style: italic; font-size: 1.3rem; color: var(--tissue); margin: 0 0 12px; }
+
+  footer { padding: 40px 0 0; color: var(--muted); font-size: .95rem; }
+  footer .sig { font-family: var(--serif); font-style: italic; color: var(--ink); }
+
+  a:focus-visible, nav.toc a:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 3px; }
+</style>
+
+<div class="page">
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">GSDSEF 2026 · Project Field Guide</p>
+    <h1>Argus
+      <span class="sub">Seeing past the glare — mapping the colon when the light fights back.</span>
+    </h1>
+    <div class="meta">
+      <span><b>Version</b> 1.0 · living document</span>
+      <span><b>Started</b> Aug 10, 2026</span>
+      <span><b>Target</b> bulk done by mid-October</span>
+      <span><b>Built for</b> one Windows PC, one GPU, one student</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <p>What's inside</p>
+    <ol>
+      <li><a href="#read">How to read this guide</a></li>
+      <li><a href="#breath">The project in one breath</a></li>
+      <li><a href="#correction">The big correction (read this)</a></li>
+      <li><a href="#measure">What you're actually measuring</a></li>
+      <li><a href="#experiment">The experiment</a></li>
+      <li><a href="#novelty">What makes it ISEF-worthy</a></li>
+      <li><a href="#hardware">Your computer &amp; what runs where</a></li>
+      <li><a href="#data">The data</a></li>
+      <li><a href="#roadmap">The roadmap</a></li>
+      <li><a href="#fair">The fair &amp; the paperwork</a></li>
+      <li><a href="#verdict">Honest verdict</a></li>
+      <li><a href="#glossary">Glossary</a></li>
+    </ol>
+  </nav>
+
+  <section id="read">
+    <h2><span class="num">01</span>How to read this guide</h2>
+    <p class="lead">This document has two layers on purpose. You are not supposed to understand all the technical language yet — you'll grow into it as we build. But it stays in, because by the fair you'll own every word of it.</p>
+    <p>Wherever a real concept shows up, you'll see it twice:</p>
+    <div class="layer plain"><span class="tag">In plain words</span><p>The version you can say out loud to a friend, a parent, or a judge who isn't a computer scientist.</p></div>
+    <div class="layer tech"><span class="tag">The technical version</span><p>The real, correct, grown-up version — the terms, the metrics, the methods. This is the language of the abstract and the paper. Read it, let it wash over you, and it'll click as we actually do each step.</p></div>
+    <div class="rule">
+      <span class="tag">The one rule</span>
+      <p>We only build things you can explain in your own words. If you can't explain it, it doesn't go in the project. This isn't a limitation — it's the exact thing that makes a project ISEF-worthy. Judges reward a student who <em>deeply understands a simple thing</em> over one who parrots a complex one.</p>
+    </div>
+  </section>
+
+  <section id="breath">
+    <h2><span class="num">02</span>The project in one breath</h2>
+    <div class="layer plain"><span class="tag">In plain words</span>
+      <p>A tiny camera goes inside the colon to look for polyps. Software watches the video and builds a 3D map of the tunnel so nothing gets missed. But the colon is wet and shiny, so the camera's own light bounces back as bright <em>glare</em> — and that glare confuses the software and makes it lose track. <strong>You build a filter that removes the glare before the software sees it, and you prove that removing the glare helps the software track better.</strong></p>
+    </div>
+    <div class="layer tech"><span class="tag">The technical version</span>
+      <p>Specular reflections from the endoscope's light source on wet mucosal tissue corrupt ORB feature extraction in monocular visual SLAM, causing trajectory drift, tracking loss, and incomplete reconstruction. Argus is a modular preprocessing pipeline inserted upstream of <code>ORB-SLAM3</code> — an adaptive per-frame specularity mask followed by a Lucas–Kanade optical-flow consistency filter — evaluated as a controlled variable in an ablation study against baseline and prior-work conditions.</p>
+    </div>
+    <p>That's the whole project. Everything else in this guide is just <em>how</em> we prove it and <em>how</em> we make it stand out.</p>
+  </section>
+
+  <section id="correction">
+    <h2><span class="num">03</span>The big correction — read this one</h2>
+    <p>The original AI-written plan assumed we'd grade the camera's path using a score called <strong>ATE</strong> on the <strong>Hamlyn</strong> dataset. We researched it hard, and that assumption is broken. Catching it now, in week one, is a win — it would have sunk the project in September.</p>
+    <div class="layer plain"><span class="tag">In plain words</span>
+      <p>To grade how well the software guessed the camera's path, you need an <em>answer key</em> — the true path the camera actually took. For the Hamlyn colon videos, <strong>nobody ever recorded that true path.</strong> There is no answer key. So you literally cannot grade the path on Hamlyn.</p>
+    </div>
+    <div class="layer tech"><span class="tag">The technical version</span>
+      <p>Hamlyn ships <em>depth / scene-structure</em> ground truth (from Libelas stereo matching), never a 6-DOF camera trajectory. No mainstream Hamlyn paper reports a true trajectory ATE against pose GT — they report reconstruction error against stereo structure, or switch to pose-GT datasets (SCARED, EndoSLAM). The much-quoted "1.37 RMSE" for ORB-SLAM3 is a <em>reconstruction error in millimetres</em>, not ATE. VSLAM-LAB's Hamlyn "ground truth" file is an empty placeholder (header row only).</p>
+    </div>
+    <h3>Our fix: measure what actually exists</h3>
+    <div class="layer plain"><span class="tag">In plain words</span>
+      <p>Instead of grading the <em>path</em> on Hamlyn, we measure things we can see <em>directly</em> from the software with no answer key needed — like "how long does it keep track before getting lost." Those work on every glare-y colon video, immediately. Then, for one honest <em>path</em> grade, we borrow a second free dataset (EndoSLAM) where researchers <em>did</em> record the true path.</p>
+    </div>
+    <div class="layer tech"><span class="tag">The technical version</span>
+      <p>Primary evidence = ground-truth-free tracking metrics on Hamlyn (feature-track length, tracking-failure / relocalization rate, map-point count). Trajectory validation = ATE with <code>evo</code> (Sim(3)-aligned, scale-corrected for monocular) on EndoSLAM ex-vivo, which has genuine 6-DOF pose GT. Optional secondary = reconstruction RMSE vs Hamlyn Libelas depth.</p>
+    </div>
+  </section>
+
+  <section id="measure">
+    <h2><span class="num">04</span>What you're actually measuring</h2>
+    <p>These are your <strong>dependent variables</strong> — the things you compare before vs after glare removal. Three of them need no answer key; one uses the borrowed EndoSLAM answer key.</p>
+
+    <h3>The no-answer-key trio (your backbone)</h3>
+    <div class="layer plain"><span class="tag">In plain words</span>
+      <p><strong>1. Track length</strong> — how many video frames in a row the software follows a single spot before losing it. Glare should make this <em>shorter</em>. <br>
+      <strong>2. Lost rate</strong> — how often the software throws up its hands and says "I don't know where I am." Glare should make this <em>higher</em>. <br>
+      <strong>3. Map pieces</strong> — how much of the 3D map it managed to build. Glare should make this <em>smaller</em>.</p>
+    </div>
+    <div class="layer tech"><span class="tag">The technical version</span>
+      <p><strong>Feature-track length</strong> (mean consecutive frames an ORB feature survives), <strong>tracking-failure rate</strong> (fraction of frames in LOST state + relocalization count), and <strong>map-point count / density</strong> — all read directly from ORB-SLAM3's output, no GT required. These directly probe the causal mechanism: glare → corrupted correspondences → shortened tracks → lost pose.</p>
+    </div>
+
+    <h3>The one real path grade</h3>
+    <div class="layer plain"><span class="tag">In plain words</span>
+      <p>On EndoSLAM (which has the answer key), we compute the actual grade for the guessed path vs the true path. Lower = the guess was closer to reality.</p>
+    </div>
+    <div class="layer tech"><span class="tag">The technical version</span>
+      <p><strong>ATE (Absolute Trajectory Error), reported as RMSE</strong> — root-mean-square distance between estimated and ground-truth camera positions after Sim(3) alignment (monocular is up-to-scale, so scale correction is mandatory). Computed with the <code>evo</code> library. Optional companion: <strong>RPE (Relative Pose Error)</strong> for local drift.</p>
+    </div>
+  </section>
+
+  <section id="experiment">
+    <h2><span class="num">05</span>The experiment</h2>
+    <div class="layer plain"><span class="tag">In plain words</span>
+      <p>You run the same videos four ways and compare. Only <em>one thing</em> changes between runs — how you treat the glare — so any difference in the scores is caused by the glare handling, nothing else. That "change only one thing" design is what makes it real science instead of a demo.</p>
+    </div>
+    <div class="layer tech"><span class="tag">The technical version</span>
+      <p>Independent variable = preprocessing condition. Dependent variables = the metrics in §04. This is an <strong>ablation study</strong> — you toggle pieces on and off to isolate each part's contribution.</p>
+    </div>
+    <ol>
+      <li><strong>Baseline</strong> — raw video into SLAM, no glare handling. Your control.</li>
+      <li><strong>Prior work</strong> — a plain fixed brightness threshold (paint over the brightest pixels). Replicates the closest existing method.</li>
+      <li><strong>Your mask</strong> — a smarter per-frame adaptive threshold that adjusts to how bright each frame is.</li>
+      <li><strong>Full pipeline</strong> — your mask <em>plus</em> the optical-flow motion filter that removes leftover glare that moves inconsistently with the tissue.</li>
+    </ol>
+  </section>
+
+  <section id="novelty">
+    <h2><span class="num">06</span>What makes it ISEF-worthy</h2>
+    <p>You don't reach ISEF by piling on complicated parts. You reach it with <em>one or two things you can still explain</em>, done rigorously. Here's the ladder — climb it in order, and stop wherever your time runs out.</p>
+    <div class="ladder">
+      <div class="rung core">
+        <span class="kicker">Rung 1 · the centerpiece · do this</span>
+        <h4>The severity curve</h4>
+        <p><b>Plain:</b> The glarier a video is, the more the software struggles — and your filter helps the glarier videos the <em>most</em>. You measure how glare-y each video is, then draw it as a graph.</p>
+        <p><b>Technical:</b> Compute a per-sequence specularity-severity score (mean fraction of specular pixels/frame, measured before masking). Plot severity vs metric-improvement across sequences. A positive trend is evidence that specularity <em>causes</em> tracking failure — not just correlates with it.</p>
+        <p class="line"><b>Why it's the wow:</b> it turns "I made a filter" into "I proved something, and I can predict how much." That one graph is your project's spine.</p>
+      </div>
+      <div class="rung flag">
+        <span class="kicker">Rung 2 · the flagship · do this if the base works</span>
+        <h4>Guessing what's under the glare</h4>
+        <p><b>Plain:</b> Instead of just covering glare with a black patch, use image tools (and optionally a small AI depth model) to guess what the tissue <em>underneath</em> probably looks like, and paint that in.</p>
+        <p><b>Technical:</b> Add an inpainting condition. Start with classical <code>cv2.inpaint</code> (free, CPU); optionally upgrade to depth-guided inpainting using Depth-Anything-v2-Small (fits your GPU). Real open question: do synthesized pixels help or hurt trajectory accuracy?</p>
+        <p class="line"><b>Why it lifts you:</b> visually striking on a poster, and it asks a question nobody has answered. This is your ISEF differentiator.</p>
+      </div>
+      <div class="rung stretch">
+        <span class="kicker">Rung 3 · the stretch · only if time</span>
+        <h4>The blind-spot map</h4>
+        <p><b>Plain:</b> A heat-map showing which parts of the colon the camera never got a clean look at because glare was in the way — exactly what a doctor cares about.</p>
+        <p><b>Technical:</b> Project low-coverage / tracking-loss regions back onto the frame as an overlay. Frame it honestly as a proof-of-concept visualization, <em>not</em> a validated clinical tool — that honesty is what keeps it defensible.</p>
+        <p class="line"><b>Why it's a stretch:</b> great medical story, but the weakest to defend technically. Keep it modest and secondary.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="hardware">
+    <h2><span class="num">07</span>Your computer &amp; what runs where</h2>
+    <p>Everything in this project runs on <strong>one Windows 11 PC with a single RTX A1000 (4–6&nbsp;GB VRAM)</strong>. No lab cluster, no cloud bill. Here's the honest breakdown of what uses the GPU and what doesn't:</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Component</th><th>Runs on</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>ORB-SLAM3 (the mapping software)</td><td><span class="chip cpu">CPU</span></td><td>Feature-based, not deep learning. Use a prebuilt Docker image to skip the painful build.</td></tr>
+          <tr><td>Glare mask + optical-flow filter (OpenCV)</td><td><span class="chip cpu">CPU</span></td><td>Milliseconds per frame. Trivial load.</td></tr>
+          <tr><td>evo (trajectory scoring)</td><td><span class="chip cpu">CPU</span></td><td>Pure Python. Instant.</td></tr>
+          <tr><td>Classical inpainting (<code>cv2.inpaint</code>)</td><td><span class="chip cpu">CPU</span></td><td>The no-GPU version of the flagship. Works everywhere.</td></tr>
+          <tr><td>Depth-Anything-v2 <em>Small</em> (optional)</td><td><span class="chip gpu">GPU</span></td><td>Inference only, ~2–3&nbsp;GB VRAM — fits comfortably. Use Small/Base, never Large.</td></tr>
+          <tr><td>Datasets (Hamlyn, EndoSLAM)</td><td><span class="chip disk">DISK</span></td><td>~10–30&nbsp;GB of storage. Not a compute cost.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="lead">Bottom line: nothing here needs hardware you don't have. The GPU is optional and only for the flagship's fancy version.</p>
+  </section>
+
+  <section id="data">
+    <h2><span class="num">08</span>The data</h2>
+    <p>Two datasets, both free and legitimate. (Your instinct to distrust random GitHub links was right — but these two are the real, cited sources.)</p>
+    <h3>Hamlyn — your glare testbed</h3>
+    <p>Real in-body endoscopic video, wet and glare-heavy — the right place to tell the specular story. Two safe mirrors: <a href="https://huggingface.co/datasets/Recasens/HamlynRectifiedDataset">Recasens/HamlynRectifiedDataset</a> (20 videos, depth ground truth, from the Endo-Depth-and-Motion authors) and <a href="https://huggingface.co/datasets/vslamlab/Hamlyn_Rectified_Dataset">vslamlab/Hamlyn_Rectified_Dataset</a> (rectified sequences + calibration, from the VSLAM-LAB benchmark team). You use the left-camera images as your single-camera input; depth is there for the optional reconstruction metric. <em>No trajectory answer key — that's expected (§03).</em></p>
+    <h3>EndoSLAM — your one real path grade</h3>
+    <p><a href="https://github.com/CapsuleEndoscope/EndoSLAM">CapsuleEndoscope/EndoSLAM</a> — ex-vivo GI recordings with genuine 6-DOF camera pose ground truth (captured on a controlled rig), free, no access paperwork. This is where your ATE number comes from. (A tougher, more clinical option, <em>SCARED</em>, exists but needs registration/a license — save it for later if at all.)</p>
+  </section>
+
+  <section id="roadmap">
+    <h2><span class="num">09</span>The roadmap</h2>
+    <p>Six phases, roughly nine weeks to the mid-October target. Dates are targets, not promises — <strong>Phase 2 is the crux</strong>, where most projects stall, so protect time for it. If you fall behind, drop Rung 2/3 novelty before you cut corners on rigor.</p>
+    <ol class="phases">
+      <li class="phase">
+        <span class="when">Now · ~1.5 weeks</span>
+        <h4>Setup &amp; understanding</h4>
+        <p>Finish the Python environment, download both datasets, pull a Docker ORB-SLAM3 image, and get comfortable with the five core ideas.</p>
+        <p class="done"><b>Done when:</b> you can run ORB-SLAM3 on one test clip and watch a trajectory come out the other end.</p>
+      </li>
+      <li class="phase">
+        <span class="when">Late August · ~2 weeks · the crux</span>
+        <h4>Baseline results</h4>
+        <p>Run raw (no-filter) SLAM on your chosen Hamlyn sequences and on EndoSLAM. Collect the no-answer-key metrics; compute a real ATE on EndoSLAM with evo.</p>
+        <p class="done"><b>Done when:</b> you have a baseline number for every metric on every sequence.</p>
+      </li>
+      <li class="phase">
+        <span class="when">Early September · ~2 weeks</span>
+        <h4>Build the glare filter</h4>
+        <p>Implement conditions 2–4 (fixed threshold, your adaptive mask, mask + optical-flow). Re-run everything, build the full results table.</p>
+        <p class="done"><b>Done when:</b> all four conditions are measured across all sequences.</p>
+      </li>
+      <li class="phase">
+        <span class="when">Mid September · ~1 week</span>
+        <h4>The centerpiece</h4>
+        <p>Compute the per-sequence severity score, plot the severity curve, run the paired significance tests.</p>
+        <p class="done"><b>Done when:</b> the severity graph exists and the improvement is statistically tested.</p>
+      </li>
+      <li class="phase">
+        <span class="when">Late September · ~1.5 weeks</span>
+        <h4>The flagship (if on track)</h4>
+        <p>Add inpainting as a fifth condition and answer: does guessing-the-hidden-tissue help or hurt?</p>
+        <p class="done"><b>Done when:</b> you have a clear result for the inpainting question — even "it hurts" is a finding.</p>
+      </li>
+      <li class="phase">
+        <span class="when">Early October → fair · ongoing</span>
+        <h4>Blind-spot map + write-up</h4>
+        <p>Optional blind-spot visualization, then poster, abstract, and paperwork. Keep the research notebook current the whole time — start it in Phase 1, not now.</p>
+        <p class="done"><b>Done when:</b> results are frozen and the presentation materials are underway.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="fair">
+    <h2><span class="num">10</span>The fair &amp; the paperwork</h2>
+    <div class="layer plain"><span class="tag">In plain words</span>
+      <p>The path is regional → state → international: <strong>GSDSEF → CSEF → ISEF</strong>. The boring-but-critical rule: you usually need your fair's review committee to approve your plan <em>before</em> you start experimenting. The good news — because you use public, already-recorded data and no live patients or animals, your review is normally the light kind.</p>
+    </div>
+    <div class="layer tech"><span class="tag">The technical version</span>
+      <p>Get <strong>SRC/IRB approval before experimentation</strong> (an ISEF requirement). Using a pre-existing, publicly available, de-identified dataset with no human/animal subject interaction generally means the lighter review track — but you still complete the core ISEF forms (Adult Sponsor Checklist 1, Student Checklist 1A, Research Plan, Approval Form 1B) and confirm each dataset's license permits research use. <strong>Verify the current-year specifics with your fair coordinator — don't take these form numbers as final.</strong></p>
+    </div>
+    <p><strong>Category call (decide later):</strong> Computer Science / Systems Software plays up the engineering; Biomedical plays up the medical impact. We'll pick once results are in and we see which story is stronger. <strong>Start the research notebook in Phase 1</strong> — judges and SRC both want to see the dated trail, and reconstructing it later is misery.</p>
+  </section>
+
+  <section id="verdict">
+    <h2><span class="num">11</span>Honest verdict</h2>
+    <div class="verdict">
+      <p class="grade">Doable on your machine and your timeline. A strong regional/state project as its base — with a real, not-guaranteed shot at ISEF.</p>
+      <p>The base project (glare hurts tracking → removing it helps, shown with the no-answer-key metrics + one real ATE) is solidly CSEF-competitive. Three things lift it toward ISEF: <strong>(1)</strong> the severity curve landing as a clean, real result; <strong>(2)</strong> the inpainting flagship, if you get there; and <strong>(3)</strong> you understanding and defending every piece in the interview.</p>
+      <p>It's more technical and more rigorous than last year's project — the kind of rigorous evaluation study that ISEF finalists in this category actually are. The honest risk isn't the idea; it's execution: getting the pipeline running, and whether the results come out clean. That's why we sequence by risk and win the boring version first.</p>
+    </div>
+  </section>
+
+  <section id="glossary">
+    <h2><span class="num">12</span>Glossary</h2>
+    <p>This grows as we go. Every term here you'll be able to explain by the fair.</p>
+    <dl class="gloss">
+      <div><dt>SLAM</dt><dd>The mapping software. Works out <em>where the camera is</em> and <em>what the space looks like</em>, from video alone. (Simultaneous Localization And Mapping.)</dd></div>
+      <div><dt>ORB-SLAM3</dt><dd>The specific, well-known SLAM program you'll use. Runs on the CPU. "ORB" is the type of visual landmark it tracks.</dd></div>
+      <div><dt>Feature / landmark</dt><dd>A small distinctive spot the software locks onto and follows across frames. SLAM lives or dies by these.</dd></div>
+      <div><dt>Specular / glare</dt><dd>The bright shiny reflections off wet tissue. The villain of your story.</dd></div>
+      <div><dt>Track / tracking loss</dt><dd>The software successfully following its landmarks over time. Glare makes it "lose track."</dd></div>
+      <div><dt>Monocular</dt><dd>Using one camera (one lens). Harder than two, because one eye can't judge true distance — so the map has no fixed scale.</dd></div>
+      <div><dt>Ground truth</dt><dd>The answer key: the true thing, used to grade the software's guess.</dd></div>
+      <div><dt>ATE</dt><dd>Absolute Trajectory Error — the grade for the guessed path vs the true path. Lower is better. Needs an answer key.</dd></div>
+      <div><dt>RMSE</dt><dd>Root-Mean-Square Error — a standard way to average error that punishes big misses more than small ones.</dd></div>
+      <div><dt>Ablation</dt><dd>Turning parts of your system on and off to see how much each part actually contributes.</dd></div>
+      <div><dt>evo</dt><dd>A free Python tool that lines up two paths and computes ATE/RPE for you.</dd></div>
+      <div><dt>Optical flow</dt><dd>Measuring how each spot moves between two frames. Glare moves differently from tissue — that's how stage 2 catches it.</dd></div>
+      <div><dt>Inpainting</dt><dd>Filling in a hole in an image with a plausible guess of what belongs there.</dd></div>
+      <div><dt>Severity score</dt><dd>Your "how glare-y is this video" number — the fraction of glare pixels per frame, averaged.</dd></div>
+    </dl>
+  </section>
+
+  <footer>
+    <p>This is a living document — we'll update it at the end of each phase as things get real and the plan sharpens. Nothing here is locked; if the idea shifts, the guide shifts with it.</p>
+    <p class="sig">Next stop: Phase 1 — get the data down and the mapping software running.</p>
+  </footer>
+
+</div>
+</div>

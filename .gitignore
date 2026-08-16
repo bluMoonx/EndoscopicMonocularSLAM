@@ -1,0 +1,7 @@
+# Datasets and run outputs are large — keep them out of git
+data/
+results/
+*.ply
+*.pyc
+__pycache__/
+.evo/
