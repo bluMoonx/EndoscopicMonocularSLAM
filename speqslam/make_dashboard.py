@@ -21,6 +21,10 @@ PANELS = [
      "results/severity_curve.png"),
     ("Per-sequence comparison", "Mean keyframes tracked per sequence, each condition side by side.",
      "results/baseline_vs_argus.png"),
+    ("THE POSITIVE RESULT: direct methods", "For direct/photometric tracking (unlike feature-based "
+     "ORB-SLAM3), glare removal HELPS - and only on glary sequences, scaling with glare. Temporal "
+     "(real tissue) wins. Whether removal helps depends on the SLAM paradigm.",
+     "results/direct_severity_curve.png"),
 ]
 
 

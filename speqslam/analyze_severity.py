@@ -17,8 +17,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-TREAT = {"argus": ("Telea (smooth fill)", "#2C7B74"),
-         "ai":    ("LaMa (AI textured)", "#BC5346")}
+TREAT = {"argus":    ("Telea (smooth fill)", "#2C7B74"),
+         "ai":       ("LaMa (AI textured)", "#BC5346"),
+         "temporal": ("Temporal (real tissue)", "#B67F26")}
 
 
 def glare_severity(seq):
@@ -47,7 +48,7 @@ def main():
     # ---- printed table ----
     hdr = f"{'seq':<12}{'glare%':>7}{'baseline':>14}"
     for t in TREAT:
-        hdr += f"{t:>14}{'Δ':>7}"
+        hdr += f"{t:>14}{'chg':>7}"
     print(hdr)
     per = {}
     for s in seqs:
@@ -94,9 +95,9 @@ def main():
     # ---- grouped bars: baseline vs Telea vs LaMa ----
     fig2, ax2 = plt.subplots(figsize=(8, 5))
     conds = ["baseline"] + list(TREAT)
-    colors = {"baseline": "#9A938A", "argus": "#2C7B74", "ai": "#BC5346"}
-    labels = {"baseline": "baseline (raw)", "argus": "Telea", "ai": "LaMa (AI)"}
-    idx = np.arange(len(seqs)); wd = 0.26
+    colors = {"baseline": "#9A938A", "argus": "#2C7B74", "ai": "#BC5346", "temporal": "#B67F26"}
+    labels = {"baseline": "baseline (raw)", "argus": "Telea", "ai": "LaMa (AI)", "temporal": "Temporal"}
+    idx = np.arange(len(seqs)); wd = 0.20
     for j, c in enumerate(conds):
         vals = [st.mean(data[s][c]) if c in data[s] else 0 for s in seqs]
         ax2.bar(idx + (j - 1) * wd, vals, wd, label=labels[c], color=colors[c])
