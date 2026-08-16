@@ -25,6 +25,10 @@ PANELS = [
      "ORB-SLAM3), glare removal HELPS - and only on glary sequences, scaling with glare. Temporal "
      "(real tissue) wins. Whether removal helps depends on the SLAM paradigm.",
      "results/direct_severity_curve.png"),
+    ("Direct VO: engine-level result", "Our own from-scratch direct visual odometry: glare removal "
+     "cuts tracking error 10-17% on glary sequences, ~0% on clean ones. The effect amplifies at the "
+     "full trajectory-engine level (vs ~1% frame-to-frame). ATE on C3VD is the ground-truthed headline next.",
+     "results/vo_severity_curve.png"),
 ]
 
 
