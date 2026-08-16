@@ -39,10 +39,13 @@ def _bilinear(img, x, y):
             + img[y1, x0] * (1 - wx) * wy + img[y1, x1] * wx * wy)
 
 
-def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale):
+def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale, glare=None):
     h, w = ref.shape
     fx, fy, cx, cy = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
-    ys, xs = np.nonzero(dep > 0)
+    valid = dep > 0
+    if glare is not None:                 # glare-aware: drop specular pixels from the photometric cost
+        valid = valid & (glare == 0)
+    ys, xs = np.nonzero(valid)
     if len(xs) < 50:
         return T
     d = dep[ys, xs].astype(np.float32) * depth_scale
@@ -91,17 +94,22 @@ def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale):
     return T
 
 
-def track_pair(ref, dep, cur, K, levels=4, iters=15, robust=True, depth_scale=1.0):
+def track_pair(ref, dep, cur, K, levels=4, iters=15, robust=True, depth_scale=1.0, glare=None):
     grefs, gdeps, gcurs, Ks = [ref], [dep], [cur], [K]
+    glrs = None if glare is None else [glare]
     for _ in range(1, levels):
         grefs.append(cv2.pyrDown(grefs[-1]))
         gcurs.append(cv2.pyrDown(gcurs[-1]))
         gdeps.append(cv2.resize(gdeps[-1], (grefs[-1].shape[1], grefs[-1].shape[0]),
                                 interpolation=cv2.INTER_NEAREST))
+        if glrs is not None:
+            glrs.append(cv2.resize(glrs[-1], (grefs[-1].shape[1], grefs[-1].shape[0]),
+                                   interpolation=cv2.INTER_NEAREST))
         Kl = Ks[-1].copy(); Kl[:2, :] *= 0.5; Ks.append(Kl)
     T = np.eye(4)
     for l in reversed(range(levels)):
-        T = _align_level(grefs[l], gdeps[l], gcurs[l], Ks[l], T, iters, robust, depth_scale)
+        g = None if glrs is None else glrs[l]
+        T = _align_level(grefs[l], gdeps[l], gcurs[l], Ks[l], T, iters, robust, depth_scale, glare=g)
     return T
 
 
