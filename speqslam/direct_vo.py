@@ -119,9 +119,10 @@ def load_K(seq):
     return np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
 
 
-def run(seq_dir, depth_dir, out_txt, K, levels=4, robust=False, depth_scale=1.0, stride=1):
+def run(seq_dir, depth_dir, out_txt, K, levels=4, robust=False, depth_scale=1.0, stride=1,
+        depth_sub="depth01"):
     imgs = sorted(glob.glob(f"{seq_dir}/image01/*.jpg"))[::stride]
-    deps = sorted(glob.glob(f"{depth_dir}/depth01/*.png"))[::stride]
+    deps = sorted(glob.glob(f"{depth_dir}/{depth_sub}/*.png"))[::stride]
     pose = np.eye(4)  # camera-to-world
     lines = []
     prev_g = cv2.cvtColor(cv2.imread(imgs[0]), cv2.COLOR_BGR2GRAY).astype(np.float32) / 255.0
@@ -141,6 +142,34 @@ def run(seq_dir, depth_dir, out_txt, K, levels=4, robust=False, depth_scale=1.0,
     os.makedirs(os.path.dirname(out_txt), exist_ok=True)
     open(out_txt, "w").write("\n".join(lines) + "\n")
     print(f"trajectory -> {out_txt}  ({len(lines)} poses)", flush=True)
+
+
+def run_keyframe(seq_dir, depth_dir, out_txt, K, levels=4, robust=False, depth_scale=1.0,
+                 stride=1, kf_trans=0.004, kf_rot_deg=6.0):
+    """Keyframe-based direct VO: track each frame against a stable keyframe (not the previous
+    frame), spawning a new keyframe only when motion grows large. Error stops compounding every
+    frame -> much less drift than pure frame-to-frame VO."""
+    imgs = sorted(glob.glob(f"{seq_dir}/image01/*.jpg"))[::stride]
+    deps = sorted(glob.glob(f"{depth_dir}/depth01/*.png"))[::stride]
+    kf_g = cv2.cvtColor(cv2.imread(imgs[0]), cv2.COLOR_BGR2GRAY).astype(np.float32) / 255.0
+    kf_d = cv2.imread(deps[0], cv2.IMREAD_UNCHANGED).astype(np.float32)
+    kf_pose = np.eye(4); pose = np.eye(4)
+    lines = ["0.0 0 0 0 0 0 0 1"]
+    for i in range(1, len(imgs)):
+        cur_g = cv2.cvtColor(cv2.imread(imgs[i]), cv2.COLOR_BGR2GRAY).astype(np.float32) / 255.0
+        T_rel = track_pair(kf_g, kf_d, cur_g, K, levels, robust=robust, depth_scale=depth_scale)
+        pose = kf_pose @ np.linalg.inv(T_rel)
+        q = Rotation.from_matrix(pose[:3, :3]).as_quat(); t = pose[:3, 3]
+        lines.append(f"{i/30.0:.6f} {t[0]:.6f} {t[1]:.6f} {t[2]:.6f} {q[0]:.6f} {q[1]:.6f} {q[2]:.6f} {q[3]:.6f}")
+        tr = np.linalg.norm(T_rel[:3, 3])
+        rot = np.degrees(np.linalg.norm(cv2.Rodrigues(T_rel[:3, :3])[0]))
+        if tr > kf_trans or rot > kf_rot_deg:           # motion too large -> new keyframe
+            kf_g = cur_g
+            kf_d = cv2.imread(deps[i], cv2.IMREAD_UNCHANGED).astype(np.float32)
+            kf_pose = pose
+    os.makedirs(os.path.dirname(out_txt), exist_ok=True)
+    open(out_txt, "w").write("\n".join(lines) + "\n")
+    print(f"keyframe trajectory -> {out_txt}  ({len(lines)} poses)", flush=True)
 
 
 if __name__ == "__main__":
