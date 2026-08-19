@@ -1,0 +1,10 @@
+# Argus dependencies (install torch separately first -- see LAPTOP_SETUP.md)
+numpy<2
+opencv-python
+scipy
+transformers>=4.40
+open3d
+plotly
+matplotlib
+evo
+gdown

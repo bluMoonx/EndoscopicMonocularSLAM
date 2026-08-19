@@ -27,8 +27,12 @@ RES = 392                    # depth network input
 VO_SCALE = 0.5               # VO runs at half resolution for speed
 ADD_EVERY = 2                # add 3D points every Nth frame
 VOXEL = 0.0012               # 3D accumulation voxel (m)
+COUNT_VOXEL = 0.003          # coverage-count voxel (coarser: a "patch" of wall, ~3mm)
 THR_VIEWS = 3                # blind = seen fewer than this many times
 TISSUE = np.array([0.42, 0.36, 0.62])   # fallback point color (RGB 0-1) if frame color unused
+
+
+DEV = "cuda" if torch.cuda.is_available() else "cpu"   # runs on GPU-less laptops too, just slower
 
 
 class DepthNet:
@@ -37,7 +41,7 @@ class DepthNet:
         local = os.path.join("models", "depth_c3vd_demo")
         self.name = "fine-tuned (C3VD demo model)" if os.path.isdir(local) else "off-the-shelf"
         src = local if os.path.isdir(local) else "depth-anything/Depth-Anything-V2-Small-hf"
-        self.model = AutoModelForDepthEstimation.from_pretrained(src).to("cuda").eval()
+        self.model = AutoModelForDepthEstimation.from_pretrained(src).to(DEV).eval()
         self.mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
         self.std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
 
@@ -48,7 +52,7 @@ class DepthNet:
         endoscopic working range per-frame so the demo stays sensible without the local model."""
         rgb = cv2.cvtColor(cv2.resize(bgr, (RES, RES)), cv2.COLOR_BGR2RGB)
         x = torch.from_numpy(rgb).permute(2, 0, 1).float() / 255.0
-        x = ((x - self.mean) / self.std).unsqueeze(0).to("cuda")
+        x = ((x - self.mean) / self.std).unsqueeze(0).to(DEV)
         disp = self.model(pixel_values=x).predicted_depth[0]
         disp = torch.nn.functional.interpolate(disp[None, None], size=bgr.shape[:2],
                                                mode="bilinear")[0, 0].cpu().numpy()
@@ -151,11 +155,11 @@ def main():
 
         # --- accumulate 3D ---
         Pw, cols = backproject(depth, bgr, pose, K)
-        kv = np.floor(Pw / VOXEL).astype(np.int64)
-        for k in map(tuple, kv[::4]):
+        kvc = np.floor(Pw / COUNT_VOXEL).astype(np.int64)
+        for k in map(tuple, np.unique(kvc, axis=0)):   # each patch counts ONCE per frame
             vox_count[k] = vox_count.get(k, 0) + 1
         if i % ADD_EVERY == 0:
-            pts_all.append(Pw[::3]); col_all.append(cols[::3]); keys_all.append(kv[::3])
+            pts_all.append(Pw[::3]); col_all.append(cols[::3]); keys_all.append(kvc[::3])
 
         n_done += 1
         if a.selftest:
