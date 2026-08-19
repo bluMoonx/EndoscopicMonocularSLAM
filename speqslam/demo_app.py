@@ -43,15 +43,19 @@ class DepthNet:
 
     @torch.no_grad()
     def predict(self, bgr):
-        """Metric depth (m), same HxW as input. Demo model outputs metric disparity directly."""
+        """Metric depth (m), same HxW as input. The fine-tuned demo model outputs metric disparity
+        directly; the off-the-shelf fallback outputs RELATIVE disparity, which we map into the
+        endoscopic working range per-frame so the demo stays sensible without the local model."""
         rgb = cv2.cvtColor(cv2.resize(bgr, (RES, RES)), cv2.COLOR_BGR2RGB)
         x = torch.from_numpy(rgb).permute(2, 0, 1).float() / 255.0
         x = ((x - self.mean) / self.std).unsqueeze(0).to("cuda")
         disp = self.model(pixel_values=x).predicted_depth[0]
         disp = torch.nn.functional.interpolate(disp[None, None], size=bgr.shape[:2],
-                                               mode="bilinear")[0, 0]
-        depth = 1.0 / torch.clamp(disp, min=1.0 / DMAX)
-        d = depth.cpu().numpy()
+                                               mode="bilinear")[0, 0].cpu().numpy()
+        if self.name == "off-the-shelf":
+            lo, hi = np.percentile(disp, 2), np.percentile(disp, 98)
+            disp = 1.0 / DMAX + (np.clip(disp, lo, hi) - lo) / max(hi - lo, 1e-6) * (1.0 / 0.012 - 1.0 / DMAX)
+        d = 1.0 / np.clip(disp, 1.0 / DMAX, None)
         d[(d < DMIN) | (d > DMAX) | ~np.isfinite(d)] = 0.0
         return d
 
