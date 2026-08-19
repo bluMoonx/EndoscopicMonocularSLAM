@@ -1,0 +1,6 @@
+seq,n_pairs,median_err_mm,mean_err_mm,median_err_pct,within_1mm_pct
+cecum_t1_a,250,1.18,1.57,7.6,45.2
+desc_t4_a,250,1.31,2.02,9.6,38.8
+trans_t1_a,250,0.84,1.08,4.4,58.0
+trans_t2_a,250,0.42,0.69,2.2,87.6
+trans_t2_b,250,0.47,0.61,2.6,82.4

@@ -1,0 +1,11 @@
+condition,level,ate_mm,vs_baseline_pct
+baseline,-,0.674,+0.0
+flicker,0.1,4.999,+641.7
+flicker,0.2,10.460,+1451.9
+flicker,0.35,12.316,+1727.3
+blur,3,0.675,+0.1
+blur,7,0.681,+1.0
+blur,13,0.760,+12.8
+drop,2,0.563,-16.5
+drop,3,0.971,+44.1
+drop,5,3.566,+429.1

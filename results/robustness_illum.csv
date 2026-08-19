@@ -1,0 +1,5 @@
+condition,level,ate_mm
+baseline+illum,-,0.750
+flicker+illum,0.1,0.715
+flicker+illum,0.2,0.669
+flicker+illum,0.35,0.772
