@@ -74,7 +74,9 @@ def predict_metric(model, proc, bgr):
 
 
 def main(holdout, epochs=40):
-    train_seqs = [s for s in ALL if s != holdout]
+    # holdout="none": train on ALL sequences and save weights -- for the live demo app only,
+    # never for reported results (those use the LOSO folds).
+    train_seqs = ALL if holdout == "none" else [s for s in ALL if s != holdout]
     print(f"[FT] holdout={holdout}  train={train_seqs}  epochs={epochs}", flush=True)
     proc = AutoImageProcessor.from_pretrained(MODEL)
     model = AutoModelForDepthEstimation.from_pretrained(MODEL).to(DEV)
@@ -98,8 +100,13 @@ def main(holdout, epochs=40):
             tot += loss.item()
         if ep % 5 == 0 or ep == epochs - 1:
             print(f"  ep{ep:>3} loss={tot/len(dl):.4f}", flush=True)
-    # generate held-out depth
     model.eval()
+    if holdout == "none":
+        os.makedirs("models", exist_ok=True)
+        model.save_pretrained("models/depth_c3vd_demo")
+        print("  -> saved weights to models/depth_c3vd_demo (demo model)", flush=True)
+        return
+    # generate held-out depth
     u = f"data/c3vd/{holdout}_undist"; out = f"{u}/depth01_ft"; os.makedirs(out, exist_ok=True)
     for ip, _ in pairs(holdout):
         depth = predict_metric(model, proc, cv2.imread(ip))

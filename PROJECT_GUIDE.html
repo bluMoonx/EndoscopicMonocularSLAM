@@ -21,7 +21,7 @@
     --mono: "Consolas", "SF Mono", "JetBrains Mono", ui-monospace, "Courier New", monospace;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --paper: #121519;
       --surface: #1A1E24;
       --surface-2: #171B20;
@@ -54,7 +54,7 @@
   }
 
   * { box-sizing: border-box; }
-  body { margin: 0; }
+  body { margin: 0; background: var(--paper); }
   .page {
     background: var(--paper);
     color: var(--ink);
@@ -128,7 +128,7 @@
   .rule .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--amber); font-weight: 700; display:block; margin-bottom: 6px; }
   .rule p { margin: 0; font-size: 1.06rem; }
 
-  /* ---- Phase roadmap ---- */
+  /* ---- Story timeline ---- */
   .phases { list-style: none; margin: 8px 0 8px; padding: 0; counter-reset: ph; }
   .phase { position: relative; padding: 0 0 26px 56px; }
   .phase::before {
@@ -149,14 +149,17 @@
   .tablewrap { overflow-x: auto; margin: 12px 0 20px; border: 1px solid var(--line); border-radius: 10px; }
   table { border-collapse: collapse; width: 100%; font-size: .93rem; }
   th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td, th { font-variant-numeric: tabular-nums; }
   th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--surface-2); }
   tr:last-child td { border-bottom: none; }
   td .chip { font-family: var(--mono); font-size: 11px; padding: 1px 7px; border-radius: 20px; white-space: nowrap; }
   .chip.cpu { background: var(--teal-soft); color: var(--teal); border: 1px solid color-mix(in srgb, var(--teal) 30%, transparent); }
   .chip.gpu { background: var(--amber-soft); color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 34%, transparent); }
   .chip.disk { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+  td.good { color: var(--teal); font-weight: 700; }
+  td.bad { color: var(--tissue); font-weight: 700; }
 
-  /* ---- Novelty ladder ---- */
+  /* ---- Stage cards ---- */
   .ladder { display: grid; gap: 14px; margin: 14px 0 8px; }
   .rung { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; box-shadow: var(--shadow); }
   .rung .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
@@ -191,13 +194,13 @@
   <header class="masthead">
     <p class="eyebrow">GSDSEF 2026 · Project Field Guide</p>
     <h1>Argus
-      <span class="sub">Seeing past the glare — mapping the colon when the light fights back.</span>
+      <span class="sub">From one camera and nothing else: a 3D map of the colon, and the spots the doctor never saw.</span>
     </h1>
     <div class="meta">
-      <span><b>Version</b> 1.0 · living document</span>
+      <span><b>Version</b> 2.0 · rewritten after the system was built</span>
       <span><b>Started</b> Aug 10, 2026</span>
-      <span><b>Target</b> bulk done by mid-October</span>
-      <span><b>Built for</b> one Windows PC, one GPU, one student</span>
+      <span><b>Build phase</b> complete — write-up phase now</span>
+      <span><b>Built on</b> one Windows PC, one GPU, one student</span>
     </div>
   </header>
 
@@ -206,13 +209,14 @@
     <ol>
       <li><a href="#read">How to read this guide</a></li>
       <li><a href="#breath">The project in one breath</a></li>
-      <li><a href="#correction">The big correction (read this)</a></li>
-      <li><a href="#measure">What you're actually measuring</a></li>
-      <li><a href="#experiment">The experiment</a></li>
-      <li><a href="#novelty">What makes it ISEF-worthy</a></li>
-      <li><a href="#hardware">Your computer &amp; what runs where</a></li>
+      <li><a href="#story">The story — how it became this</a></li>
+      <li><a href="#system">The system, stage by stage</a></li>
+      <li><a href="#experiment">The experiment: the ablation ladder</a></li>
+      <li><a href="#results">The results</a></li>
+      <li><a href="#traps">Three traps we caught</a></li>
+      <li><a href="#limits">Honest limitations</a></li>
+      <li><a href="#hardware">Your computer &amp; what ran where</a></li>
       <li><a href="#data">The data</a></li>
-      <li><a href="#roadmap">The roadmap</a></li>
       <li><a href="#fair">The fair &amp; the paperwork</a></li>
       <li><a href="#verdict">Honest verdict</a></li>
       <li><a href="#glossary">Glossary</a></li>
@@ -221,227 +225,251 @@
 
   <section id="read">
     <h2><span class="num">01</span>How to read this guide</h2>
-    <p class="lead">This document has two layers on purpose. You are not supposed to understand all the technical language yet — you'll grow into it as we build. But it stays in, because by the fair you'll own every word of it.</p>
-    <p>Wherever a real concept shows up, you'll see it twice:</p>
-    <div class="layer plain"><span class="tag">In plain words</span><p>The version you can say out loud to a friend, a parent, or a judge who isn't a computer scientist.</p></div>
-    <div class="layer tech"><span class="tag">The technical version</span><p>The real, correct, grown-up version — the terms, the metrics, the methods. This is the language of the abstract and the paper. Read it, let it wash over you, and it'll click as we actually do each step.</p></div>
+    <p class="lead">Two layers, on purpose. The plain layer is what you say out loud; the technical layer is the language of your abstract and your interview. By the fair you own both.</p>
+    <div class="layer plain"><span class="tag">In plain words</span><p>The version you can say to a friend, a parent, or a judge who isn't a computer scientist.</p></div>
+    <div class="layer tech"><span class="tag">The technical version</span><p>The real, correct, grown-up version — the terms, the metrics, the methods.</p></div>
     <div class="rule">
       <span class="tag">The one rule</span>
-      <p>We only build things you can explain in your own words. If you can't explain it, it doesn't go in the project. This isn't a limitation — it's the exact thing that makes a project ISEF-worthy. Judges reward a student who <em>deeply understands a simple thing</em> over one who parrots a complex one.</p>
+      <p>Only things you can explain in your own words go in the project. Judges reward a student who <em>deeply understands</em> their system over one who parrots a complex one. Everything in this guide made the cut — which means everything in this guide is now yours to learn cold.</p>
     </div>
   </section>
 
   <section id="breath">
     <h2><span class="num">02</span>The project in one breath</h2>
     <div class="layer plain"><span class="tag">In plain words</span>
-      <p>A tiny camera goes inside the colon to look for polyps. Software watches the video and builds a 3D map of the tunnel so nothing gets missed. But the colon is wet and shiny, so the camera's own light bounces back as bright <em>glare</em> — and that glare confuses the software and makes it lose track. <strong>You build a filter that removes the glare before the software sees it, and you prove that removing the glare helps the software track better.</strong></p>
+      <p>During a colonoscopy, doctors miss about one in four precancerous growths — often because some patch of the colon wall simply never got looked at. Argus watches the video from a <strong>standard, unmodified endoscope</strong> and builds, from that video alone, a 3D map of the colon plus a <strong>coverage map</strong>: which areas were inspected, and which are <em>blind spots</em> the camera never saw. No new hardware, no extra sensors — just software on the video feed.</p>
     </div>
     <div class="layer tech"><span class="tag">The technical version</span>
-      <p>Specular reflections from the endoscope's light source on wet mucosal tissue corrupt ORB feature extraction in monocular visual SLAM, causing trajectory drift, tracking loss, and incomplete reconstruction. Argus is a modular preprocessing pipeline inserted upstream of <code>ORB-SLAM3</code> — an adaptive per-frame specularity mask followed by a Lucas–Kanade optical-flow consistency filter — evaluated as a controlled variable in an ablation study against baseline and prior-work conditions.</p>
+      <p>A fully monocular endoscopic mapping pipeline: per-frame depth from a domain-fine-tuned <code>Depth-Anything-V2</code>, 6-DOF camera poses from a from-scratch dense photometric (direct) visual odometry, dense surface reconstruction by TSDF volumetric fusion, and per-patch coverage counting for blind-spot detection. Every stage is validated independently against the C3VD phantom's ground-truth depth and 6-DOF poses via a staged ablation.</p>
     </div>
-    <p>That's the whole project. Everything else in this guide is just <em>how</em> we prove it and <em>how</em> we make it stand out.</p>
+    <p>The one-sentence pitch: <strong>“I built a fully monocular endoscopy mapping system, used a controlled ablation to prove the pre-trained depth network was the bottleneck, fine-tuned it for the endoscopy domain with leave-one-out validation, and that single fix carried the whole system from 74% to 98.6% agreement with ground truth.”</strong></p>
   </section>
 
-  <section id="correction">
-    <h2><span class="num">03</span>The big correction — read this one</h2>
-    <p>The original AI-written plan assumed we'd grade the camera's path using a score called <strong>ATE</strong> on the <strong>Hamlyn</strong> dataset. We researched it hard, and that assumption is broken. Catching it now, in week one, is a win — it would have sunk the project in September.</p>
-    <div class="layer plain"><span class="tag">In plain words</span>
-      <p>To grade how well the software guessed the camera's path, you need an <em>answer key</em> — the true path the camera actually took. For the Hamlyn colon videos, <strong>nobody ever recorded that true path.</strong> There is no answer key. So you literally cannot grade the path on Hamlyn.</p>
-    </div>
-    <div class="layer tech"><span class="tag">The technical version</span>
-      <p>Hamlyn ships <em>depth / scene-structure</em> ground truth (from Libelas stereo matching), never a 6-DOF camera trajectory. No mainstream Hamlyn paper reports a true trajectory ATE against pose GT — they report reconstruction error against stereo structure, or switch to pose-GT datasets (SCARED, EndoSLAM). The much-quoted "1.37 RMSE" for ORB-SLAM3 is a <em>reconstruction error in millimetres</em>, not ATE. VSLAM-LAB's Hamlyn "ground truth" file is an empty placeholder (header row only).</p>
-    </div>
-    <h3>Our fix: measure what actually exists</h3>
-    <div class="layer plain"><span class="tag">In plain words</span>
-      <p>Instead of grading the <em>path</em> on Hamlyn, we measure things we can see <em>directly</em> from the software with no answer key needed — like "how long does it keep track before getting lost." Those work on every glare-y colon video, immediately. Then, for one honest <em>path</em> grade, we borrow a second free dataset (EndoSLAM) where researchers <em>did</em> record the true path.</p>
-    </div>
-    <div class="layer tech"><span class="tag">The technical version</span>
-      <p>Primary evidence = ground-truth-free tracking metrics on Hamlyn (feature-track length, tracking-failure / relocalization rate, map-point count). Trajectory validation = ATE with <code>evo</code> (Sim(3)-aligned, scale-corrected for monocular) on EndoSLAM ex-vivo, which has genuine 6-DOF pose GT. Optional secondary = reconstruction RMSE vs Hamlyn Libelas depth.</p>
-    </div>
+  <section id="story">
+    <h2><span class="num">03</span>The story — how it became this</h2>
+    <p>Argus didn't start here. The arc below <em>is</em> the science: every pivot was forced by an honest measurement. Tell it in this order and judges see a real investigation, not a demo.</p>
+    <ol class="phases">
+      <li class="phase">
+        <span class="when">Act I · the glare hypothesis</span>
+        <h4>“Removing glare will fix endoscopic SLAM” — tested, and mostly wrong</h4>
+        <p>Rigorous multi-condition runs showed feature-based ORB-SLAM3 is already glare-robust (its RANSAC outlier rejection discards glare corrupted points), and naive inpainting actually <em>hurts</em> by destroying trackable texture. AI inpainting (LaMa) recovers to baseline but never beats it. An honest negative result with a mechanism.</p>
+      </li>
+      <li class="phase">
+        <span class="when">Act I½ · the paradigm insight</span>
+        <h4>Glare matters for <em>direct</em> methods — so we built one</h4>
+        <p>Brightness-based (direct/photometric) tracking is glare-sensitive where feature-based isn't: removal gave 10–17% tracking-residual improvement scaling with glare severity. To show it at trajectory level we built our own dense direct visual odometry from scratch — which validated at <b>0.38&thinsp;mm ATE</b> against C3VD ground truth and became the engine of everything after.</p>
+      </li>
+      <li class="phase">
+        <span class="when">Act II · the pivot</span>
+        <h4>The blind-spot map becomes the headline</h4>
+        <p>With accurate tracking in hand, the old stretch goal — mapping what the camera never inspected — became the clinically meaningful, buildable centerpiece. Validated first with ground-truth depth: 97.8–99.6% agreement with true blind spots across five sequences.</p>
+      </li>
+      <li class="phase">
+        <span class="when">Act III · going fully monocular</span>
+        <h4>Replace every ground-truth input — and find the bottleneck</h4>
+        <p>A real scope has no depth sensor. Swapping in off-the-shelf learned depth broke the system (74.5% mean agreement, some sequences at chance). The ablation ladder (§05) proved depth — not tracking — was the sole bottleneck.</p>
+      </li>
+      <li class="phase">
+        <span class="when">Act IV · the fix</span>
+        <h4>Domain fine-tuning, validated leave-one-out</h4>
+        <p>Fine-tuned the depth network on C3VD colon data with strict leave-one-sequence-out cross-validation. Held-out depth accuracy went 68%→98%; the full monocular system recovered to <b>98.6%</b> mean blind-spot agreement, 0.91&thinsp;mm mean tracking error, and 1.3–2.4&thinsp;mm reconstruction accuracy.</p>
+      </li>
+    </ol>
   </section>
 
-  <section id="measure">
-    <h2><span class="num">04</span>What you're actually measuring</h2>
-    <p>These are your <strong>dependent variables</strong> — the things you compare before vs after glare removal. Three of them need no answer key; one uses the borrowed EndoSLAM answer key.</p>
+  <section id="system">
+    <h2><span class="num">04</span>The system, stage by stage</h2>
+    <p>Four stages, each with its plain and technical version. Video goes in one end; a 3D colon with blind spots highlighted comes out the other.</p>
 
-    <h3>The no-answer-key trio (your backbone)</h3>
+    <h3>Stage 1 — Learned depth (one frame → distance at every pixel)</h3>
     <div class="layer plain"><span class="tag">In plain words</span>
-      <p><strong>1. Track length</strong> — how many video frames in a row the software follows a single spot before losing it. Glare should make this <em>shorter</em>. <br>
-      <strong>2. Lost rate</strong> — how often the software throws up its hands and says "I don't know where I am." Glare should make this <em>higher</em>. <br>
-      <strong>3. Map pieces</strong> — how much of the 3D map it managed to build. Glare should make this <em>smaller</em>.</p>
+      <p>A single photo has no depth — but a neural network that has seen millions of images has learned what shapes make what pictures, so it can <em>estimate</em> how far away every pixel is. We took a big pre-trained network and gave it a short extra course on colon images so it works in the gut.</p>
     </div>
     <div class="layer tech"><span class="tag">The technical version</span>
-      <p><strong>Feature-track length</strong> (mean consecutive frames an ORB feature survives), <strong>tracking-failure rate</strong> (fraction of frames in LOST state + relocalization count), and <strong>map-point count / density</strong> — all read directly from ORB-SLAM3's output, no GT required. These directly probe the causal mechanism: glare → corrupted correspondences → shortened tracks → lost pose.</p>
+      <p><code>Depth-Anything-V2</code> (a pre-trained vision transformer) outputs affine-invariant inverse depth ("disparity"): correct shape, unknown scale/shift — monocular depth is provably scale-ambiguous, so one global scale per sequence is recovered, the standard protocol (same reason monocular SLAM evaluation uses Sim(3) alignment). Fine-tuned on C3VD RGB→metric-depth pairs: 40 epochs, AdamW 1e-5, loss = L1 + gradient-matching + scale-invariant log (SiLog). Evaluated <em>leave-one-sequence-out</em>: five models, each tested only on the sequence it never saw.</p>
     </div>
 
-    <h3>The one real path grade</h3>
+    <h3>Stage 2 — Direct visual odometry (frames → camera path)</h3>
     <div class="layer plain"><span class="tag">In plain words</span>
-      <p>On EndoSLAM (which has the answer key), we compute the actual grade for the guessed path vs the true path. Lower = the guess was closer to reality.</p>
+      <p>The tracker figures out how the camera moved between two frames by asking: “what tiny 3D motion would make frame A line up with frame B, pixel for pixel?” Chain those little motions together and you get the camera's whole path through the colon.</p>
     </div>
     <div class="layer tech"><span class="tag">The technical version</span>
-      <p><strong>ATE (Absolute Trajectory Error), reported as RMSE</strong> — root-mean-square distance between estimated and ground-truth camera positions after Sim(3) alignment (monocular is up-to-scale, so scale correction is mandatory). Computed with the <code>evo</code> library. Optional companion: <strong>RPE (Relative Pose Error)</strong> for local drift.</p>
+      <p>Dense direct VO, written from scratch: minimizes the photometric residual over SE(3) via inverse-compositional Gauss–Newton on a 4-level image pyramid, warping with per-pixel depth; Huber robust weighting optional. Frame-to-frame motions are composed into a trajectory (TUM format). Fully monocular ATE: 0.17–1.59&thinsp;mm across the five sequences (evo, Sim(3)-aligned).</p>
+    </div>
+
+    <h3>Stage 3 — TSDF fusion (many noisy depth maps → one clean 3D mesh)</h3>
+    <div class="layer plain"><span class="tag">In plain words</span>
+      <p>Each frame's depth is a bit noisy. Instead of piling up noisy points, we carve space into tiny 0.6&thinsp;mm cubes and let every frame <em>vote</em> on where the colon wall is. Hundreds of votes average the noise away — the same reason averaging many shaky measurements gives one steady answer. The result is a smooth 3D surface, more accurate than any single frame that built it.</p>
+    </div>
+    <div class="layer tech"><span class="tag">The technical version</span>
+      <p><strong>TSDF</strong> = Truncated Signed Distance Function: each voxel stores a running average of its signed distance to the surface (negative inside tissue, positive in the lumen). Every frame's depth map updates voxels along its rays; <strong>marching cubes</strong> extracts the zero-crossing as a triangle mesh (the KinectFusion algorithm; Open3D implementation, 0.6&thinsp;mm voxels). Median surface error vs the ground-truth mesh: 1.3–2.4&thinsp;mm (Sim(3)+ICP-aligned Chamfer distance).</p>
+    </div>
+
+    <h3>Stage 4 — Coverage &amp; blind spots (mesh + path → what was never seen)</h3>
+    <div class="layer plain"><span class="tag">In plain words</span>
+      <p>Now we know the shape of the colon and where the camera was pointing at every moment. For each little patch of wall, count how many times a camera actually saw it. Patches seen fewer than three times get flagged red: <em>blind spots</em> — go back and look.</p>
+    </div>
+    <div class="layer tech"><span class="tag">The technical version</span>
+      <p>Each surface patch is projected into every camera pose; it counts as <em>seen</em> if in-frustum, front-facing, and not occluded (occlusion tolerance scaled to the depth model's measured accuracy band — one fixed setting for every sequence and every condition, never tuned per case). Patches with view-count &lt; 3 are blind. Validated against blind spots computed from ground-truth depth+poses on the same surface.</p>
     </div>
   </section>
 
   <section id="experiment">
-    <h2><span class="num">05</span>The experiment</h2>
+    <h2><span class="num">05</span>The experiment: the ablation ladder</h2>
     <div class="layer plain"><span class="tag">In plain words</span>
-      <p>You run the same videos four ways and compare. Only <em>one thing</em> changes between runs — how you treat the glare — so any difference in the scores is caused by the glare handling, nothing else. That "change only one thing" design is what makes it real science instead of a demo.</p>
+      <p>The system estimates two things: depth and camera position. When the output was bad, which one was to blame? Answer like a scientist: swap each estimated input for the perfect (ground-truth) version, one at a time, and see which swap fixes it. That's a controlled experiment on software.</p>
     </div>
     <div class="layer tech"><span class="tag">The technical version</span>
-      <p>Independent variable = preprocessing condition. Dependent variables = the metrics in §04. This is an <strong>ablation study</strong> — you toggle pieces on and off to isolate each part's contribution.</p>
+      <p>Coverage is computed on the ground-truth surface under six input conditions; each stage's blind-spot map is scored against Stage A (the reference). One fixed configuration throughout — no per-sequence tuning.</p>
     </div>
-    <ol>
-      <li><strong>Baseline</strong> — raw video into SLAM, no glare handling. Your control.</li>
-      <li><strong>Prior work</strong> — a plain fixed brightness threshold (paint over the brightest pixels). Replicates the closest existing method.</li>
-      <li><strong>Your mask</strong> — a smarter per-frame adaptive threshold that adjusts to how bright each frame is.</li>
-      <li><strong>Full pipeline</strong> — your mask <em>plus</em> the optical-flow motion filter that removes leftover glare that moves inconsistently with the tissue.</li>
-    </ol>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Stage</th><th>Depth</th><th>Pose</th><th>Question it answers</th></tr></thead>
+      <tbody>
+        <tr><td><b>A</b></td><td>ground truth</td><td>ground truth</td><td>What are the <em>true</em> blind spots? (the answer key)</td></tr>
+        <tr><td><b>B</b></td><td>ground truth</td><td>our VO</td><td>Is tracking good enough? → <b>yes, 99.2%</b></td></tr>
+        <tr><td><b>C</b></td><td>off-the-shelf</td><td>ground truth</td><td>Is generic learned depth good enough? → <b>no, 71%</b></td></tr>
+        <tr><td><b>D</b></td><td>off-the-shelf</td><td>its VO</td><td>Full monocular, before the fix → 74.5%</td></tr>
+        <tr><td><b>C′</b></td><td>fine-tuned</td><td>ground truth</td><td>Did fine-tuning fix depth? → <b>100.0%</b></td></tr>
+        <tr><td><b>D′</b></td><td>fine-tuned</td><td>its VO</td><td><b>Full monocular, after the fix → 98.6%</b></td></tr>
+      </tbody>
+    </table></div>
+    <div class="rule"><span class="tag">Why this is the core</span>
+      <p>The ladder is the project's scientific spine — not the pretty 3D mesh. It isolates the variable (B: tracking is fine), identifies the bottleneck (C: depth), applies exactly one fix (fine-tuning), and re-measures (D′). If you can narrate this table cold, you can defend the entire project.</p>
+    </div>
   </section>
 
-  <section id="novelty">
-    <h2><span class="num">06</span>What makes it ISEF-worthy</h2>
-    <p>You don't reach ISEF by piling on complicated parts. You reach it with <em>one or two things you can still explain</em>, done rigorously. Here's the ladder — climb it in order, and stop wherever your time runs out.</p>
+  <section id="results">
+    <h2><span class="num">06</span>The results</h2>
+    <p>All numbers are against C3VD's 6-DOF ground truth; every depth number is on a held-out sequence the model never saw.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>What</th><th>Metric</th><th>Before fix</th><th>After fix</th></tr></thead>
+      <tbody>
+        <tr><td>Depth accuracy (held-out)</td><td>pixels within 25% of truth (δ&lt;1.25)</td><td>64–83%</td><td class="good">92–99.7%</td></tr>
+        <tr><td>Tracking (fully monocular)</td><td>trajectory error, ATE RMSE</td><td>0.18–1.46&thinsp;mm</td><td class="good">0.17–1.59&thinsp;mm (mean 0.91)</td></tr>
+        <tr><td>Blind-spot map (on true surface)</td><td>agreement with ground truth</td><td>74.5% mean</td><td class="good">98.6% mean (97.6–99.5)</td></tr>
+        <tr><td>3D reconstruction (from video alone)</td><td>median surface error (Chamfer)</td><td>3.7–9.8&thinsp;mm</td><td class="good">1.3–2.4&thinsp;mm on 4/5</td></tr>
+        <tr><td>Blind-spot detection, strictest test</td><td>region-level (5&thinsp;mm) recall / precision</td><td>55% / 35%</td><td class="good">65% / 53%</td></tr>
+        <tr><td>Known failure case</td><td>trans-t1-a fused mesh</td><td>7.9&thinsp;mm</td><td class="bad">13.6&thinsp;mm (see §08)</td></tr>
+      </tbody>
+    </table></div>
+    <p>Two demo artifacts pair with these numbers: the interactive 3D colon (rotate it, toggle the blind-spot heatmap) and the monocular-vs-ground-truth mesh overlay. The results dashboard holds the full per-sequence tables.</p>
+  </section>
+
+  <section id="traps">
+    <h2><span class="num">07</span>Three traps we caught — judge catnip</h2>
+    <p>These are the moments that separate an investigation from a demo. Learn all three; each has a “how we caught it” story.</p>
     <div class="ladder">
       <div class="rung core">
-        <span class="kicker">Rung 1 · the centerpiece · do this</span>
-        <h4>The severity curve</h4>
-        <p><b>Plain:</b> The glarier a video is, the more the software struggles — and your filter helps the glarier videos the <em>most</em>. You measure how glare-y each video is, then draw it as a graph.</p>
-        <p><b>Technical:</b> Compute a per-sequence specularity-severity score (mean fraction of specular pixels/frame, measured before masking). Plot severity vs metric-improvement across sequences. A positive trend is evidence that specularity <em>causes</em> tracking failure — not just correlates with it.</p>
-        <p class="line"><b>Why it's the wow:</b> it turns "I made a filter" into "I proved something, and I can predict how much." That one graph is your project's spine.</p>
+        <span class="kicker">Trap 1 · the alignment roll</span>
+        <h4>A 75° error that wasn't real</h4>
+        <p><b>Plain:</b> Two sequences looked terrible despite sub-millimeter tracking. The cameras move nearly <em>straight</em> down the colon — and if you line up two straight paths using only positions, nothing pins down the <em>twist around the path</em>. Our comparison had the camera rolled 75°, looking at the wrong wall. The tracker was never wrong; the grading was.</p>
+        <p><b>Technical:</b> Position-only Umeyama/Sim(3) alignment leaves the roll about a near-straight trajectory's motion axis unconstrained. Diagnosis: the per-frame orientation offset <code>R_gt·R_voᵀ</code> had 1–2° dispersion — one <em>global</em> rotation separated the trajectories, not drift. Fix: estimate the global rotation from orientations (mean offset), scale from positions. Agreement: 64% → 97.8%, tracker untouched.</p>
       </div>
       <div class="rung flag">
-        <span class="kicker">Rung 2 · the flagship · do this if the base works</span>
-        <h4>Guessing what's under the glare</h4>
-        <p><b>Plain:</b> Instead of just covering glare with a black patch, use image tools (and optionally a small AI depth model) to guess what the tissue <em>underneath</em> probably looks like, and paint that in.</p>
-        <p><b>Technical:</b> Add an inpainting condition. Start with classical <code>cv2.inpaint</code> (free, CPU); optionally upgrade to depth-guided inpainting using Depth-Anything-v2-Small (fits your GPU). Real open question: do synthesized pixels help or hurt trajectory accuracy?</p>
-        <p class="line"><b>Why it lifts you:</b> visually striking on a poster, and it asks a question nobody has answered. This is your ISEF differentiator.</p>
+        <span class="kicker">Trap 2 · the scale question</span>
+        <h4>“Isn't using ground truth for scale cheating?”</h4>
+        <p><b>Plain:</b> One camera can't tell a big colon far away from a small colon up close — the images are identical. So every monocular system is allowed one global “how big is this?” calibration; ours uses one number per video. Everything per-frame is prediction. And after fine-tuning, three of five sequences didn't even need it — the network learned the scope's true scale.</p>
+        <p><b>Technical:</b> Monocular reconstruction is defined up to scale; per-sequence global affine recovery (and Sim(3)-aligned ATE) is the standard evaluation protocol in the SLAM literature, not a concession.</p>
       </div>
       <div class="rung stretch">
-        <span class="kicker">Rung 3 · the stretch · only if time</span>
-        <h4>The blind-spot map</h4>
-        <p><b>Plain:</b> A heat-map showing which parts of the colon the camera never got a clean look at because glare was in the way — exactly what a doctor cares about.</p>
-        <p><b>Technical:</b> Project low-coverage / tracking-loss regions back onto the frame as an overlay. Frame it honestly as a proof-of-concept visualization, <em>not</em> a validated clinical tool — that honesty is what keeps it defensible.</p>
-        <p class="line"><b>Why it's a stretch:</b> great medical story, but the weakest to defend technically. Keep it modest and secondary.</p>
+        <span class="kicker">Trap 3 · metric honesty</span>
+        <h4>Reporting the flattering number <em>and</em> the strict one</h4>
+        <p><b>Plain:</b> “98.6% agreement” sounds great partly because most of the wall <em>was</em> seen — agreeing on “seen” is easy. So we also report the hard numbers: can it pinpoint the exact blind vertices (only 20%/10% — weak) and can it point to the right <em>area</em> within 5&thinsp;mm (65%/53% — useful, since the clinical action is “re-inspect this area”). Both were defined before comparing, both get reported.</p>
+        <p><b>Technical:</b> With a rare positive class (blind ≈ 1–6%), accuracy-style agreement is inflated and IoU is punishing; we report agreement, coverage correlation, vertex-level recall/precision, and region-level (5&thinsp;mm tolerance) recall/precision — all defined once, applied uniformly to baseline and fine-tuned systems alike.</p>
       </div>
+    </div>
+  </section>
+
+  <section id="limits">
+    <h2><span class="num">08</span>Honest limitations</h2>
+    <ul>
+      <li><strong>Phantom validation.</strong> All ground-truthed results are on the C3VD silicone colon phantom. Real tissue deforms, has fluids and stronger glare — in-vivo validation is future work, and you say so before anyone asks.</li>
+      <li><strong>Region-level, not point-level, localization.</strong> The system reliably maps coverage and points at under-inspected <em>areas</em>; per-millimeter pinpointing is not clinical-grade yet.</li>
+      <li><strong>Short-motion scale drift.</strong> One sequence (trans-t1-a, only 28&thinsp;mm of camera travel) sits at the tracker's noise floor, so its reconstruction drifts in scale — a <em>characterized</em> failure with a mechanism, reported, not hidden.</li>
+      <li><strong>Domain data.</strong> Leave-one-out shows the depth fine-tune generalizes across <em>sequences</em>; generalizing across patients and scope models would need broader training data.</li>
+    </ul>
+    <div class="rule"><span class="tag">Why limitations are strength</span>
+      <p>Every limitation above comes with its mechanism. “I know exactly where it breaks and why” is the most credible sentence a young researcher can say.</p>
     </div>
   </section>
 
   <section id="hardware">
-    <h2><span class="num">07</span>Your computer &amp; what runs where</h2>
-    <p>Everything in this project runs on <strong>one Windows 11 PC with a single RTX A1000 (4–6&nbsp;GB VRAM)</strong>. No lab cluster, no cloud bill. Here's the honest breakdown of what uses the GPU and what doesn't:</p>
+    <h2><span class="num">09</span>Your computer &amp; what ran where</h2>
+    <p>The entire project — including neural-network fine-tuning — ran on <strong>one Windows 11 PC with a single RTX A1000 (8&thinsp;GB VRAM)</strong>. No cluster, no cloud bill.</p>
     <div class="tablewrap">
       <table>
-        <thead><tr><th>Component</th><th>Runs on</th><th>Notes</th></tr></thead>
+        <thead><tr><th>Component</th><th>Ran on</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td>ORB-SLAM3 (the mapping software)</td><td><span class="chip cpu">CPU</span></td><td>Feature-based, not deep learning. Use a prebuilt Docker image to skip the painful build.</td></tr>
-          <tr><td>Glare mask + optical-flow filter (OpenCV)</td><td><span class="chip cpu">CPU</span></td><td>Milliseconds per frame. Trivial load.</td></tr>
-          <tr><td>evo (trajectory scoring)</td><td><span class="chip cpu">CPU</span></td><td>Pure Python. Instant.</td></tr>
-          <tr><td>Classical inpainting (<code>cv2.inpaint</code>)</td><td><span class="chip cpu">CPU</span></td><td>The no-GPU version of the flagship. Works everywhere.</td></tr>
-          <tr><td>Depth-Anything-v2 <em>Small</em> (optional)</td><td><span class="chip gpu">GPU</span></td><td>Inference only, ~2–3&nbsp;GB VRAM — fits comfortably. Use Small/Base, never Large.</td></tr>
-          <tr><td>Datasets (Hamlyn, EndoSLAM)</td><td><span class="chip disk">DISK</span></td><td>~10–30&nbsp;GB of storage. Not a compute cost.</td></tr>
+          <tr><td>Depth-Anything-V2 fine-tuning (5 LOSO folds)</td><td><span class="chip gpu">GPU</span></td><td>~40 min per fold, 40 epochs, batch 4 at 392×392 — fits in 8&thinsp;GB.</td></tr>
+          <tr><td>Depth inference (per-frame maps)</td><td><span class="chip gpu">GPU</span></td><td>Seconds per sequence.</td></tr>
+          <tr><td>Direct VO (from-scratch tracker)</td><td><span class="chip cpu">CPU</span></td><td>NumPy Gauss–Newton, ~1.5&thinsp;s per frame pair at 640×512.</td></tr>
+          <tr><td>TSDF fusion + meshing (Open3D)</td><td><span class="chip cpu">CPU</span></td><td>Minutes per sequence.</td></tr>
+          <tr><td>Evaluation (evo ATE, Chamfer, coverage)</td><td><span class="chip cpu">CPU</span></td><td>Pure Python.</td></tr>
+          <tr><td>ORB-SLAM3 (Act I, via Docker)</td><td><span class="chip cpu">CPU</span></td><td>Feature-based, no deep learning.</td></tr>
+          <tr><td>Datasets (C3VD + Hamlyn)</td><td><span class="chip disk">DISK</span></td><td>~20&thinsp;GB raw + undistorted working copies.</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="lead">Bottom line: nothing here needs hardware you don't have. The GPU is optional and only for the flagship's fancy version.</p>
   </section>
 
   <section id="data">
-    <h2><span class="num">08</span>The data</h2>
-    <p>Two datasets, both free and legitimate. (Your instinct to distrust random GitHub links was right — but these two are the real, cited sources.)</p>
-    <h3>Hamlyn — your glare testbed</h3>
-    <p>Real in-body endoscopic video, wet and glare-heavy — the right place to tell the specular story. Two safe mirrors: <a href="https://huggingface.co/datasets/Recasens/HamlynRectifiedDataset">Recasens/HamlynRectifiedDataset</a> (20 videos, depth ground truth, from the Endo-Depth-and-Motion authors) and <a href="https://huggingface.co/datasets/vslamlab/Hamlyn_Rectified_Dataset">vslamlab/Hamlyn_Rectified_Dataset</a> (rectified sequences + calibration, from the VSLAM-LAB benchmark team). You use the left-camera images as your single-camera input; depth is there for the optional reconstruction metric. <em>No trajectory answer key — that's expected (§03).</em></p>
-    <h3>EndoSLAM — your one real path grade</h3>
-    <p><a href="https://github.com/CapsuleEndoscope/EndoSLAM">CapsuleEndoscope/EndoSLAM</a> — ex-vivo GI recordings with genuine 6-DOF camera pose ground truth (captured on a controlled rig), free, no access paperwork. This is where your ATE number comes from. (A tougher, more clinical option, <em>SCARED</em>, exists but needs registration/a license — save it for later if at all.)</p>
-  </section>
-
-  <section id="roadmap">
-    <h2><span class="num">09</span>The roadmap</h2>
-    <p>Six phases, roughly nine weeks to the mid-October target. Dates are targets, not promises — <strong>Phase 2 is the crux</strong>, where most projects stall, so protect time for it. If you fall behind, drop Rung 2/3 novelty before you cut corners on rigor.</p>
-    <ol class="phases">
-      <li class="phase">
-        <span class="when">Now · ~1.5 weeks</span>
-        <h4>Setup &amp; understanding</h4>
-        <p>Finish the Python environment, download both datasets, pull a Docker ORB-SLAM3 image, and get comfortable with the five core ideas.</p>
-        <p class="done"><b>Done when:</b> you can run ORB-SLAM3 on one test clip and watch a trajectory come out the other end.</p>
-      </li>
-      <li class="phase">
-        <span class="when">Late August · ~2 weeks · the crux</span>
-        <h4>Baseline results</h4>
-        <p>Run raw (no-filter) SLAM on your chosen Hamlyn sequences and on EndoSLAM. Collect the no-answer-key metrics; compute a real ATE on EndoSLAM with evo.</p>
-        <p class="done"><b>Done when:</b> you have a baseline number for every metric on every sequence.</p>
-      </li>
-      <li class="phase">
-        <span class="when">Early September · ~2 weeks</span>
-        <h4>Build the glare filter</h4>
-        <p>Implement conditions 2–4 (fixed threshold, your adaptive mask, mask + optical-flow). Re-run everything, build the full results table.</p>
-        <p class="done"><b>Done when:</b> all four conditions are measured across all sequences.</p>
-      </li>
-      <li class="phase">
-        <span class="when">Mid September · ~1 week</span>
-        <h4>The centerpiece</h4>
-        <p>Compute the per-sequence severity score, plot the severity curve, run the paired significance tests.</p>
-        <p class="done"><b>Done when:</b> the severity graph exists and the improvement is statistically tested.</p>
-      </li>
-      <li class="phase">
-        <span class="when">Late September · ~1.5 weeks</span>
-        <h4>The flagship (if on track)</h4>
-        <p>Add inpainting as a fifth condition and answer: does guessing-the-hidden-tissue help or hurt?</p>
-        <p class="done"><b>Done when:</b> you have a clear result for the inpainting question — even "it hurts" is a finding.</p>
-      </li>
-      <li class="phase">
-        <span class="when">Early October → fair · ongoing</span>
-        <h4>Blind-spot map + write-up</h4>
-        <p>Optional blind-spot visualization, then poster, abstract, and paperwork. Keep the research notebook current the whole time — start it in Phase 1, not now.</p>
-        <p class="done"><b>Done when:</b> results are frozen and the presentation materials are underway.</p>
-      </li>
-    </ol>
+    <h2><span class="num">10</span>The data</h2>
+    <h3>C3VD — the ground-truth backbone</h3>
+    <p>The <a href="https://durrlab.github.io/C3VD/">Colonoscopy 3D Video Dataset</a>: video of a high-fidelity silicone colon phantom recorded with a <em>real clinical endoscope</em>, with true per-pixel depth and true 6-DOF camera poses for every frame (from the phantom's known geometry and a robotic rig). Five sequences used (cecum, descending, three transverse), spanning 61–276 frames. This is what makes every claim checkable: depth accuracy, tracking ATE, mesh Chamfer, and blind-spot agreement are all graded against it. Frames are fisheye — undistorted to pinhole via the Scaramuzza/OcamCalib model before use.</p>
+    <h3>Hamlyn — the in-vivo glare testbed (Act I)</h3>
+    <p>Real in-body endoscopic video, wet and glare-heavy — where the glare study ran. It ships stereo-derived depth but <em>no trajectory ground truth</em> (a fact we verified early, killing the original evaluation plan and forcing the better one).</p>
   </section>
 
   <section id="fair">
-    <h2><span class="num">10</span>The fair &amp; the paperwork</h2>
+    <h2><span class="num">11</span>The fair &amp; the paperwork</h2>
     <div class="layer plain"><span class="tag">In plain words</span>
-      <p>The path is regional → state → international: <strong>GSDSEF → CSEF → ISEF</strong>. The boring-but-critical rule: you usually need your fair's review committee to approve your plan <em>before</em> you start experimenting. The good news — because you use public, already-recorded data and no live patients or animals, your review is normally the light kind.</p>
+      <p>The path is regional → state → international: <strong>GSDSEF → CSEF → ISEF</strong>. You need your fair's review committee to approve the plan <em>before</em> experimenting. Because the project uses public, pre-recorded, de-identified datasets — no live patients or animals — the review is normally the light kind.</p>
     </div>
     <div class="layer tech"><span class="tag">The technical version</span>
-      <p>Get <strong>SRC/IRB approval before experimentation</strong> (an ISEF requirement). Using a pre-existing, publicly available, de-identified dataset with no human/animal subject interaction generally means the lighter review track — but you still complete the core ISEF forms (Adult Sponsor Checklist 1, Student Checklist 1A, Research Plan, Approval Form 1B) and confirm each dataset's license permits research use. <strong>Verify the current-year specifics with your fair coordinator — don't take these form numbers as final.</strong></p>
+      <p>SRC/IRB approval before experimentation (ISEF requirement). Public pre-existing datasets generally mean the lighter review track; still complete the core forms (Adult Sponsor Checklist 1, Student Checklist 1A, Research Plan, Approval Form 1B) and confirm each dataset's license permits research use. <strong>Verify current-year specifics with your fair coordinator.</strong></p>
     </div>
-    <p><strong>Category call (decide later):</strong> Computer Science / Systems Software plays up the engineering; Biomedical plays up the medical impact. We'll pick once results are in and we see which story is stronger. <strong>Start the research notebook in Phase 1</strong> — judges and SRC both want to see the dated trail, and reconstructing it later is misery.</p>
+    <p><strong>Category call:</strong> the project now straddles Systems Software (the pipeline, the ablation) and Biomedical Engineering (the clinical motivation). The ablation-driven story plays strongest as engineering/CS with a medical application. <strong>Keep the research notebook current</strong> — the dated trail of pivots (§03) is itself evidence of real science.</p>
+    <p><strong>AI disclosure:</strong> you used an AI assistant as a build partner and are disclosing that to judges; the understanding you demonstrate in the interview is what's being graded. This guide exists so that understanding is real.</p>
   </section>
 
   <section id="verdict">
-    <h2><span class="num">11</span>Honest verdict</h2>
+    <h2><span class="num">12</span>Honest verdict</h2>
     <div class="verdict">
-      <p class="grade">Doable on your machine and your timeline. A strong regional/state project as its base — with a real, not-guaranteed shot at ISEF.</p>
-      <p>The base project (glare hurts tracking → removing it helps, shown with the no-answer-key metrics + one real ATE) is solidly CSEF-competitive. Three things lift it toward ISEF: <strong>(1)</strong> the severity curve landing as a clean, real result; <strong>(2)</strong> the inpainting flagship, if you get there; and <strong>(3)</strong> you understanding and defending every piece in the interview.</p>
-      <p>It's more technical and more rigorous than last year's project — the kind of rigorous evaluation study that ISEF finalists in this category actually are. The honest risk isn't the idea; it's execution: getting the pipeline running, and whether the results come out clean. That's why we sequence by risk and win the boring version first.</p>
+      <p class="grade">The build phase delivered: a complete, validated, honestly-characterized system — with a genuinely competitive story for state and a real shot beyond.</p>
+      <p>What you have that most projects don't: <strong>(1)</strong> an end-to-end system, not a single technique; <strong>(2)</strong> a controlled ablation that <em>found</em> a bottleneck and a targeted fix that <em>closed</em> it, validated leave-one-out; <strong>(3)</strong> negative results and failure cases reported with mechanisms; <strong>(4)</strong> every number graded against real ground truth.</p>
+      <p>What decides how far it goes now: the write-up, the poster, and above all the interview — whether you can walk a judge down the ablation ladder, explain TSDF fusion with the voting analogy, and own the limitations before they're raised. The system is done; the remaining work is making its story yours.</p>
     </div>
   </section>
 
   <section id="glossary">
-    <h2><span class="num">12</span>Glossary</h2>
-    <p>This grows as we go. Every term here you'll be able to explain by the fair.</p>
+    <h2><span class="num">13</span>Glossary</h2>
+    <p>Every term here is fair game in the interview.</p>
     <dl class="gloss">
-      <div><dt>SLAM</dt><dd>The mapping software. Works out <em>where the camera is</em> and <em>what the space looks like</em>, from video alone. (Simultaneous Localization And Mapping.)</dd></div>
-      <div><dt>ORB-SLAM3</dt><dd>The specific, well-known SLAM program you'll use. Runs on the CPU. "ORB" is the type of visual landmark it tracks.</dd></div>
-      <div><dt>Feature / landmark</dt><dd>A small distinctive spot the software locks onto and follows across frames. SLAM lives or dies by these.</dd></div>
-      <div><dt>Specular / glare</dt><dd>The bright shiny reflections off wet tissue. The villain of your story.</dd></div>
-      <div><dt>Track / tracking loss</dt><dd>The software successfully following its landmarks over time. Glare makes it "lose track."</dd></div>
-      <div><dt>Monocular</dt><dd>Using one camera (one lens). Harder than two, because one eye can't judge true distance — so the map has no fixed scale.</dd></div>
-      <div><dt>Ground truth</dt><dd>The answer key: the true thing, used to grade the software's guess.</dd></div>
-      <div><dt>ATE</dt><dd>Absolute Trajectory Error — the grade for the guessed path vs the true path. Lower is better. Needs an answer key.</dd></div>
-      <div><dt>RMSE</dt><dd>Root-Mean-Square Error — a standard way to average error that punishes big misses more than small ones.</dd></div>
-      <div><dt>Ablation</dt><dd>Turning parts of your system on and off to see how much each part actually contributes.</dd></div>
-      <div><dt>evo</dt><dd>A free Python tool that lines up two paths and computes ATE/RPE for you.</dd></div>
-      <div><dt>Optical flow</dt><dd>Measuring how each spot moves between two frames. Glare moves differently from tissue — that's how stage 2 catches it.</dd></div>
-      <div><dt>Inpainting</dt><dd>Filling in a hole in an image with a plausible guess of what belongs there.</dd></div>
-      <div><dt>Severity score</dt><dd>Your "how glare-y is this video" number — the fraction of glare pixels per frame, averaged.</dd></div>
+      <div><dt>Monocular</dt><dd>One camera, one lens. Harder than stereo — one eye can't judge absolute distance, so scale must be recovered separately.</dd></div>
+      <div><dt>SLAM / VO</dt><dd>Working out where the camera is (and what the space looks like) from video alone. Visual odometry (VO) is the tracking half: chaining frame-to-frame motions into a path.</dd></div>
+      <div><dt>Direct / photometric</dt><dd>Tracking by matching raw pixel brightness between frames (vs feature-based, which tracks distinctive landmark points). Our tracker is direct.</dd></div>
+      <div><dt>Gauss–Newton</dt><dd>The iterative math that finds the camera motion minimizing the pixel mismatch — guess, measure the error's slope, step, repeat.</dd></div>
+      <div><dt>Disparity / inverse depth</dt><dd>What the depth network outputs: 1/distance. Big = near. Correct in shape but unknown in scale.</dd></div>
+      <div><dt>Affine / scale ambiguity</dt><dd>Monocular depth (and monocular SLAM) is only defined up to a scale (and shift). One global correction per sequence is the standard, legitimate protocol.</dd></div>
+      <div><dt>Fine-tuning</dt><dd>Continuing a pre-trained network's training briefly on your domain's data so it adapts — days of compute, not months, because it starts from knowledge, not zero.</dd></div>
+      <div><dt>LOSO</dt><dd>Leave-One-Sequence-Out cross-validation: to test on sequence X, train only on the others. Five folds = five models. Kills the “did it just memorize?” objection.</dd></div>
+      <div><dt>TSDF</dt><dd>Truncated Signed Distance Function — a voxel grid where each cell stores its distance to the surface. Frames vote; noise averages out; marching cubes extracts the mesh. (The KinectFusion method.)</dd></div>
+      <div><dt>ATE (RMSE)</dt><dd>Absolute Trajectory Error — distance between estimated and true camera path after alignment. Our fully-monocular mean: 0.91&thinsp;mm.</dd></div>
+      <div><dt>Sim(3) / Umeyama</dt><dd>The standard way to line up two trajectories: one global rotation + translation + scale. Position-only fitting has a blind spot on straight paths (Trap 1).</dd></div>
+      <div><dt>Chamfer distance</dt><dd>Average nearest-point distance between two surfaces, both directions — the mesh accuracy score.</dd></div>
+      <div><dt>δ&lt;1.25</dt><dd>Standard depth metric: fraction of pixels within 25% of true depth. Ours went 68% → 98% with fine-tuning.</dd></div>
+      <div><dt>Ablation</dt><dd>Swapping/removing parts one at a time to measure what each contributes — the project's core experimental design.</dd></div>
+      <div><dt>Occlusion test</dt><dd>A wall patch only counts as “seen” if nothing sat between it and the camera. Tolerance scaled to the depth model's measured accuracy, fixed once for all conditions.</dd></div>
+      <div><dt>Coverage / blind spot</dt><dd>How many camera views actually saw each patch of the colon wall; fewer than 3 = blind spot, flagged for re-inspection.</dd></div>
+      <div><dt>Specular / glare</dt><dd>Bright reflections of the scope's own light off wet tissue. Act I's villain; matters for direct tracking, largely not for feature-based.</dd></div>
+      <div><dt>RANSAC</dt><dd>An outlier-rejection method: repeatedly fit on random subsets, keep the fit most points agree with. Why ORB-SLAM3 shrugs off glare.</dd></div>
+      <div><dt>Ground truth</dt><dd>The answer key (true depth, true poses) — C3VD has both; used only for grading and the one-per-sequence scale, never as a runtime input to the final system.</dd></div>
     </dl>
   </section>
 
   <footer>
-    <p>This is a living document — we'll update it at the end of each phase as things get real and the plan sharpens. Nothing here is locked; if the idea shifts, the guide shifts with it.</p>
-    <p class="sig">Next stop: Phase 1 — get the data down and the mapping software running.</p>
+    <p>This is a living document, rewritten as the project's build phase closed. Version 1.0 (the original glare-study plan) is preserved in git history — itself part of the story.</p>
+    <p class="sig">Next stop: the write-up, the poster, and making every word in here yours.</p>
   </footer>
 
 </div>
