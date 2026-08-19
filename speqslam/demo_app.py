@@ -21,7 +21,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 from glare_removal import specular_mask
 from direct_vo import track_pair
 
-DET = dict(method="fixed", fixed_thr=248, dilate=2, max_area=1500)   # compact-specular (C3VD)
+DET_C3VD = dict(method="fixed", fixed_thr=248, dilate=2, max_area=1500)  # compact-specular (phantom)
+DET_HAMLYN = dict(method="adaptive", k=2.0, lo=225, hi=245, dilate=1)    # in-vivo glare (Act I tuning)
 DMIN, DMAX = 0.003, 0.11
 RES = 392                    # depth network input
 VO_SCALE = 0.5               # VO runs at half resolution for speed
@@ -46,17 +47,18 @@ class DepthNet:
         self.std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
 
     @torch.no_grad()
-    def predict(self, bgr):
+    def predict(self, bgr, relative=False):
         """Metric depth (m), same HxW as input. The fine-tuned demo model outputs metric disparity
-        directly; the off-the-shelf fallback outputs RELATIVE disparity, which we map into the
-        endoscopic working range per-frame so the demo stays sensible without the local model."""
+        directly; with relative=True (off-the-shelf model, or footage outside the model's domain
+        like in-vivo Hamlyn) the disparity is mapped into the endoscopic working range per-frame --
+        shape stays real, absolute scale is nominal."""
         rgb = cv2.cvtColor(cv2.resize(bgr, (RES, RES)), cv2.COLOR_BGR2RGB)
         x = torch.from_numpy(rgb).permute(2, 0, 1).float() / 255.0
         x = ((x - self.mean) / self.std).unsqueeze(0).to(DEV)
         disp = self.model(pixel_values=x).predicted_depth[0]
         disp = torch.nn.functional.interpolate(disp[None, None], size=bgr.shape[:2],
                                                mode="bilinear")[0, 0].cpu().numpy()
-        if self.name == "off-the-shelf":
+        if relative or self.name == "off-the-shelf":
             lo, hi = np.percentile(disp, 2), np.percentile(disp, 98)
             disp = 1.0 / DMAX + (np.clip(disp, lo, hi) - lo) / max(hi - lo, 1e-6) * (1.0 / 0.012 - 1.0 / DMAX)
         d = 1.0 / np.clip(disp, 1.0 / DMAX, None)
@@ -100,12 +102,21 @@ def main():
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
 
-    undist = f"data/c3vd/{a.seq}_undist"
-    imgs = sorted(glob.glob(f"{undist}/image01/*.jpg"))[::a.stride]
-    K = np.loadtxt(f"{undist}/K.txt")
-    assert imgs, f"no frames in {undist}/image01"
+    # dataset auto-detect: C3VD phantom sequence, or in-vivo Hamlyn (rectifiedNN)
+    if os.path.isdir(f"data/c3vd/{a.seq}_undist"):
+        base = f"data/c3vd/{a.seq}_undist"
+        K = np.loadtxt(f"{base}/K.txt")
+        det, relative, domain = DET_C3VD, False, "phantom (C3VD)"
+    elif os.path.isdir(f"data/hamlyn/{a.seq}"):
+        base = f"data/hamlyn/{a.seq}"
+        K = np.loadtxt(f"data/hamlyn/intrinsics_{a.seq}.txt")[:3, :3]
+        det, relative, domain = DET_HAMLYN, True, "IN-VIVO human tissue (Hamlyn) - qualitative"
+    else:
+        raise SystemExit(f"unknown sequence {a.seq}")
+    imgs = sorted(glob.glob(f"{base}/image01/*.jpg"))[::a.stride]
+    assert imgs, f"no frames in {base}/image01"
     net = DepthNet()
-    print(f"[demo] {a.seq}: {len(imgs)} frames | depth model: {net.name}", flush=True)
+    print(f"[demo] {a.seq}: {len(imgs)} frames | {domain} | depth model: {net.name}", flush=True)
 
     Ks = K.copy(); Ks[:2, :] *= VO_SCALE          # VO intrinsics at reduced res
     pose = np.eye(4)
@@ -136,9 +147,9 @@ def main():
     for i, path in enumerate(imgs):
         bgr = cv2.imread(path)
         t_a = time.time()
-        mask = specular_mask(bgr, **DET)
+        mask = specular_mask(bgr, **det)
         t_b = time.time()
-        depth = net.predict(bgr)
+        depth = net.predict(bgr, relative=relative)
         t_c = time.time()
 
         # --- VO (half resolution, live) ---
@@ -176,7 +187,7 @@ def main():
         canvas = np.hstack([cv2.resize(p, (int(p.shape[1] * h / p.shape[0]), h)) for p in panels])
         fps = n_done / max(time.time() - t0, 1e-6)
         canvas = hud(canvas, [
-            f"ARGUS  |  raw   |   specular mask   |   learned depth ({net.name})",
+            f"ARGUS  |  raw  |  specular mask  |  learned depth ({net.name})  |  {domain}",
             f"frame {i+1}/{len(imgs)}   {fps:.1f} fps   glare {1000*(t_b-t_a):.0f}ms  "
             f"depth {1000*(t_c-t_b):.0f}ms  VO {1000*(t_d-t_c):.0f}ms",
             f"map: {sum(len(p) for p in pts_all):,} points  {len(vox_count):,} voxels   "
