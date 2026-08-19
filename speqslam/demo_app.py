@@ -113,17 +113,22 @@ def main():
     pts_all, col_all, keys_all = [], [], []
 
     vis = pcd = ls = None
+    state = {"paused": False, "blind": False, "quit": False}
     if not a.selftest:
         import open3d as o3d
-        vis = o3d.visualization.Visualizer()
+        vis = o3d.visualization.VisualizerWithKeyCallback()
         vis.create_window("Argus - live 3D reconstruction", width=960, height=720)
+        # keys work in BOTH windows: GLFW codes -- space=32, B=66, ESC=256
+        vis.register_key_callback(32, lambda v: state.update(paused=not state["paused"]) or False)
+        vis.register_key_callback(66, lambda v: state.update(blind=True) or False)
+        vis.register_key_callback(256, lambda v: state.update(quit=True) or False)
         vis.get_render_option().background_color = np.array([0.05, 0.055, 0.075])
         vis.get_render_option().point_size = 2.5
         pcd = o3d.geometry.PointCloud()
         ls = o3d.geometry.LineSet()
         added = False
 
-    t0 = time.time(); n_done = 0; paused = False; blind_mode = False
+    t0 = time.time(); n_done = 0
     for i, path in enumerate(imgs):
         bgr = cv2.imread(path)
         t_a = time.time()
@@ -192,19 +197,21 @@ def main():
 
         key = cv2.waitKey(1) & 0xFF
         if key == 27:
-            break
-        if key == ord(' '):
-            paused = not paused
-        if key == ord('b'):
-            blind_mode = True
-        while paused:
+            state["quit"] = True
+        elif key == ord(' '):
+            state["paused"] = not state["paused"]
+        elif key == ord('b'):
+            state["blind"] = True
+        while state["paused"] and not state["quit"] and not state["blind"]:
             key = cv2.waitKey(50) & 0xFF
             if key == ord(' '):
-                paused = False
-            if key == 27:
-                paused = False; i = len(imgs)
+                state["paused"] = False
+            elif key == 27:
+                state["quit"] = True
+            elif key == ord('b'):
+                state["blind"] = True
             vis.poll_events(); vis.update_renderer()
-        if blind_mode:
+        if state["quit"] or state["blind"]:
             break
 
     if a.selftest:
@@ -222,8 +229,9 @@ def main():
         pcd.colors = o3d.utility.Vector3dVector(C2)
         vis.update_geometry(pcd)
         print(f"[blind spots] {100*blind.mean():.1f}% of map flagged (<{THR_VIEWS} views). "
-              f"ESC in 3D window to exit.", flush=True)
-    while True:
+              f"ESC in either window to exit.", flush=True)
+    state["quit"] = False                          # require a fresh ESC to leave the reveal
+    while not state["quit"]:
         if not vis.poll_events():
             break
         vis.update_renderer()
