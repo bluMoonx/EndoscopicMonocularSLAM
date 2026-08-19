@@ -120,7 +120,10 @@ def main():
 
     Ks = K.copy(); Ks[:2, :] *= VO_SCALE          # VO intrinsics at reduced res
     pose = np.eye(4)
-    prev_g = prev_d = None
+    prev_g = prev_d = prev_m = None
+    # in-vivo: glare-aware + illumination-compensated tracking (Act I: helps on real tissue);
+    # phantom: plain tracking (measured: no benefit on the evenly-lit phantom)
+    glare_aware = relative
     traj = [pose[:3, 3].copy()]
 
     # 3D state
@@ -156,12 +159,14 @@ def main():
         g = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY).astype(np.float32) / 255.0
         g_s = cv2.resize(g, None, fx=VO_SCALE, fy=VO_SCALE)
         d_s = cv2.resize(depth, None, fx=VO_SCALE, fy=VO_SCALE, interpolation=cv2.INTER_NEAREST)
+        m_s = cv2.resize(mask, None, fx=VO_SCALE, fy=VO_SCALE, interpolation=cv2.INTER_NEAREST)
         if prev_g is not None:
             T_rel = track_pair(prev_g, prev_d, g_s, Ks, levels=3, iters=10, robust=False,
-                               depth_scale=1.0)
+                               depth_scale=1.0,
+                               glare=prev_m if glare_aware else None, illum=glare_aware)
             pose = pose @ np.linalg.inv(T_rel)
             traj.append(pose[:3, 3].copy())
-        prev_g, prev_d = g_s, d_s
+        prev_g, prev_d, prev_m = g_s, d_s, m_s
         t_d = time.time()
 
         # --- accumulate 3D ---
@@ -186,8 +191,9 @@ def main():
         h = 384
         canvas = np.hstack([cv2.resize(p, (int(p.shape[1] * h / p.shape[0]), h)) for p in panels])
         fps = n_done / max(time.time() - t0, 1e-6)
+        vo_mode = "glare-aware + illum-comp" if glare_aware else "plain (no benefit on phantom)"
         canvas = hud(canvas, [
-            f"ARGUS  |  raw  |  specular mask  |  learned depth ({net.name})  |  {domain}",
+            f"ARGUS  |  raw  |  specular mask  |  learned depth ({net.name})  |  {domain}  |  VO: {vo_mode}",
             f"frame {i+1}/{len(imgs)}   {fps:.1f} fps   glare {1000*(t_b-t_a):.0f}ms  "
             f"depth {1000*(t_c-t_b):.0f}ms  VO {1000*(t_d-t_c):.0f}ms",
             f"map: {sum(len(p) for p in pts_all):,} points  {len(vox_count):,} voxels   "
