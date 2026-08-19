@@ -134,7 +134,8 @@ def run(seq_dir, depth_dir, out_txt, K, levels=4, robust=False, depth_scale=1.0,
         pose = pose @ np.linalg.inv(T_rel)  # accumulate camera-to-world
         q = Rotation.from_matrix(pose[:3, :3]).as_quat()  # xyzw
         t = pose[:3, 3]
-        lines.append(f"{i/30.0:.6f} {t[0]:.6f} {t[1]:.6f} {t[2]:.6f} {q[0]:.6f} {q[1]:.6f} {q[2]:.6f} {q[3]:.6f}")
+        # timestamp = ORIGINAL frame index (i*stride), so strided runs still pair with GT
+        lines.append(f"{i*stride/30.0:.6f} {t[0]:.6f} {t[1]:.6f} {t[2]:.6f} {q[0]:.6f} {q[1]:.6f} {q[2]:.6f} {q[3]:.6f}")
         prev_g = cur_g
         prev_d = cv2.imread(deps[i], cv2.IMREAD_UNCHANGED).astype(np.float32)
         if i % 100 == 0:
