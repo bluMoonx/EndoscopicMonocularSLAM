@@ -39,7 +39,7 @@ def _bilinear(img, x, y):
             + img[y1, x0] * (1 - wx) * wy + img[y1, x1] * wx * wy)
 
 
-def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale, glare=None):
+def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale, glare=None, illum=False):
     h, w = ref.shape
     fx, fy, cx, cy = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
     valid = dep > 0
@@ -63,7 +63,19 @@ def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale, glare=None):
         if m.sum() < 50:
             break
         uu, vv, Pcv, Zv = u[m], v[m], Pc[m], Zc[m]
-        r = _bilinear(cur, uu, vv) - Iref[m]
+        Icur = _bilinear(cur, uu, vv)
+        if illum:
+            # affine illumination compensation (DSO-style): fit gain/bias a,b so that
+            # a*Iref+b ~ Icur, removing global brightness change from the residual
+            Ir = Iref[m]
+            A_ = np.stack([Ir, np.ones_like(Ir)], 1)
+            try:
+                ab = np.linalg.lstsq(A_, Icur, rcond=None)[0]
+            except np.linalg.LinAlgError:
+                ab = np.array([1.0, 0.0])
+            r = Icur - (ab[0] * Ir + ab[1])
+        else:
+            r = Icur - Iref[m]
         gxv, gyv = _bilinear(gx, uu, vv), _bilinear(gy, uu, vv)
         iZ = 1.0 / Zv
         # dI/dPc (N,3): image gradient composed with projection Jacobian
@@ -94,7 +106,8 @@ def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale, glare=None):
     return T
 
 
-def track_pair(ref, dep, cur, K, levels=4, iters=15, robust=True, depth_scale=1.0, glare=None):
+def track_pair(ref, dep, cur, K, levels=4, iters=15, robust=True, depth_scale=1.0, glare=None,
+               illum=False):
     grefs, gdeps, gcurs, Ks = [ref], [dep], [cur], [K]
     glrs = None if glare is None else [glare]
     for _ in range(1, levels):
@@ -109,7 +122,8 @@ def track_pair(ref, dep, cur, K, levels=4, iters=15, robust=True, depth_scale=1.
     T = np.eye(4)
     for l in reversed(range(levels)):
         g = None if glrs is None else glrs[l]
-        T = _align_level(grefs[l], gdeps[l], gcurs[l], Ks[l], T, iters, robust, depth_scale, glare=g)
+        T = _align_level(grefs[l], gdeps[l], gcurs[l], Ks[l], T, iters, robust, depth_scale,
+                         glare=g, illum=illum)
     return T
 
 
@@ -120,7 +134,7 @@ def load_K(seq):
 
 
 def run(seq_dir, depth_dir, out_txt, K, levels=4, robust=False, depth_scale=1.0, stride=1,
-        depth_sub="depth01"):
+        depth_sub="depth01", illum=False):
     imgs = sorted(glob.glob(f"{seq_dir}/image01/*.jpg"))[::stride]
     deps = sorted(glob.glob(f"{depth_dir}/{depth_sub}/*.png"))[::stride]
     pose = np.eye(4)  # camera-to-world
@@ -130,7 +144,8 @@ def run(seq_dir, depth_dir, out_txt, K, levels=4, robust=False, depth_scale=1.0,
     lines.append(f"0.0 0 0 0 0 0 0 1")
     for i in range(1, len(imgs)):
         cur_g = cv2.cvtColor(cv2.imread(imgs[i]), cv2.COLOR_BGR2GRAY).astype(np.float32) / 255.0
-        T_rel = track_pair(prev_g, prev_d, cur_g, K, levels, robust=robust, depth_scale=depth_scale)
+        T_rel = track_pair(prev_g, prev_d, cur_g, K, levels, robust=robust, depth_scale=depth_scale,
+                           illum=illum)
         pose = pose @ np.linalg.inv(T_rel)  # accumulate camera-to-world
         q = Rotation.from_matrix(pose[:3, :3]).as_quat()  # xyzw
         t = pose[:3, 3]
