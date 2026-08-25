@@ -17,11 +17,21 @@ The workstation stays home; the laptop runs the demo. This is the complete check
 
 **Total on the laptop: under 1 GB plus the Python environment.** Any laptop made this decade has room.
 
-## The demo app only needs three things
-1. The cloned repo
-2. `data/c3vd/cecum_t1_a_undist/image01/` (the frames) + `K.txt` — it computes everything else live
-3. `models/depth_c3vd_demo/` for the fine-tuned depth (without it, it falls back to downloading
-   the off-the-shelf model on first run — needs internet once)
+## The USB kit (everything the full Argus Studio needs) — ~1.2 GB total
+
+Copy these folders from the workstation into the same paths inside the cloned repo:
+
+| folder | size | powers |
+|---|---|---|
+| `models/depth_c3vd_demo/` | 95 MB | fine-tuned depth (live demo + Studio) |
+| `models/polyp_seg/` | 72 MB | polyp finder (else auto-downloads, needs internet once) |
+| `data/c3vd/cecum_t1_a_undist/` — `image01/` + `depth01_ftc/` + `K.txt` | ~150 MB | live phantom demo + click-to-measure |
+| `data/c3vd/desc_t4_a_undist/` + `trans_t2_a_undist/` — same three items | ~250 MB | the other click-to-measure frames |
+| `data/hamlyn/rectified01/image01/` + `data/hamlyn/intrinsics_rectified01.txt` | 39 MB | in-vivo live demo |
+| `data/kvasir_seg/` | 56 MB | polyp finder samples |
+| `results/` (the .html pages + report cards) | ~150 MB | 3D models, dashboard, reports |
+
+Then the ONE command that runs everything: `python speqslam/argus_studio.py` → http://localhost:7860
 
 ## Setup steps on the laptop
 
