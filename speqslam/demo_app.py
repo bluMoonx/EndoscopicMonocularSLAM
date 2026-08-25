@@ -192,11 +192,19 @@ def main():
         canvas = np.hstack([cv2.resize(p, (int(p.shape[1] * h / p.shape[0]), h)) for p in panels])
         fps = n_done / max(time.time() - t0, 1e-6)
         vo_mode = "glare-aware + illum-comp" if glare_aware else "plain (no benefit on phantom)"
+        # live inspection-quality gauge: of every wall patch mapped so far, how many are
+        # already adequately seen (>= THR_VIEWS)? This is the real-time guidance readout.
+        if i % 5 == 0 or i == len(imgs) - 1:
+            cts = np.fromiter(vox_count.values(), dtype=np.int32, count=len(vox_count))
+            live_cov = 100 * (cts >= THR_VIEWS).mean() if len(cts) else 0.0
+            live_under = int((cts < THR_VIEWS).sum())
         canvas = hud(canvas, [
             f"ARGUS  |  raw  |  specular mask  |  learned depth ({net.name})  |  {domain}  |  VO: {vo_mode}",
             f"frame {i+1}/{len(imgs)}   {fps:.1f} fps   glare {1000*(t_b-t_a):.0f}ms  "
             f"depth {1000*(t_c-t_b):.0f}ms  VO {1000*(t_d-t_c):.0f}ms",
-            f"map: {sum(len(p) for p in pts_all):,} points  {len(vox_count):,} voxels   "
+            f"LIVE COVERAGE: {live_cov:.1f}% of mapped wall adequately inspected  "
+            f"({live_under:,} patches still under-seen)",
+            f"map: {sum(len(p) for p in pts_all):,} points  {len(vox_count):,} patches   "
             f"[SPACE pause  B blind spots  ESC quit]"])
         cv2.imshow("Argus - live monocular pipeline", canvas)
 

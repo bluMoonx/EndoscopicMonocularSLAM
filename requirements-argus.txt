@@ -8,3 +8,7 @@ plotly
 matplotlib
 evo
 gdown
+flask
+segmentation-models-pytorch
+timm
+efficientnet_pytorch

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "argus-studio",
+      "runtimeExecutable": "C:/Users/moonw/anaconda3/envs/slamfair/python.exe",
+      "runtimeArgs": ["speqslam/argus_studio.py"],
+      "port": 7860
+    }
+  ]
+}
