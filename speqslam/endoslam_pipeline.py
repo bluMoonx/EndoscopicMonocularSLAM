@@ -17,9 +17,10 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 DS = 100.0 / 65535.0 / 1000.0
 EVO = "C:/Users/moonw/anaconda3/envs/slamfair/Scripts/evo_ape.exe"
-SRC = "data/endoslam/Cameras/HighCam/Colon-IV/TumorfreeTrajectory_1"
-POSE_XLSX = f"{SRC}/Poses/low_high_pose_colon_test_1_high_images.xlsx"
-PROC = "data/endoslam/proc/colon4_traj1"
+TRAJ = int(os.environ.get("ENDOSLAM_TRAJ", "1"))
+SRC = f"data/endoslam/Cameras/HighCam/Colon-IV/TumorfreeTrajectory_{TRAJ}"
+POSE_XLSX = f"{SRC}/Poses/low_high_pose_colon_test_{TRAJ}_high_images.xlsx"
+PROC = f"data/endoslam/proc/colon4_traj{TRAJ}"
 OUT = "results/endoslam"
 
 # HighCam calibration as shipped (Calibration/cam.txt.txt)
@@ -39,7 +40,7 @@ def prep():
     print(f"[prep] {len(rows)} pose-matched frames", flush=True)
 
     # ground truth -> TUM (timestamps = sequential index / 30, same convention as the VO)
-    with open(f"{OUT}/colon4_traj1_gt.txt", "w") as f:
+    with open(f"{OUT}/colon4_traj{TRAJ}_gt.txt", "w") as f:
         for i, r in enumerate(rows):
             f.write(f"{i/30.0:.6f} {r['trans_x']:.6f} {r['trans_y']:.6f} {r['trans_z']:.6f} "
                     f"{r['quot_x']:.6f} {r['quot_y']:.6f} {r['quot_z']:.6f} {r['quot_w']:.6f}\n")
@@ -67,7 +68,7 @@ def vo():
     from direct_vo import run as vo_run
     Kl = np.loadtxt(f"{PROC}/K.txt")
     print("[vo] plain (C3VD-identical settings)", flush=True)
-    vo_run(PROC, PROC, f"{OUT}/colon4_traj1_plain.txt", Kl, robust=False, depth_scale=DS,
+    vo_run(PROC, PROC, f"{OUT}/colon4_traj{TRAJ}_plain.txt", Kl, robust=False, depth_scale=DS,
            depth_sub="depth01_ft")
     print("[vo] in-vivo mode (glare-aware + illumination compensation)", flush=True)
     from glare_removal import specular_mask
@@ -91,22 +92,22 @@ def vo():
         prev_m = specular_mask(cur, method="adaptive", k=2.0, lo=225, hi=245, dilate=1)
         if i % 100 == 0:
             print(f"  {i}/{len(imgs)}", flush=True)
-    open(f"{OUT}/colon4_traj1_invivo.txt", "w").write("\n".join(lines) + "\n")
+    open(f"{OUT}/colon4_traj{TRAJ}_invivo.txt", "w").write("\n".join(lines) + "\n")
     print("[vo] done", flush=True)
 
 
 def evaluate():
     for cond in ["plain", "invivo"]:
-        est = f"{OUT}/colon4_traj1_{cond}.txt"
+        est = f"{OUT}/colon4_traj{TRAJ}_{cond}.txt"
         if not os.path.exists(est):
             continue
-        o = subprocess.run([EVO, "tum", f"{OUT}/colon4_traj1_gt.txt", est, "-as", "--no_warnings"],
+        o = subprocess.run([EVO, "tum", f"{OUT}/colon4_traj{TRAJ}_gt.txt", est, "-as", "--no_warnings"],
                            capture_output=True, text=True).stdout
         for l in o.splitlines():
             if l.strip().lower().startswith(("rmse", "mean", "median")):
                 print(f"  {cond:<7} {l.strip()}", flush=True)
     # context: trajectory extent
-    G = np.loadtxt(f"{OUT}/colon4_traj1_gt.txt")[:, 1:4]
+    G = np.loadtxt(f"{OUT}/colon4_traj{TRAJ}_gt.txt")[:, 1:4]
     span = np.linalg.norm(G.max(0) - G.min(0)) * 1000
     path = np.linalg.norm(np.diff(G, axis=0), axis=1).sum() * 1000
     print(f"  GT path length {path:.1f}mm, spatial span {span:.1f}mm", flush=True)
