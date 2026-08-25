@@ -1,84 +1,74 @@
 # Taking Argus to the fair — laptop migration plan
 
-The workstation stays home; the laptop runs the demo. This is the complete checklist.
-**Do a full dry run on the laptop at least a week before GSDSEF.**
+The workstation stays home; the laptop runs everything through **Argus Studio** (one local web page
+with every demo). **Golden rule: nothing happens for the first time on fair day — full dry run at
+least a week early.**
 
-## What lives where
+## Step 0 — know your laptop (2 min)
+Device Manager → Display adapters:
+- **NVIDIA anything** → you have a GPU: demos run fast (~2 fps live pipeline), install CUDA torch.
+- **Intel / AMD graphics** → CPU mode: everything still works, live pipeline ~0.5–1 fps
+  (use `--stride 2` to double apparent speed), polyp finder ~2–3 s per image. Fine for a booth.
 
-| Thing | On GitHub? | Size | How it gets to the laptop |
-|---|---|---|---|
-| All code (`speqslam/`, `configs/`) | ✅ yes | ~1 MB | `git clone` |
-| Field guide + README | ✅ yes | ~1 MB | comes with the clone |
-| Python environment | ❌ no | ~2–8 GB | reinstall from `requirements-argus.txt` (below) |
-| Demo depth model (`models/depth_c3vd_demo/`) | ❌ no | ~100 MB | USB drive or cloud drive |
-| Demo footage (`data/c3vd/cecum_t1_a_undist/image01/` + `K.txt`) | ❌ no | ~35 MB | USB drive |
-| Result pages (`results/*.html` — dashboard, 3D models) | ❌ no | ~25 MB | USB drive (they also live at the claude.ai artifact links) |
-| Raw datasets, depth maps, meshes, .npz | ❌ no | ~20 GB | **NOT needed** — leave home |
-
-**Total on the laptop: under 1 GB plus the Python environment.** Any laptop made this decade has room.
-
-## The USB kit (everything the full Argus Studio needs) — ~1.2 GB total
-
-Copy these folders from the workstation into the same paths inside the cloned repo:
-
-| folder | size | powers |
+## Storage budget (laptop needs FAR less than the workstation)
+| item | with NVIDIA GPU | without |
 |---|---|---|
-| `models/depth_c3vd_demo/` | 95 MB | fine-tuned depth (live demo + Studio) |
-| `models/polyp_seg/` | 72 MB | polyp finder (else auto-downloads, needs internet once) |
-| `data/c3vd/cecum_t1_a_undist/` — `image01/` + `depth01_ftc/` + `K.txt` | ~150 MB | live phantom demo + click-to-measure |
-| `data/c3vd/desc_t4_a_undist/` + `trans_t2_a_undist/` — same three items | ~250 MB | the other click-to-measure frames |
-| `data/hamlyn/rectified01/image01/` + `data/hamlyn/intrinsics_rectified01.txt` | 39 MB | in-vivo live demo |
-| `data/kvasir_seg/` | 56 MB | polyp finder samples |
-| `results/` (the .html pages + report cards) | ~150 MB | 3D models, dashboard, reports |
+| Miniconda + env | ~7 GB | ~3 GB |
+| repo clone | 0.1 GB | 0.1 GB |
+| USB kit (below) | 1.2 GB | 1.2 GB |
+| **total** | **~8.5 GB** | **~4.5 GB** |
 
-Then the ONE command that runs everything: `python speqslam/argus_studio.py` → http://localhost:7860
-
-## Setup steps on the laptop
-
+## Step 1 — install (needs internet, ~45 min)
 ```
-# 1. install Miniconda (or Anaconda), then:
+# install Miniconda first (miniconda.com), then:
 conda create -n argus python=3.10 -y
 conda activate argus
 
-# 2. PyTorch — pick ONE line:
-#    laptop HAS an NVIDIA GPU:
-pip install torch --index-url https://download.pytorch.org/whl/cu124
-#    laptop has NO NVIDIA GPU (Intel/AMD graphics):
-pip install torch
+# torch — pick ONE:
+pip install torch --index-url https://download.pytorch.org/whl/cu124   # NVIDIA GPU
+pip install torch                                                      # no NVIDIA GPU
 
-# 3. everything else:
-pip install -r requirements-argus.txt
-
-# 4. clone + copy
 git clone https://github.com/bluMoonx/EndoscopicMonocularSLAM
-#    then copy from USB into the repo folder:
-#      models/depth_c3vd_demo/
-#      data/c3vd/cecum_t1_a_undist/   (image01/ + K.txt is enough)
-#      results/  (the .html pages, optional)
-
-# 5. run it
 cd EndoscopicMonocularSLAM
-python speqslam/demo_app.py --seq cecum_t1_a
+pip install -r requirements-argus.txt
 ```
 
-## Performance expectations
-- **With an NVIDIA GPU:** ~2 fps, same as the workstation.
-- **Without one (CPU only):** the depth network is the slow part; expect ~0.5–1 fps.
-  Still fine for a booth — judges see it computing. If it feels too slow, run with
-  `--stride 2` (every other frame, twice the apparent speed).
+## Step 2 — the USB kit (~1.2 GB), copied into the same paths inside the clone
+| folder | size | powers |
+|---|---|---|
+| `models/depth_c3vd_demo/` | 95 MB | fine-tuned depth (live demo + Studio) |
+| `models/polyp_seg/` | 72 MB | polyp finder (else auto-downloads, internet once) |
+| `data/c3vd/cecum_t1_a_undist/` — `image01/`, `depth01_ftc/`, `K.txt` | ~150 MB | live phantom demo + click-to-measure |
+| `data/c3vd/desc_t4_a_undist/` + `trans_t2_a_undist/` — same three items | ~250 MB | other click-to-measure frames |
+| `data/hamlyn/rectified01/image01/` + `data/hamlyn/intrinsics_rectified01.txt` | 39 MB | in-vivo live demo |
+| `data/kvasir_seg/` | 56 MB | polyp finder samples |
+| `results/` (all .html + report cards + pngs) | ~150 MB | 3D models, dashboard, reports |
 
-## The safety net (do all three)
-1. **Screen-record a full demo run** on the workstation (Win+G → record). Play the video if the
-   live demo misbehaves at the booth. A judge watching a recording of your real system is fine;
-   a frozen window is not.
-2. The **hosted pages** work from any browser, no laptop needed:
-   dashboard, interactive 3D colon, monocular-vs-GT overlay (claude.ai artifact links; put QR
-   codes on the poster).
-3. Keep the USB drive with the full kit (model + footage + HTMLs + the recording) in your pocket.
+## Step 3 — run everything with ONE command
+```
+python speqslam/argus_studio.py
+```
+→ open **http://localhost:7860**. Every demo is behind that page:
+live SLAM launcher (phantom + in-vivo) · polyp finder + auto-sizing · click-to-measure ·
+interactive 3D models · procedure report cards · results dashboard. Works with WiFi OFF.
 
-## Dry-run checklist (a week early)
-- [ ] Clone + env install completes on the laptop
-- [ ] `python speqslam/demo_app.py --selftest` passes
-- [ ] Full demo run: three panels + 3D window + blind-spot reveal all work
-- [ ] Result HTMLs open in the laptop's browser
-- [ ] Screen recording plays
+Native live-demo keys: SPACE pause · B blind-spot reveal · ESC quit (work in both windows).
+
+## Step 4 — dry run checklist (a week early, on the actual laptop)
+- [ ] `python speqslam/demo_app.py --selftest` passes (HUD line says which depth model loaded)
+- [ ] Studio opens; ALL six stations clicked through like a judge would
+- [ ] Live demo runs to the blind-spot reveal in both modes (phantom + in-vivo)
+- [ ] Polyp finder works on a sample AND an upload
+- [ ] Click-to-measure returns mm on all four frames
+- [ ] 3D models rotate smoothly in the laptop browser; report cards + dashboard open
+- [ ] Everything re-tested once with WiFi OFF
+
+## Step 5 — the safety net (non-negotiable)
+1. **Screen-record one full live-demo run on the workstation** (Win+G) including the blind-spot
+   reveal. Copy to laptop + USB. If the live demo misbehaves mid-judging, play the recording.
+2. **QR codes on the poster** to the hosted pages (dashboard, 3D colon, field guide artifacts) —
+   they work from any phone, no laptop needed.
+3. The USB stick carries: the whole kit, the recording, and a copy of the results/ pages.
+
+## Fair morning
+Charge the laptop. WiFi off. Run the Studio once before judging. Pin http://localhost:7860.
