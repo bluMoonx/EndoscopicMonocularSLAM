@@ -6,3 +6,11 @@ results/
 __pycache__/
 .evo/
 models/
+# Android (arguslite/) — track source only, not build debris or machine paths
+arguslite/.gradle/
+arguslite/.idea/
+arguslite/.kotlin/
+arguslite/build/
+arguslite/app/build/
+arguslite/local.properties
+arguslite/app/src/main/assets/*.onnx
