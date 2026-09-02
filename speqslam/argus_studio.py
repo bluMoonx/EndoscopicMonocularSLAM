@@ -276,7 +276,7 @@ HANDHELD_HTML = """<!doctype html><html><head><meta charset="utf-8">
  h1{font-family:Georgia,serif;font-size:1.3rem;margin:12px 0 2px}
  .sub{color:#a29a90;font-size:.8rem;margin:0 0 10px}
  #view{width:96vw;max-width:900px;border-radius:12px;background:#10151c;min-height:130px}
- video{position:fixed;left:-9999px}
+ video{width:44vw;max-width:320px;border-radius:10px;border:1px solid #2a2f37;margin-top:8px}
  button{background:#2c7b74;color:#fff;border:0;border-radius:12px;padding:14px 26px;font-size:1.05rem;margin:12px 8px}
  button.rec{background:#bc5346}
  #stat{color:#a29a90;font-size:.85rem;min-height:22px}
@@ -286,20 +286,36 @@ HANDHELD_HTML = """<!doctype html><html><head><meta charset="utf-8">
  <p class="sub">your phone is the scope — the workstation is the brain · demo mode, uncalibrated camera</p>
  <img id="view"><video id="cam" autoplay playsinline muted></video><br>
  <button id="start">Start camera</button>
+ <button id="flip" style="display:none">Flip camera</button>
  <button id="rec" class="rec" style="display:none">● Record scan</button>
  <div id="stat">the three panels: raw | glare mask | depth</div>
  <div><span class="tag">raw</span><span class="tag">glare (red)</span><span class="tag">AI depth</span></div>
 <script>
 const v=document.getElementById('cam'),view=document.getElementById('view'),stat=document.getElementById('stat');
-let busy=false, on=false;
+let busy=false, on=false, cams=[], camIdx=0;
+async function openCam(constraint){
+ if(v.srcObject) v.srcObject.getTracks().forEach(t=>t.stop());
+ const s=await navigator.mediaDevices.getUserMedia({video:constraint});
+ v.srcObject=s;
+ await v.play();
+ await new Promise(r=>{ if(v.videoWidth) r(); else v.onloadeddata=r; });
+ stat.textContent=`camera live: ${v.videoWidth}x${v.videoHeight} — small view below is the RAW feed`;
+}
 document.getElementById('start').onclick=async()=>{
  try{
-  const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:640}}});
-  v.srcObject=s; on=true;
+  await openCam({facingMode:'environment',width:{ideal:640}});
+  cams=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
+  on=true;
   document.getElementById('start').style.display='none';
   document.getElementById('rec').style.display='inline-block';
+  if(cams.length>1) document.getElementById('flip').style.display='inline-block';
   loop();
- }catch(e){stat.textContent='camera blocked: '+e.message+' — open this page over https and allow the camera';}
+ }catch(e){stat.textContent='camera blocked: '+e.message+' — allow the camera in the browser permission popup';}
+};
+document.getElementById('flip').onclick=async()=>{
+ camIdx=(camIdx+1)%cams.length;
+ try{await openCam({deviceId:{exact:cams[camIdx].deviceId},width:{ideal:640}});}
+ catch(e){stat.textContent='that lens refused: '+e.message}
 };
 async function loop(){
  if(!on)return;
