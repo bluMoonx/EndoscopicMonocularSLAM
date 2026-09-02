@@ -12,3 +12,4 @@ flask
 segmentation-models-pytorch
 timm
 efficientnet_pytorch
+onnxruntime
