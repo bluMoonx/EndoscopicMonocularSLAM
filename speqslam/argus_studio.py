@@ -226,6 +226,107 @@ def results(p):
     return send_from_directory(os.path.join(ROOT, "results"), p)
 
 
+# ---------------------- Argus Handheld: the phone becomes the scope ----------------------
+_rec = {"on": False, "dir": None, "n": 0}
+
+
+@app.route("/api/handheld_frame", methods=["POST"])
+def handheld_frame():
+    """Phone posts a camera frame; the real pipeline runs on it; a processed strip goes back.
+    Unknown camera -> relative depth, adaptive glare detector, everything labeled demo."""
+    from glare_removal import specular_mask
+    bgr = cv2.imdecode(np.frombuffer(request.files["frame"].read(), np.uint8), cv2.IMREAD_COLOR)
+    if bgr is None:
+        return jsonify(error="bad frame"), 400
+    if _rec["on"]:
+        cv2.imwrite(f"{_rec['dir']}/image01/{_rec['n']:06d}.jpg", bgr)
+        _rec["n"] += 1
+    mask = specular_mask(bgr, method="adaptive", k=2.0, lo=225, hi=245, dilate=1)
+    glr = bgr.copy(); glr[mask > 0] = (40, 40, 230)
+    depth = depthnet().predict(bgr, relative=True)
+    h = 240
+    def rs(im): return cv2.resize(im, (int(im.shape[1] * h / im.shape[0]), h))
+    strip = np.hstack([rs(bgr), rs(glr), rs(depth_vis(-depth))])
+    return jsonify(image=b64(strip), glare_pct=round(100 * (mask > 0).mean(), 1),
+                   recording=_rec["on"], frames=_rec["n"])
+
+
+@app.route("/api/handheld_record", methods=["POST"])
+def handheld_record():
+    import time
+    if _rec["on"]:
+        _rec["on"] = False
+        return jsonify(recording=False, frames=_rec["n"], session=os.path.basename(_rec["dir"] or ""))
+    sid = time.strftime("scan_%Y%m%d_%H%M%S")
+    _rec.update(on=True, dir=f"data/handheld/{sid}", n=0)
+    os.makedirs(f"{_rec['dir']}/image01", exist_ok=True)
+    return jsonify(recording=True, session=sid)
+
+
+@app.route("/handheld")
+def handheld():
+    return HANDHELD_HTML
+
+
+HANDHELD_HTML = """<!doctype html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Argus Handheld</title><link rel="icon" href="/favicon.svg">
+<style>
+ body{margin:0;background:#0b0e13;color:#e9e5df;font:16px/1.4 'Segoe UI',system-ui,sans-serif;text-align:center}
+ h1{font-family:Georgia,serif;font-size:1.3rem;margin:12px 0 2px}
+ .sub{color:#a29a90;font-size:.8rem;margin:0 0 10px}
+ #view{width:96vw;max-width:900px;border-radius:12px;background:#10151c;min-height:130px}
+ video{position:fixed;left:-9999px}
+ button{background:#2c7b74;color:#fff;border:0;border-radius:12px;padding:14px 26px;font-size:1.05rem;margin:12px 8px}
+ button.rec{background:#bc5346}
+ #stat{color:#a29a90;font-size:.85rem;min-height:22px}
+ .tag{display:inline-block;border:1px solid #2a2f37;border-radius:12px;padding:2px 10px;font-size:.72rem;color:#a29a90;margin:4px 2px}
+</style></head><body>
+ <h1>Argus Handheld</h1>
+ <p class="sub">your phone is the scope — the workstation is the brain · demo mode, uncalibrated camera</p>
+ <img id="view"><video id="cam" autoplay playsinline muted></video><br>
+ <button id="start">Start camera</button>
+ <button id="rec" class="rec" style="display:none">● Record scan</button>
+ <div id="stat">the three panels: raw | glare mask | depth</div>
+ <div><span class="tag">raw</span><span class="tag">glare (red)</span><span class="tag">AI depth</span></div>
+<script>
+const v=document.getElementById('cam'),view=document.getElementById('view'),stat=document.getElementById('stat');
+let busy=false, on=false;
+document.getElementById('start').onclick=async()=>{
+ try{
+  const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:640}}});
+  v.srcObject=s; on=true;
+  document.getElementById('start').style.display='none';
+  document.getElementById('rec').style.display='inline-block';
+  loop();
+ }catch(e){stat.textContent='camera blocked: '+e.message+' — open this page over https and allow the camera';}
+};
+async function loop(){
+ if(!on)return;
+ if(!busy && v.videoWidth){
+  busy=true;
+  const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  c.toBlob(async b=>{
+   const f=new FormData();f.append('frame',b,'f.jpg');
+   try{
+    const d=await fetch('/api/handheld_frame',{method:'POST',body:f}).then(r=>r.json());
+    view.src='data:image/jpeg;base64,'+d.image;
+    stat.textContent=`glare ${d.glare_pct}%`+(d.recording?`  ·  ● REC ${d.frames} frames`:'');
+   }catch(e){stat.textContent='lost connection — is the studio running?'}
+   busy=false;
+  },'image/jpeg',0.8);
+ }
+ setTimeout(loop,120);
+}
+document.getElementById('rec').onclick=async()=>{
+ const d=await fetch('/api/handheld_record',{method:'POST'}).then(r=>r.json());
+ document.getElementById('rec').textContent=d.recording?'■ Stop recording':'● Record scan';
+ if(!d.recording&&d.frames)stat.textContent=`saved ${d.frames} frames as ${d.session} — reconstruct it from the workstation`;
+};
+</script></body></html>"""
+
+
 @app.route("/")
 def index():
     reports = [os.path.basename(p) for p in sorted(glob.glob("results/report_*.html"))]
@@ -278,7 +379,7 @@ HTML = """<!doctype html><html><head><meta charset="utf-8">
   <h1>Argus Studio<small>the hundred-eyed watchman for colonoscopy — one camera in, blind spots out</small></h1>
  </header>
  <nav>
-  <a href="#live">live pipeline</a><a href="#polyp">polyp finder</a><a href="#measure">measure</a>
+  <a href="#live">live pipeline</a><a href="/handheld">📱 handheld</a><a href="#polyp">polyp finder</a><a href="#measure">measure</a>
   <a href="#glare">glare lab</a><a href="#depth">depth x-ray</a><a href="#traj">trajectory</a>
   <a href="#graphs">evidence</a><a href="#models">3D models</a><a href="#reports">reports</a><a href="#dash">dashboard</a>
  </nav>
@@ -297,7 +398,7 @@ HTML = """<!doctype html><html><head><meta charset="utf-8">
    <optgroup label="real tissue (qualitative)"><option>rectified01</option><option>rectified04</option><option>rectified05</option><option>rectified06</option></optgroup>
   </select>
   <button onclick="launch()">Launch live pipeline</button><span class="status" id="launchStatus"></span>
-  <p class="note">Two windows: live panels (raw | glare mask | learned depth, with the LIVE COVERAGE readout) and the growing 3D map. SPACE pause · B blind-spot reveal · ESC quit.</p>
+  <p class="note">Two windows: live panels (raw | glare mask | learned depth, with the LIVE COVERAGE readout) and the growing 3D map. SPACE pause · B blind-spot reveal · ESC quit.<br>📱 <b>Argus Handheld:</b> run the studio with <code>--https</code>, open <code>/handheld</code> on a phone on the same WiFi — the phone becomes the scope, this machine becomes the brain.</p>
  </div>
 
  <h2 id="polyp"><span class="num">02</span>Polyp finder + auto-sizing</h2>
@@ -389,6 +490,11 @@ loadFrame(0);glareRun();trajRun();
 
 if __name__ == "__main__":
     host = socket.gethostname()
-    print("Argus Studio -> http://localhost:7860", flush=True)
-    print(f"  on your network -> http://{host}:7860  (any device on the same WiFi)", flush=True)
-    app.run(host="0.0.0.0", port=7860, debug=False)
+    https = "--https" in sys.argv
+    proto = "https" if https else "http"
+    print(f"Argus Studio -> {proto}://localhost:7860", flush=True)
+    print(f"  on your network -> {proto}://{host}:7860  (any device on the same WiFi)", flush=True)
+    if https:
+        print(f"  HANDHELD (phone camera needs https): {proto}://{host}:7860/handheld", flush=True)
+        print("  your phone will warn about the self-signed certificate - tap Advanced > Proceed", flush=True)
+    app.run(host="0.0.0.0", port=7860, debug=False, ssl_context="adhoc" if https else None)
