@@ -489,7 +489,11 @@ loadFrame(0);glareRun();trajRun();
 
 
 if __name__ == "__main__":
-    host = socket.gethostname()
+    try:                                  # real LAN IP (hostnames don't resolve from phones)
+        _s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); _s.connect(("8.8.8.8", 80))
+        host = _s.getsockname()[0]; _s.close()
+    except OSError:
+        host = socket.gethostname()
     https = "--https" in sys.argv
     proto = "https" if https else "http"
     print(f"Argus Studio -> {proto}://localhost:7860", flush=True)
