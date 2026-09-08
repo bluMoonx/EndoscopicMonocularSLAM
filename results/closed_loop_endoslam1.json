@@ -1,0 +1,58 @@
+{
+ "sequence": "endoslam1",
+ "frames_total": 568,
+ "frames_with_detection": 120,
+ "raw_detections": 120,
+ "persistent_lesions": [
+  {
+   "pos": [
+    0.0067,
+    0.0016,
+    0.0202
+   ],
+   "size_mm": 4.0,
+   "confidence": 0.94,
+   "frames": 13
+  },
+  {
+   "pos": [
+    -0.0144,
+    0.0027,
+    0.0256
+   ],
+   "size_mm": 10.5,
+   "confidence": 0.92,
+   "frames": 6
+  },
+  {
+   "pos": [
+    -0.0033,
+    -0.0102,
+    0.0188
+   ],
+   "size_mm": 8.4,
+   "confidence": 0.96,
+   "frames": 60
+  },
+  {
+   "pos": [
+    -0.0108,
+    -0.0092,
+    0.0209
+   ],
+   "size_mm": 12.9,
+   "confidence": 0.95,
+   "frames": 11
+  },
+  {
+   "pos": [
+    0.0202,
+    -0.0492,
+    0.0078
+   ],
+   "size_mm": 9.8,
+   "confidence": 0.95,
+   "frames": 15
+  }
+ ]
+}

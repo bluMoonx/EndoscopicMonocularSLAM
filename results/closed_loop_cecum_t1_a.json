@@ -1,0 +1,58 @@
+{
+ "sequence": "cecum_t1_a",
+ "frames_total": 276,
+ "frames_with_detection": 126,
+ "raw_detections": 126,
+ "persistent_lesions": [
+  {
+   "pos": [
+    -0.0145,
+    0.0059,
+    0.1044
+   ],
+   "size_mm": 29.2,
+   "confidence": 0.88,
+   "frames": 22
+  },
+  {
+   "pos": [
+    -0.0154,
+    0.0035,
+    0.1106
+   ],
+   "size_mm": 35.7,
+   "confidence": 0.93,
+   "frames": 61
+  },
+  {
+   "pos": [
+    -0.0059,
+    0.0023,
+    0.1054
+   ],
+   "size_mm": 26.9,
+   "confidence": 0.88,
+   "frames": 11
+  },
+  {
+   "pos": [
+    -0.0064,
+    -0.0038,
+    0.1003
+   ],
+   "size_mm": 23.3,
+   "confidence": 0.77,
+   "frames": 11
+  },
+  {
+   "pos": [
+    -0.0031,
+    0.0315,
+    0.1007
+   ],
+   "size_mm": 23.6,
+   "confidence": 0.92,
+   "frames": 18
+  }
+ ]
+}
