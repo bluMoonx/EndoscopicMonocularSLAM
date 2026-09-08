@@ -125,3 +125,28 @@ ax.set_title("Measuring anatomy with one camera")
 save(fig, "fig7_measurement")
 
 print(f"all figures -> {OUT}/", flush=True)
+
+# 8 -- closed-loop calibration: persistence kills false alarms
+fig, ax = plt.subplots(figsize=(7, 4.4))
+sup = [5, 8, 12, 15]
+fp = [8, 4, 3, 2]
+ax.plot(sup, fp, "o-", color=CORAL, lw=2.5, label="false lesions on lesion-free controls")
+ax.axhline(0, color=MUTED, lw=1)
+ax.annotate("frozen operating point\n(+ size prior 2\u201322 mm)", (15, 2), xytext=(9.5, 5.5),
+            arrowprops=dict(arrowstyle="->", color=MUTED), fontsize=10, color=MUTED)
+ax.set_xlabel("required persistence (frames in the same 3D spot)")
+ax.set_ylabel("false lesions")
+ax.set_title("Calibrating the detector on videos known to be clean")
+ax.set_xticks(sup); ax.legend()
+save(fig, "fig8_calibration")
+
+# 9 -- edge computing: one network, three machines
+fig, ax = plt.subplots(figsize=(6.5, 4.4))
+devs = ["workstation\nGPU", "workstation\nCPU", "Pixel 9\n(in your hand)"]
+ms = [28, 90, 250]
+bars = ax.bar(devs, ms, 0.5, color=[TEAL, CYAN, AMBER])
+for b, v in zip(bars, ms):
+    ax.text(b.get_x() + b.get_width()/2, v + 6, f"{v} ms", ha="center", fontweight="bold")
+ax.set_ylabel("depth inference per frame (ms)")
+ax.set_title("The same fine-tuned network, from lab bench to pocket")
+save(fig, "fig9_edge")
