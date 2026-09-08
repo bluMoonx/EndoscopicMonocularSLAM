@@ -1,0 +1,25 @@
+{
+ "clip": "hyperkvasir_9e3f0999",
+ "frames": 60,
+ "raw": 22,
+ "operating_point": {
+  "conf": 0.7,
+  "support": 15,
+  "size": [
+   2.0,
+   22.0
+  ]
+ },
+ "lesions": [
+  {
+   "frames": 21,
+   "size_mm": 6.1,
+   "conf": 0.87,
+   "pos": [
+    -0.0061,
+    0.0026,
+    0.0184
+   ]
+  }
+ ]
+}
