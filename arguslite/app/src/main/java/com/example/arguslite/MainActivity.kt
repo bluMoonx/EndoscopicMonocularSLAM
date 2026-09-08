@@ -51,7 +51,17 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.RepeatMode
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
+import androidx.compose.foundation.layout.aspectRatio
+import kotlin.math.sqrt
 
 class MainActivity : ComponentActivity() {
 
@@ -66,7 +76,7 @@ class MainActivity : ComponentActivity() {
     private var polypEngine: PolypEngine? = null
     private var recOn by mutableStateOf(false)
     private var recDir: java.io.File? = null
-    private var recCount by mutableStateOf(0)
+    private var recCount by mutableIntStateOf(0)
 
     private val askCamera = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -105,21 +115,23 @@ class MainActivity : ComponentActivity() {
         camCtl = c
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun ArgusApp() {
-        var tab by remember { mutableIntStateOf(0) }
+        var tab by remember { mutableIntStateOf(2) }
+        var showMore by remember { mutableStateOf(false) }
         val tabs = listOf(
-            "Home" to Icons.Filled.Home,
-            "Scope" to Icons.Filled.PlayArrow,
-            "Detect" to Icons.Filled.Search,
             "Mission" to Icons.Filled.Info,
             "Results" to Icons.Filled.Star,
+            "Home" to Icons.Filled.Home,
             "Map" to Icons.Filled.Place,
+            "More" to Icons.Filled.Menu,
         )
         Scaffold(bottomBar = {
             NavigationBar {
                 tabs.forEachIndexed { i, (name, icon) ->
-                    NavigationBarItem(selected = tab == i, onClick = { tab = i },
+                    NavigationBarItem(selected = if (i < 4) tab == i else tab > 3,
+                        onClick = { if (i < 4) tab = i else showMore = true },
                         icon = { Icon(icon, name) }, label = { Text(name) })
                 }
             }
@@ -128,12 +140,34 @@ class MainActivity : ComponentActivity() {
                 androidx.compose.ui.graphics.Brush.verticalGradient(listOf(
                     Color(0xFF121519), Color(0xFF14201E), Color(0xFF121519))))) {
                 when (tab) {
-                    0 -> HomeScreen { tab = it }
-                    1 -> ScopeScreen()
-                    2 -> DetectScreen()
-                    3 -> MissionScreen()
-                    4 -> ResultsScreen()
-                    else -> MapScreen()
+                    0 -> MissionScreen()
+                    1 -> ResultsScreen()
+                    2 -> HomeScreen { tab = it }
+                    3 -> MapScreen()
+                    4 -> ScopeScreen()
+                    5 -> DetectScreen()
+                    6 -> MeasureScreen()
+                    7 -> TrajScreen()
+                    8 -> XRayScreen()
+                    else -> GlareLabScreen()
+                }
+                if (showMore) {
+                    ModalBottomSheet(onDismissRequest = { showMore = false }) {
+                        Column(Modifier.padding(bottom = 32.dp)) {
+                            ListItem(headlineContent = { Text("Scope") },
+                                modifier = Modifier.clickable { tab = 4; showMore = false })
+                            ListItem(headlineContent = { Text("Detect") },
+                                modifier = Modifier.clickable { tab = 5; showMore = false })
+                            ListItem(headlineContent = { Text("Measure") },
+                                modifier = Modifier.clickable { tab = 6; showMore = false })
+                            ListItem(headlineContent = { Text("Trajectories") },
+                                modifier = Modifier.clickable { tab = 7; showMore = false })
+                            ListItem(headlineContent = { Text("Depth X-ray") },
+                                modifier = Modifier.clickable { tab = 8; showMore = false })
+                            ListItem(headlineContent = { Text("Glare Lab") },
+                                modifier = Modifier.clickable { tab = 9; showMore = false })
+                        }
+                    }
                 }
             }
         }
@@ -194,10 +228,10 @@ class MainActivity : ComponentActivity() {
             Text(detectMsg, style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary)
             var statsOpen by remember { mutableStateOf(false) }
-            var shown by remember { mutableStateOf(0) }
+            var shown by remember { mutableIntStateOf(0) }
             LaunchedEffect(statsOpen) {
                 shown = 0
-                if (statsOpen) repeat(4) { delay(160); shown++ }
+                if (statsOpen) repeat(4) { delay(160.milliseconds); shown++ }
             }
             detectImg?.let {
                 Image(it.asImageBitmap(), "result",
@@ -234,7 +268,7 @@ class MainActivity : ComponentActivity() {
     }
     @Composable
     fun HomeScreen(onGo: (Int) -> Unit) {
-        val map = remember { loadColonMap() }
+        val map = remember { loadColonMap("colon_map2.bin") }
         var spin by remember { mutableFloatStateOf(0f) }
         LaunchedEffect(Unit) { while (true) { spin += 0.006f; delay(16.milliseconds) } }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -273,15 +307,42 @@ class MainActivity : ComponentActivity() {
                     "hide in places the camera never actually looked, and no one knows which places " +
                     "those were. Argus watches the same video the doctor sees and quietly keeps a " +
                     "map of what has been inspected and what has not. This app carries the heart of " +
-                    "that system in your pocket.", textAlign = TextAlign.Center)
-            val cards = listOf(
-                Triple(1, "Scope", "Point the camera at anything and watch a neural network " +
+                    "that system.", textAlign = TextAlign.Center)
+            val mainCards = listOf(
+                Triple(0, "Mission", "What this project set out to prove, and how it went."),
+                Triple(1, "Results", "The numbers, measured against ground truth."),
+                Triple(3, "Map", "A real colon in 3D. Spin it, zoom it, and watch it build itself."))
+
+            val labCards = listOf(
+                Triple(4, "Scope", "Point the camera at anything and watch a neural network " +
                         "judge its depth, live on this phone."),
-                Triple(2, "Detect", "Real colonoscopy cases, analyzed on this phone. Find the polyp."),
-                Triple(3, "Mission", "What this project set out to prove, and how it went."),
-                Triple(4, "Results", "The numbers, measured against ground truth."),
-                Triple(5, "Map", "A real colon in 3D. Spin it, zoom it, and watch it build itself."))
-            cards.forEach { (idx, title, desc) ->
+                Triple(5, "Detect", "Real colonoscopy cases, analyzed on this phone. Find the polyp."),
+                Triple(6, "Measure", "Tap two points on a colon frame and get the real distance " +
+                        "in millimeters, from depth alone."),
+                Triple(7, "Trajectories", "The camera path Argus computed, laid over the truth " +
+                    "a robot recorded. Spin them together."),
+                Triple(8, "Depth X-ray", "Generic AI versus the fine-tuned network, side by " +
+                    "side. The whole project in one comparison."),
+                Triple(9, "Glare Lab", "Watch a reflection detector pick apart real endoscopic glare"))
+
+            mainCards.forEach { (idx, title, desc) ->
+                Card(Modifier.fillMaxWidth().clickable { onGo(idx) }) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(title, style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.primary)
+                        Text(desc, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Text("LABORATORY", style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.outline)
+            HorizontalDivider(Modifier.padding(horizontal = 40.dp), thickness = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(8.dp))
+
+            labCards.forEach { (idx, title, desc) ->
                 Card(Modifier.fillMaxWidth().clickable { onGo(idx) }) {
                     Column(Modifier.padding(16.dp)) {
                         Text(title, style = MaterialTheme.typography.titleLarge,
@@ -339,10 +400,10 @@ class MainActivity : ComponentActivity() {
                             if (recOn) { recOn = false }
                             else {
                                 val d = java.io.File(root, "scan " +
-                                        java.text.SimpleDateFormat("MMM d HH.mm.ss").format(java.util.Date()))
+                                        SimpleDateFormat("MMM d HH.mm.ss", Locale.US).format(Date()))
                                 d.mkdirs(); recDir = d; recCount = 0; recOn = true
                             }
-                        }) { Text(if (recOn) "Stop  ●  ${recCount}" else "Record") }
+                        }) { Text(if (recOn) "Stop  ●  $recCount" else "Record") }
                     TextButton(onClick = { showList = !showList }) { Text("Sessions") }
                 }
                 if (showList) {
@@ -362,8 +423,8 @@ class MainActivity : ComponentActivity() {
                 playDir?.let { d ->
                     val n = (d.listFiles()?.count { it.name.startsWith("raw") } ?: 0)
                     if (n == 0) { playDir = null; return }
-                    var i by remember(d) { mutableStateOf(0) }
-                    LaunchedEffect(d) { while (true) { delay(250); i = (i + 1) % n } }
+                    var i by remember(d) { mutableIntStateOf(0) }
+                    LaunchedEffect(d) { while (true) { delay(250.milliseconds); i = (i + 1) % n } }
                     val raw = remember(i) { BitmapFactory.decodeFile(java.io.File(d, "raw%04d.jpg".format(i)).path) }
                     val ht = remember(i) { BitmapFactory.decodeFile(java.io.File(d, "heat%04d.jpg".format(i)).path) }
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -444,39 +505,41 @@ class MainActivity : ComponentActivity() {
             Text("The mission", style = MaterialTheme.typography.headlineMedium)
             Text("Tap any section to read it.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-            ExpandCard("What a polyp is",
-                "A polyp is a small growth on the inner wall of the colon. Most are harmless, " +
-                        "but some slowly turn into colorectal cancer over the years. That is why " +
-                        "screening colonoscopies exist. If you find a polyp early and remove it, the " +
-                        "cancer never happens.")
-            ExpandCard("The problem nobody could see",
-                "Studies keep finding that roughly one polyp in four gets missed during " +
-                        "colonoscopy. The main reason is simple and a little unsettling. The camera " +
-                        "shows one small window of a long folded tunnel, and some patches of wall " +
-                        "simply never appear in that window. The doctor cannot re-check a spot they " +
-                        "never knew they skipped.")
-            ExpandCard("The question this project asked",
-                "Can software figure out which parts of the colon were never actually " +
-                        "inspected, using nothing but the video from a standard endoscope? No new " +
-                        "sensors, no hardware changes, just the same feed the doctor already watches.")
-            ExpandCard("How Argus answers it",
-                "Four stages run in a row. A neural network estimates how far away every pixel " +
-                        "is. A tracking algorithm works out how the camera moved between frames. A " +
-                        "fusion step melts thousands of those noisy snapshots into one clean 3D " +
-                        "surface. Finally, every patch of that surface is checked. If fewer than three " +
-                        "frames ever saw a patch properly, it gets flagged as a blind spot.")
-            ExpandCard("What went wrong on the way",
-                "The first idea was that lens glare was breaking everything. Careful testing " +
-                        "proved that mostly wrong. Later, the whole system collapsed when it switched " +
-                        "to guessing depth with a generic AI model. A controlled experiment traced the " +
-                        "failure to that one component. The model had learned the outside world and " +
-                        "had never seen the inside of a body.")
-            ExpandCard("What we found",
-                "After teaching the depth network what colons actually look like, the system " +
-                        "went from 74 percent agreement with ground truth to 98.6 percent. The finding " +
-                        "is bigger than the gadget. Generic AI vision fails inside the human body until " +
-                        "you train it on the territory, and one targeted fix in the right place can " +
-                        "rescue an entire system.")
+            ExpandCard("What are Polyps?",
+                "A polyp is a small growth on the wall of the colon. Most are harmless. Some " +
+                        "turn into colorectal cancer over the years. Catch one early and remove it, " +
+                        "and that cancer just never happens. That is the entire point of a screening " +
+                        "colonoscopy.")
+            ExpandCard("The Problem",
+                "According to biomedical reports, around 1 in 4 precancerous polyps (adenomas)" +
+                        "are missed during standard colonoscopies, which creates a significant risk for the patient." +
+                        "The camera only shows a small window of a long, folded tunnel. Some patches " +
+                        "of wall never make it into that window, and there is no way for the doctor " +
+                        "to know which ones. This is a significant problem in modern colonoscopy.")
+            ExpandCard("Our Goal",
+                "The mission of this project is to figure out which parts of the colon were missed, using " +
+                        "only the video from a normal endoscope. No extra sensors or new hardware.")
+            ExpandCard("How ARGUS Works",
+                "ARGUS consists of five steps.\n\n" +
+                        "1. A neural network estimates how far away every pixel is.\n" +
+                        "2. A tracking algorithm works out how the camera moved between frames.\n" +
+                        "3. Thousands of those noisy snapshots get merged into one clean 3D surface.\n" +
+                        "4. Every patch of that surface gets checked: if fewer than three frames saw " +
+                        "it, it gets flagged as a blind spot.\n" +
+                        "5. The polyp detector looks for polyps in every frame, then marks and " +
+                        "measures what it finds.")
+            ExpandCard("Setbacks",
+                "The original idea was that lens glare was ruining the tracking. Testing " +
+                        "proved that mostly wrong because the original SLAM system used, ORB-SLAM3," +
+                        "already accounts for that issue, and adding a secondary glare-filtering layer " +
+                        "actually worsened the outcome. Then the whole system broke when it switched to a " +
+                        "generic AI depth model, and a controlled experiment traced the failure to " +
+                        "that one part: the model had never seen the inside of a body.")
+            ExpandCard("Discoveries",
+                "After training the depth model on colon images, agreement with ground truth " +
+                        "went from 74 percent to 98.6 percent. The takeaway is bigger than one app: " +
+                        "AI vision cannot be trusted on territory it was never taught, and one " +
+                        "targeted fix in the right place can rescue a whole system.")
         }
     }
 
@@ -533,7 +596,7 @@ class MainActivity : ComponentActivity() {
             }
             Card {
                 Column(Modifier.padding(16.dp)) {
-                    Text("The fix that saved the project",
+                    Text("Depth, before and after fine-tuning",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary)
                     Text("Depth accuracy per sequence, before and after teaching the network " +
@@ -574,12 +637,10 @@ class MainActivity : ComponentActivity() {
 
     class ColonMap(val n: Int, val xyz: FloatArray, val r: IntArray, val g: IntArray,
                    val b: IntArray, val blind: BooleanArray, val born: IntArray,
-                   val trajN: Int, val traj: FloatArray)
+                   val trajN: Int, val traj: FloatArray, val lesions: List<FloatArray>)
 
-    class Anchor(val x: Float, val y: Float, val z: Float, val title: String, val body: String)
-
-    private fun loadColonMap(): ColonMap {
-        val bb = java.nio.ByteBuffer.wrap(assets.open("colon_map2.bin").readBytes())
+    private fun loadColonMap(file: String): ColonMap {
+        val bb = java.nio.ByteBuffer.wrap(assets.open(file).readBytes())
             .order(java.nio.ByteOrder.LITTLE_ENDIAN)
         val n = bb.int
         val xyz = FloatArray(3 * n)
@@ -596,8 +657,16 @@ class MainActivity : ComponentActivity() {
         val m = bb.int
         val traj = FloatArray(3 * m)
         for (i in 0 until 3 * m) traj[i] = bb.float
-        return ColonMap(n, xyz, r, g, b, blind, born, m, traj)
+        val lesions = mutableListOf<FloatArray>()
+        if (bb.remaining() >= 4) {
+            val numLesions = bb.int
+            repeat(numLesions) { lesions.add(floatArrayOf(bb.float, bb.float, bb.float, bb.float)) }
+        }
+        return ColonMap(n, xyz, r, g, b, blind, born, m, traj, lesions)
     }
+
+    class Anchor(val x: Float, val y: Float, val z: Float, val title: String, val body: String)
+
 
     private fun makeAnchors(map: ColonMap): List<Anchor> {
         val bi = map.blind.indexOfFirst { it }.coerceAtLeast(0)
@@ -611,22 +680,28 @@ class MainActivity : ComponentActivity() {
         }
         var di = 0
         for (i in 0 until map.n) if (map.xyz[3 * i + 2] > map.xyz[3 * di + 2]) di = i
-        return listOf(
+        val base = mutableListOf(
             Anchor(map.xyz[3 * bi], map.xyz[3 * bi + 1], map.xyz[3 * bi + 2], "A blind spot",
                 "The camera never got a proper look at this patch. Fewer than three frames saw " +
                         "it. In a real procedure, this is exactly where a polyp could hide unnoticed."),
             Anchor(map.xyz[3 * si], map.xyz[3 * si + 1], map.xyz[3 * si + 2], "Where the run began",
                 "The scope entered here. Every point in this model was placed by combining two " +
-                        "guesses: how far away each pixel was, and how the camera was moving."),
-            Anchor(map.xyz[3 * di], map.xyz[3 * di + 1], map.xyz[3 * di + 2], "The far wall",
-                "The depth network judged these distances from single flat images. That is the " +
-                        "same trick your brain does when you close one eye."))
+                        "guesses: how far away each pixel was, and how the camera was moving."))
+        map.lesions.forEach { lesion ->
+            base.add(Anchor(lesion[0], lesion[1], lesion[2], "Polyp — found by the system",
+                "The detector flagged this spot in 21 separate frames, and every flag landed " +
+                        "within ten millimeters of the same 3D location. Estimated size about " +
+                        "${lesion[3]} mm. On real footage, with no ground truth given, the full pipeline " +
+                        "found it, placed it, and measured it."))
+        }
+        return base
     }
 
     @Composable
     fun MapScreen() {
-        val map = remember { loadColonMap() }
-        val anchors = remember { makeAnchors(map) }
+        var run by remember { mutableIntStateOf(0) }
+        val map = remember(run) { loadColonMap(if (run == 0) "colon_map2.bin" else "hk_map.bin") }
+        val anchors = remember(run) { makeAnchors(map) }
         var yaw by remember { mutableFloatStateOf(0.6f) }
         var pitch by remember { mutableFloatStateOf(0.3f) }
         var zoom by remember { mutableFloatStateOf(1f) }
@@ -635,10 +710,16 @@ class MainActivity : ComponentActivity() {
         var playing by remember { mutableStateOf(false) }
         var t by remember { mutableFloatStateOf(0f) }
         var picked by remember { mutableStateOf<Anchor?>(null) }
+        var open by remember { mutableIntStateOf(1) }   // which section is expanded
         var canvasW by remember { mutableFloatStateOf(1f) }
         var canvasH by remember { mutableFloatStateOf(1f) }
+        val pulse by androidx.compose.animation.core.rememberInfiniteTransition(label = "p")
+            .animateFloat(10f, 26f, androidx.compose.animation.core.infiniteRepeatable(
+                androidx.compose.animation.core.tween(900),
+                androidx.compose.animation.core.RepeatMode.Reverse), label = "p")
 
-        fun project(x: Float, y: Float, z: Float, cy: Float, sy: Float, cp: Float, sp: Float): Triple<Float, Float, Float> {
+        fun project(x: Float, y: Float, z: Float, cy: Float, sy: Float,
+                    cp: Float, sp: Float): Triple<Float, Float, Float> {
             val x1 = x * cy + z * sy; val z1 = -x * sy + z * cy
             val y1 = y * cp - z1 * sp; val z2 = y * sp + z1 * cp
             val persp = zoom / (1.6f - z2 * 0.5f)
@@ -651,44 +732,10 @@ class MainActivity : ComponentActivity() {
             if (t >= map.trajN - 1) playing = false
         }
 
-        Column(Modifier.fillMaxSize().padding(12.dp)) {
-            Text("The 3D map", style = MaterialTheme.typography.headlineMedium)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = showBlind, onCheckedChange = { showBlind = it })
-                Text(" blind spots", Modifier.weight(1f))
-                Button(onClick = {
-                    replay = !replay
-                    if (replay) { t = 0f; playing = true } else playing = false
-                }) { Text(if (replay) "Explore" else "Watch it build") }
-            }
-            if (replay) {
-                val frameIdx = (t / map.trajN * 91).toInt().coerceIn(0, 91)
-                val raw = remember(frameIdx) {
-                    BitmapFactory.decodeStream(assets.open("replay/f%03d.jpg".format(frameIdx))) }
-                val dep = remember(frameIdx) {
-                    BitmapFactory.decodeStream(assets.open("replay/f%03dd.jpg".format(frameIdx))) }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Image(raw.asImageBitmap(), "camera", Modifier.weight(1f).height(130.dp))
-                    Image(dep.asImageBitmap(), "depth", Modifier.weight(1f).height(130.dp))
-                }
-                Text("what the scope saw · what the network understood · " +
-                        "frame ${t.toInt()} of ${map.trajN}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                androidx.compose.animation.AnimatedVisibility(!playing && t >= map.trajN - 1) {
-                    Card {
-                        Column(Modifier.padding(14.dp)) {
-                            Text("Run complete", style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary)
-                            Text("276 frames fused into one surface. 94.7 percent of the wall " +
-                                    "was properly inspected. The rest is what the red dots mark, " +
-                                    "and finding them was the whole point.")
-                            TextButton(onClick = { t = 0f; playing = true }) { Text("run it again") }
-                        }
-                    }
-                }
-            }
-            Box(Modifier.fillMaxWidth().weight(1f)) {
+        Column(Modifier.fillMaxSize()) {
+
+            // ---------- THE MODEL: fixed, always visible, never covered ----------
+            Box(Modifier.fillMaxWidth().height(330.dp)) {
                 Canvas(Modifier.fillMaxSize()
                     .pointerInput(Unit) {
                         detectTransformGestures { _, pan, gz, _ ->
@@ -696,9 +743,10 @@ class MainActivity : ComponentActivity() {
                             zoom = (zoom * gz).coerceIn(0.5f, 4f)
                         }
                     }
-                    .pointerInput(Unit) {
+                    .pointerInput(run) {
                         detectTapGestures { tap ->
-                            val cy = cos(yaw); val sy = sin(yaw); val cp = cos(pitch); val sp = sin(pitch)
+                            val cy = cos(yaw); val sy = sin(yaw)
+                            val cp = cos(pitch); val sp = sin(pitch)
                             picked = anchors.firstOrNull {
                                 val (px, py, _) = project(it.x, it.y, it.z, cy, sy, cp, sp)
                                 val dx = tap.x - px; val dy = tap.y - py
@@ -707,11 +755,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }) {
                     canvasW = size.width; canvasH = size.height
-                    val cy = cos(yaw); val sy = sin(yaw); val cp = cos(pitch); val sp = sin(pitch)
+                    val cy = cos(yaw); val sy = sin(yaw)
+                    val cp = cos(pitch); val sp = sin(pitch)
                     for (i in 0 until map.n) {
                         if (replay && map.born[i] > t) continue
-                        val (px, py, persp) = project(
-                            map.xyz[3 * i], map.xyz[3 * i + 1], map.xyz[3 * i + 2], cy, sy, cp, sp)
+                        val (px, py, persp) = project(map.xyz[3 * i], map.xyz[3 * i + 1],
+                            map.xyz[3 * i + 2], cy, sy, cp, sp)
                         val shade = (0.45f + 0.75f * persp / zoom).coerceIn(0.35f, 1f)
                         if (showBlind && map.blind[i]) {
                             drawCircle(Color(0xFFE63946), 5f, Offset(px, py))
@@ -721,34 +770,371 @@ class MainActivity : ComponentActivity() {
                                 alpha = if (showBlind) 0.30f else 1f)
                         }
                     }
-                    val upTo = (if (replay) t.toInt() else map.trajN - 1).coerceAtMost(map.trajN - 1)
+                    val upTo = (if (replay) t.toInt() else map.trajN - 1)
+                        .coerceAtMost(map.trajN - 1)
                     for (j in 1..upTo) {
-                        val (ax, ay, _) = project(map.traj[3 * (j - 1)],
-                            map.traj[3 * (j - 1) + 1], map.traj[3 * (j - 1) + 2], cy, sy, cp, sp)
-                        val (bx, by, _) = project(map.traj[3 * j],
-                            map.traj[3 * j + 1], map.traj[3 * j + 2], cy, sy, cp, sp)
+                        val (ax, ay, _) = project(map.traj[3 * (j - 1)], map.traj[3 * (j - 1) + 1],
+                            map.traj[3 * (j - 1) + 2], cy, sy, cp, sp)
+                        val (bx, by, _) = project(map.traj[3 * j], map.traj[3 * j + 1],
+                            map.traj[3 * j + 2], cy, sy, cp, sp)
                         drawLine(Color(0xFF3FD6FF), Offset(ax, ay), Offset(bx, by), 3f)
                     }
-                    if (!replay) anchors.forEach {
+                    anchors.forEach {
+                        val gold = it.title.startsWith("Polyp")
+                        if (replay && (!gold || t < 10f)) return@forEach
                         val (px, py, _) = project(it.x, it.y, it.z, cy, sy, cp, sp)
-                        drawCircle(Color(0xFF5FB5AD), 10f, Offset(px, py), alpha = 0.9f)
-                        drawCircle(Color(0xFF121519), 5f, Offset(px, py))
+                        if (gold && replay) drawCircle(Color(0xFFDCA645), pulse,
+                            Offset(px, py), alpha = 0.35f)
+                        drawCircle(if (gold) Color(0xFFDCA645) else Color(0xFF5FB5AD),
+                            if (gold) 13f else 10f, Offset(px, py), alpha = 0.95f)
+                        drawCircle(Color(0xFF121519), if (gold) 6f else 5f, Offset(px, py))
                     }
                 }
+                Text("drag · pinch · tap markers", Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                 picked?.let { a ->
                     Card(Modifier.align(Alignment.BottomCenter).padding(8.dp)) {
-                        Column(Modifier.padding(14.dp)) {
+                        Column(Modifier.padding(12.dp)) {
                             Text(a.title, style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary)
-                            Text(a.body, style = MaterialTheme.typography.bodyMedium)
+                            Text(a.body, style = MaterialTheme.typography.bodySmall)
                             TextButton(onClick = { picked = null }) { Text("close") }
                         }
                     }
                 }
             }
-            Text("drag to turn · pinch to zoom · tap for info",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            // ---------- REPLAY STRIP: appears only during a run ----------
+            if (replay) {
+                val fMax = if (run == 0) 91 else 59
+                val dir = if (run == 0) "replay" else "hkreplay"
+                val frameIdx = (t / map.trajN * fMax).toInt().coerceIn(0, fMax)
+                val raw = remember(run, frameIdx) {
+                    BitmapFactory.decodeStream(assets.open("$dir/f%03d.jpg".format(frameIdx))) }
+                val dep = remember(run, frameIdx) {
+                    BitmapFactory.decodeStream(assets.open("$dir/f%03dd.jpg".format(frameIdx))) }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Image(raw.asImageBitmap(), null, Modifier.weight(1f).height(86.dp))
+                    Image(dep.asImageBitmap(), null, Modifier.weight(1f).height(86.dp))
+                    Column(Modifier.weight(1.2f)) {
+                        Text("frame ${t.toInt()}/${map.trajN}",
+                            style = MaterialTheme.typography.labelLarge)
+                        Text("${map.born.count { it <= t }} points placed",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (run == 1 && t >= 10f)
+                            Text("POLYP DETECTED", style = MaterialTheme.typography.labelLarge,
+                                color = Color(0xFFDCA645))
+                    }
+                }
+            }
+
+            // ---------- THE STORY: scrolls under the model, one section open at a time ----------
+            Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())
+                .padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                @Composable
+                fun Section(idx: Int, title: String, content: @Composable () -> Unit) {
+                    Card(Modifier.fillMaxWidth().clickable { open = if (open == idx) -1 else idx }) {
+                        Column(Modifier.padding(14.dp)) {
+                            Text(title, style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary)
+                            androidx.compose.animation.AnimatedVisibility(open == idx) {
+                                Column(Modifier.padding(top = 8.dp)) { content() }
+                            }
+                        }
+                    }
+                }
+
+                Section(0, "The goal") {
+                    Text("Around one in four precancerous polyps is missed in a standard " +
+                            "colonoscopy, usually because part of the wall was never actually " +
+                            "looked at. This screen shows the complete answer: a 3D map built " +
+                            "from the video alone, the spots that were never inspected, and any " +
+                            "polyps that were found along the way.")
+                }
+                Section(1, "Run the system") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(selected = run == 0, onClick = {
+                            run = 0; replay = false; playing = false; t = 0f },
+                            label = { Text("Phantom (validated)") })
+                        FilterChip(selected = run == 1, onClick = {
+                            run = 1; replay = false; playing = false; t = 0f },
+                            label = { Text("Real footage") })
+                    }
+                    Button(onClick = {
+                        replay = !replay
+                        if (replay) { t = 0f; playing = true; open = 1 } else playing = false
+                    }) { Text(if (replay) "Back to explore" else "Watch it build") }
+                    if (replay && !playing && t >= map.trajN - 1) {
+                        Text(if (run == 0)
+                            "276 frames fused into one surface. 94.7 percent of the wall was " +
+                                    "properly inspected. No polyps here: this phantom is clean, and " +
+                                    "saying so is the honest half of detection."
+                        else
+                            "Real colonoscopy, 60 frames. The system tracked the camera, " +
+                                    "built this surface, and found one polyp of about 6 mm. Its gold " +
+                                    "marker is on the model above.",
+                            Modifier.padding(top = 8.dp))
+                    }
+                }
+                Section(2, "Blind spots") {
+                    val pct = 100f * map.blind.count { it } / map.n
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = showBlind, onCheckedChange = {
+                            showBlind = it; if (it) open = 2 })
+                        Text("  show on the model")
+                    }
+                    Text("%.1f%% of this surface was seen fewer than three times — glimpsed, "
+                        .format(pct) +
+                            "never inspected. In a real procedure these are the patches a doctor " +
+                            "would be sent back to check.")
+                }
+                Section(3, "Findings") {
+                    if (map.lesions.isEmpty())
+                        Text("No polyps detected in this run. On a clean phantom, that is " +
+                                "the correct answer.")
+                    else map.lesions.forEach { L ->
+                        Text("Polyp — about ${L[3]} mm", style = MaterialTheme.typography.labelLarge,
+                            color = Color(0xFFDCA645))
+                        Text("Flagged in 21 separate frames, every flag within ten " +
+                                "millimeters of the same 3D spot. Tap its gold marker above for " +
+                                "the full story.")
+                    }
+                }
+                Section(4, "The numbers") {
+                    Text("Blind-spot agreement with ground truth: 98.6 percent\n" +
+                            "Camera tracking error: 0.91 mm average\n" +
+                            "Surface accuracy: 1.3 to 2.4 mm\n" +
+                            "All measured against a phantom whose true shape and camera path " +
+                            "were recorded by machines.")
+                }
+                Section(5, "How it works") {
+                    Text("A neural network reads depth from each flat frame. A tracking " +
+                            "algorithm recovers the camera's motion. Thousands of noisy " +
+                            "snapshots vote themselves into one clean surface. Every patch " +
+                            "then reports how many times it was actually seen — and the polyp " +
+                            "detector marks anything it finds along the way.")
+                }
+            }
         }
     }
-}
+
+    class MeasureSet(val img: Bitmap, val w: Int, val h: Int, val fx: Float, val fy: Float,
+                     val cx: Float, val cy: Float, val depth: ShortArray)
+
+        private fun loadMeasure(j: Int): MeasureSet {
+            val img = BitmapFactory.decodeStream(assets.open("measure/m$j.jpg"))
+            val bb = java.nio.ByteBuffer.wrap(assets.open("measure/m$j.bin").readBytes())
+                .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+            val w = bb.int; val h = bb.int
+            val fx = bb.float; val fy = bb.float; val cx = bb.float; val cy = bb.float
+            val d = ShortArray(w * h); bb.asShortBuffer().get(d)
+            return MeasureSet(img, w, h, fx, fy, cx, cy, d)
+        }
+
+        private fun depthAt(s: MeasureSet, u: Int, v: Int): Float {
+            val vals = ArrayList<Float>()
+            for (dy in -2..2) for (dx in -2..2) {
+                val x = u + dx; val y = v + dy
+                if (x in 0 until s.w && y in 0 until s.h) {
+                    val raw = s.depth[y * s.w + x].toInt() and 0xFFFF
+                    if (raw > 0) vals.add(raw * 100f / 65535f / 1000f)
+                }
+            }
+            if (vals.isEmpty()) return 0f
+            vals.sort(); return vals[vals.size / 2]
+        }
+
+        @Composable
+        fun MeasureScreen() {
+            var preset by remember { mutableIntStateOf(0) }
+            val set = remember(preset) { loadMeasure(preset) }
+            var pts by remember(preset) { mutableStateOf(listOf<Pair<Float, Float>>()) }
+            var mm by remember(preset) { mutableStateOf<Float?>(null) }
+            Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Measure", style = MaterialTheme.typography.headlineMedium)
+                Text("Tap two points. The distance between them comes from the depth network, " +
+                        "the same math validated to under 1.3 millimeters against ground truth.")
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        repeat(2) { j -> FilterChip(selected = preset == j, onClick = { preset = j },
+                            label = { Text("frame ${j + 1}") }) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        repeat(2) { j -> FilterChip(selected = preset == j + 2, onClick = { preset = j + 2 },
+                            label = { Text("frame ${j + 3}") }) }
+                    }
+                }
+                Box(Modifier.fillMaxWidth().aspectRatio(set.w.toFloat() / set.h)) {
+                    Image(set.img.asImageBitmap(), null, Modifier.fillMaxSize())
+                    Canvas(Modifier.fillMaxSize().pointerInput(preset) {
+                        detectTapGestures { tap ->
+                            val sx = size.width.toFloat() / set.w
+                            val p = Pair(tap.x / sx, tap.y / sx)
+                            pts = if (pts.size >= 2) listOf(p) else pts + p
+                            mm = null
+                            if (pts.size == 2) {
+                                val (a, b) = pts
+                                val z1 = depthAt(set, a.first.toInt(), a.second.toInt())
+                                val z2 = depthAt(set, b.first.toInt(), b.second.toInt())
+                                if (z1 > 0 && z2 > 0) {
+                                    val x1 = (a.first - set.cx) / set.fx * z1
+                                    val y1 = (a.second - set.cy) / set.fy * z1
+                                    val x2 = (b.first - set.cx) / set.fx * z2
+                                    val y2 = (b.second - set.cy) / set.fy * z2
+                                    mm = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2)) * 1000f
+                                }
+                            }
+                        }
+                    }) {
+                        val sx = size.width / set.w
+                        pts.forEach { drawCircle(Color(0xFF3FD6A0), 9f,
+                            Offset(it.first * sx, it.second * sx)) }
+                        if (pts.size == 2) drawLine(Color(0xFF3FD6A0),
+                            Offset(pts[0].first * sx, pts[0].second * sx),
+                            Offset(pts[1].first * sx, pts[1].second * sx), 4f)
+                    }
+                }
+                Text(mm?.let { "%.1f mm".format(it) } ?: if (pts.size == 1) "one more point…"
+                else "tap the image",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        @Composable
+        fun TrajScreen() {
+            val seqs = listOf("cecum_t1_a", "desc_t4_a", "trans_t1_a", "trans_t2_a", "trans_t2_b")
+            var si by remember { mutableIntStateOf(0) }
+            val data = remember(si) {
+                val bb = java.nio.ByteBuffer.wrap(assets.open("traj/${seqs[si]}.bin").readBytes())
+                    .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+                val n = bb.int; val gTraj = FloatArray(3 * n); for (i in 0 until 3 * n) gTraj[i] = bb.float
+            val m = bb.int; val fTraj = FloatArray(3 * m); for (i in 0 until 3 * m) fTraj[i] = bb.float
+            Pair(gTraj, fTraj)
+            }
+            var yaw by remember { mutableFloatStateOf(0.5f) }
+            var pitch by remember { mutableFloatStateOf(0.3f) }
+            var zoom by remember { mutableFloatStateOf(1f) }
+            Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Trajectories", style = MaterialTheme.typography.headlineMedium)
+                Text("Amber is the true camera path, recorded by a robot. Teal is what Argus " +
+                        "computed from the video alone. On average they differ by 0.91 millimeters.")
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        seqs.take(3).forEachIndexed { j, s -> FilterChip(selected = si == j,
+                            onClick = { si = j }, label = { Text(s.take(6)) }) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        seqs.drop(3).forEachIndexed { j, s -> FilterChip(selected = si == j + 3,
+                            onClick = { si = j + 3 }, label = { Text(s.take(6)) }) }
+                    }
+                }
+                Canvas(Modifier.fillMaxWidth().weight(1f).pointerInput(Unit) {
+                    detectTransformGestures { _, pan, gz, _ ->
+                        yaw += pan.x * 0.008f; pitch += pan.y * 0.008f
+                        zoom = (zoom * gz).coerceIn(0.5f, 4f)
+                    }
+                }) {
+                    val cy = cos(yaw); val sy = sin(yaw); val cp = cos(pitch); val sp = sin(pitch)
+                    val s = size.minDimension * 0.42f * zoom
+                    fun prj(a: FloatArray, i: Int): Offset {
+                        val x = a[3*i]; val y = a[3*i+1]; val z = a[3*i+2]
+                        val x1 = x*cy + z*sy; val z1 = -x*sy + z*cy
+                        val y1 = y*cp - z1*sp
+                        return Offset(size.width/2 + x1*s, size.height/2 + y1*s)
+                    }
+                    val (gTraj, fTraj) = data
+                for (i in 1 until gTraj.size/3) drawLine(Color(0xFFDCA645), prj(gTraj, i-1), prj(gTraj, i), 5f)
+                for (i in 1 until fTraj.size/3) drawLine(Color(0xFF5FB5AD), prj(fTraj, i-1), prj(fTraj, i), 3f)
+                }
+                Text("drag to turn · pinch to zoom", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        @Composable
+        fun XRayScreen() {
+            var preset by remember { mutableIntStateOf(0) }
+            val strip = remember(preset) {
+                BitmapFactory.decodeStream(assets.open("xray/x$preset.jpg")) }
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Depth X-ray", style = MaterialTheme.typography.headlineMedium)
+                Text("The same frame, judged twice. The middle panel is a generic depth AI that " +
+                        "learned from streets and living rooms. The right panel is the same kind of " +
+                        "network after it was taught what a colon looks like. This comparison is what " +
+                        "makes the whole system possible.")
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    repeat(4) { j -> FilterChip(selected = preset == j, onClick = { preset = j },
+                        label = { Text("case ${j + 1}") }) }
+                }
+                Image(strip.asImageBitmap(), null, Modifier.fillMaxWidth())
+                Text("raw  ·  generic AI  ·  fine-tuned",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary)
+                Text("Comparisons precomputed from both models.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        // ========================= YOUR ASSIGNMENT LIVES HERE =========================
+        // Given a photo and a brightness threshold, return a copy of the photo where every
+        // pixel whose red, green, AND blue values are all above `thr` is painted pure red.
+        // Return null until you write it -- the Glare Lab screen shows your to-do note
+        // until this function exists. Everything you need is in PolypEngine's pixel loop.
+        private fun glareMask(src: Bitmap, thr: Int): Bitmap? {
+        val out = src.copy(Bitmap.Config.ARGB_8888, true)
+        val px = IntArray(out.width * out.height)
+        out.getPixels(px, 0, out.width, 0, 0, out.width, out.height)
+        for (i in px.indices) {
+            val r = (px[i] shr 16) and 0xFF
+            val g = (px[i] shr 8) and 0xFF
+            val b = px[i] and 0xFF
+            if (r > thr && g > thr && b > thr) {
+                px[i] = (0xFF shl 24) or (0xFF shl 16) // pure red
+            }
+        }
+        out.setPixels(px, 0, out.width, 0, 0, out.width, out.height)
+        return out
+    }
+
+    @Composable
+    fun GlareLabScreen() {
+        var preset by remember { mutableIntStateOf(0) }
+        var thr by remember { mutableFloatStateOf(225f) }
+        val frames = listOf("hkreplay/f000.jpg", "hkreplay/f020.jpg",
+            "hkreplay/f040.jpg", "hkreplay/f056.jpg")
+        val src = remember(preset) { BitmapFactory.decodeStream(assets.open(frames[preset])) }
+        val out = remember(preset, thr.toInt()) { glareMask(src, thr.toInt()) }
+        Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Glare Lab", style = MaterialTheme.typography.headlineMedium)
+            Text("Real colonoscopy frames, full of real glare. Slide the threshold and watch " +
+                    "the detector decide what counts as a reflection.")
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    repeat(2) { j -> FilterChip(selected = preset == j, onClick = { preset = j },
+                        label = { Text("frame ${j + 1}") }) }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    repeat(2) { j -> FilterChip(selected = preset == j + 2, onClick = { preset = j + 2 },
+                        label = { Text("frame ${j + 3}") }) }
+                }
+            }
+            Slider(value = thr, onValueChange = { thr = it }, valueRange = 180f..254f)
+            Text("threshold: ${thr.toInt()}", style = MaterialTheme.typography.labelLarge)
+            if (out == null) {
+                Card { Text("Glare detection is coming in a future update.",
+                    Modifier.padding(16.dp)) }
+                Image(src.asImageBitmap(), null, Modifier.fillMaxWidth().weight(1f))
+            } else {
+                Image(out.asImageBitmap(), null, Modifier.fillMaxWidth().weight(1f))
+            }
+        }
+    }
+    }
