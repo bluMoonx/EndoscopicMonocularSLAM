@@ -11,7 +11,10 @@ class DepthEngine(context: Context) {
     private val env = OrtEnvironment.getEnvironment()
     private val session = env.createSession(
         context.assets.open("depth.onnx").readBytes(),
-        ai.onnxruntime.OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
+        ai.onnxruntime.OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) }
+    )
+    var lastGrid: FloatArray? = null
+    val gridN = 42
 
     fun run(frame: Bitmap): Bitmap {
         val s = Bitmap.createScaledBitmap(frame, sz, sz, true)
@@ -39,6 +42,10 @@ class DepthEngine(context: Context) {
         var lo = Float.MAX_VALUE; var hi = -Float.MAX_VALUE
         for (row in disp) for (v in row) { if (v < lo) lo = v; if (v > hi) hi = v }
         val range = (hi - lo).coerceAtLeast(1e-6f)
+        val g = FloatArray(gridN * gridN)
+        for (gy in 0 until gridN) for (gx in 0 until gridN)
+            g[gy * gridN + gx] = (disp[gy * sz / gridN][gx * sz / gridN] - lo) / range
+        lastGrid = g
 
         val heat = IntArray(sz * sz)
         for (y in 0 until sz) for (x in 0 until sz) {
