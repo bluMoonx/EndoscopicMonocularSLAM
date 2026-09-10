@@ -713,10 +713,10 @@ class MainActivity : ComponentActivity() {
         var open by remember { mutableIntStateOf(1) }   // which section is expanded
         var canvasW by remember { mutableFloatStateOf(1f) }
         var canvasH by remember { mutableFloatStateOf(1f) }
-        val pulse by androidx.compose.animation.core.rememberInfiniteTransition(label = "p")
-            .animateFloat(10f, 26f, androidx.compose.animation.core.infiniteRepeatable(
-                androidx.compose.animation.core.tween(900),
-                androidx.compose.animation.core.RepeatMode.Reverse), label = "p")
+        val pulse by rememberInfiniteTransition(label = "p")
+            .animateFloat(10f, 26f, infiniteRepeatable(
+                animation = tween(900),
+                repeatMode = RepeatMode.Reverse), label = "p")
 
         fun project(x: Float, y: Float, z: Float, cy: Float, sy: Float,
                     cp: Float, sp: Float): Triple<Float, Float, Float> {
@@ -897,8 +897,8 @@ class MainActivity : ComponentActivity() {
                     if (map.lesions.isEmpty())
                         Text("No polyps detected in this run. On a clean phantom, that is " +
                                 "the correct answer.")
-                    else map.lesions.forEach { L ->
-                        Text("Polyp — about ${L[3]} mm", style = MaterialTheme.typography.labelLarge,
+                    else map.lesions.forEach { lesion ->
+                        Text("Polyp — about ${lesion[3]} mm", style = MaterialTheme.typography.labelLarge,
                             color = Color(0xFFDCA645))
                         Text("Flagged in 21 separate frames, every flag within ten " +
                                 "millimeters of the same 3D spot. Tap its gold marker above for " +
@@ -1083,12 +1083,9 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // ========================= YOUR ASSIGNMENT LIVES HERE =========================
-        // Given a photo and a brightness threshold, return a copy of the photo where every
-        // pixel whose red, green, AND blue values are all above `thr` is painted pure red.
-        // Return null until you write it -- the Glare Lab screen shows your to-do note
-        // until this function exists. Everything you need is in PolypEngine's pixel loop.
-        private fun glareMask(src: Bitmap, thr: Int): Bitmap? {
+    // Highlight pixels that exceed the brightness threshold across all color channels.
+    // Used to identify specular highlights (glare) which can degrade SLAM accuracy.
+    private fun glareMask(src: Bitmap, thr: Int): Bitmap {
         val out = src.copy(Bitmap.Config.ARGB_8888, true)
         val px = IntArray(out.width * out.height)
         out.getPixels(px, 0, out.width, 0, 0, out.width, out.height)
@@ -1108,6 +1105,7 @@ class MainActivity : ComponentActivity() {
     fun GlareLabScreen() {
         var preset by remember { mutableIntStateOf(0) }
         var thr by remember { mutableFloatStateOf(225f) }
+        var showDetections by remember { mutableStateOf(true) }
         val frames = listOf("hkreplay/f000.jpg", "hkreplay/f020.jpg",
             "hkreplay/f040.jpg", "hkreplay/f056.jpg")
         val src = remember(preset) { BitmapFactory.decodeStream(assets.open(frames[preset])) }
@@ -1116,25 +1114,28 @@ class MainActivity : ComponentActivity() {
             Text("Glare Lab", style = MaterialTheme.typography.headlineMedium)
             Text("Real colonoscopy frames, full of real glare. Slide the threshold and watch " +
                     "the detector decide what counts as a reflection.")
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    repeat(2) { j -> FilterChip(selected = preset == j, onClick = { preset = j },
-                        label = { Text("frame ${j + 1}") }) }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        repeat(2) { j -> FilterChip(selected = preset == j, onClick = { preset = j },
+                            label = { Text("frame ${j + 1}") }) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        repeat(2) { j -> FilterChip(selected = preset == j + 2, onClick = { preset = j + 2 },
+                            label = { Text("frame ${j + 3}") }) }
+                    }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    repeat(2) { j -> FilterChip(selected = preset == j + 2, onClick = { preset = j + 2 },
-                        label = { Text("frame ${j + 3}") }) }
-                }
+                FilterChip(selected = showDetections, onClick = { showDetections = !showDetections },
+                    label = { Text("show detections") })
             }
             Slider(value = thr, onValueChange = { thr = it }, valueRange = 180f..254f)
             Text("threshold: ${thr.toInt()}", style = MaterialTheme.typography.labelLarge)
-            if (out == null) {
-                Card { Text("Glare detection is coming in a future update.",
-                    Modifier.padding(16.dp)) }
-                Image(src.asImageBitmap(), null, Modifier.fillMaxWidth().weight(1f))
-            } else {
-                Image(out.asImageBitmap(), null, Modifier.fillMaxWidth().weight(1f))
-            }
+            
+            Image(
+                bitmap = if (showDetections) out.asImageBitmap() else src.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxWidth().weight(1f)
+            )
         }
     }
-    }
+}
