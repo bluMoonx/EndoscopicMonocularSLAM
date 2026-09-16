@@ -32,19 +32,77 @@ def seqlab(s):
     return s.replace("_t", "-t")
 
 
-# 1 -- the ablation: the depth fix rescues the system
+# 1 -- the ablation: the depth fix rescues the system. Agreement is shown against the
+# flag-nothing baseline (a system that flags no blind spots scores 100 - true_blind%),
+# because blind wall is rare (~1% of patches) and agreement alone saturates.
 abl = rows("results/ablation.csv")
 fig, ax = plt.subplots(figsize=(8, 4.6))
 x = np.arange(len(abl)); w = 0.38
 ax.bar(x - w/2, [float(r["agree_D"]) for r in abl], w, color=CORAL, label="generic AI depth")
 ax.bar(x + w/2, [float(r["agree_D2"]) for r in abl], w, color=TEAL, label="fine-tuned depth")
-ax.axhline(95, color=MUTED, ls="--", lw=1)
-ax.text(len(abl)-0.4, 95.7, "design goal 95%", color=MUTED, fontsize=10, ha="right")
+base_y = [100.0 - float(r["true_blind"]) for r in abl]
+ax.hlines(base_y, x - 0.55, x + 0.55, color="k", ls=":", lw=1.6,
+          label="flag-nothing baseline")
+ax.axhline(95, color=MUTED, ls="--", lw=1, label="design goal 95%")
 ax.set_xticks(x, [seqlab(r["seq"]) for r in abl])
 ax.set_ylabel("blind-spot agreement with ground truth (%)")
 ax.set_title("One fix, whole system rescued: 74.5% \u2192 98.6% mean")
-ax.set_ylim(0, 104); ax.legend(loc="lower right")
+ax.set_ylim(0, 104)
+ax.legend(loc="lower right", frameon=True, facecolor="white", framealpha=0.95,
+          edgecolor="none")
 save(fig, "fig1_ablation")
+
+# 1b -- the honest headline: blind wall is rare, so the real signal is how much wall each
+# system FLAGS blind vs the truth. Generic depth over-flags up to 40x; fine-tuning
+# collapses the false-alarm rate to the same order as the ground truth.
+fig, ax = plt.subplots(figsize=(8, 4.6))
+w = 0.27
+ax.bar(x - w, [float(r["true_blind"]) for r in abl], w, color=MUTED, label="truly blind")
+ax.bar(x, [float(r["blind_D"]) for r in abl], w, color=CORAL, label="generic AI depth flags")
+ax.bar(x + w, [float(r["blind_D2"]) for r in abl], w, color=TEAL, label="fine-tuned depth flags")
+ax.set_yscale("log"); ax.set_ylim(0.008, 80)
+ax.set_xticks(x, [seqlab(r["seq"]) for r in abl])
+ax.set_ylabel("wall flagged blind (%, log scale)")
+ax.set_title("Generic depth cries wolf; fine-tuning silences it")
+ax.legend(loc="upper right", fontsize=10)
+save(fig, "fig1b_falsealarm")
+
+# 1c -- blind-spot detection quality itself (5 mm region level, end-to-end meshes):
+# recall = fraction of true blind regions the system finds, precision = fraction of its
+# flags that are real. Reported per sequence, off-the-shelf vs fine-tuned depth.
+e2m = {r["seq"]: r for r in rows("results/end2end_coverage_mono.csv")}
+e2f = {r["seq"]: r for r in rows("results/end2end_coverage_ftmono.csv")}
+seqs = list(e2f)
+fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.4), sharey=True)
+xx = np.arange(len(seqs))
+for ax2, key, ttl in [(axes[0], "reg_recall", "blind regions found (recall)"),
+                      (axes[1], "reg_prec", "flags that are real (precision)")]:
+    ax2.bar(xx - 0.19, [float(e2m[s][key]) for s in seqs], 0.38, color=CORAL,
+            label="off-the-shelf")
+    ax2.bar(xx + 0.19, [float(e2f[s][key]) for s in seqs], 0.38, color=TEAL,
+            label="fine-tuned")
+    ax2.set_xticks(xx, [seqlab(s) for s in seqs], rotation=20)
+    ax2.set_title(ttl, fontsize=13)
+    ax2.set_ylim(0, 104)
+axes[0].set_ylabel("%  (5 mm regions)")
+axes[1].legend(loc="upper right", fontsize=10)
+fig.suptitle("Blind-spot detection graded on the blind spots themselves",
+             fontweight="bold", fontsize=15)
+save(fig, "fig1c_blindspot_pr")
+
+# the baseline numbers themselves, for the poster table / write-up
+with open("results/baseline_agreement.csv", "w", newline="") as f:
+    wcsv = csv.writer(f)
+    wcsv.writerow(["seq", "true_blind_pct", "flag_nothing_agree", "agree_D", "agree_D2"])
+    for r in abl:
+        wcsv.writerow([r["seq"], f'{float(r["true_blind"]):.3f}',
+                       f'{100.0 - float(r["true_blind"]):.2f}',
+                       f'{float(r["agree_D"]):.2f}', f'{float(r["agree_D2"]):.2f}'])
+    tb = np.mean([float(r["true_blind"]) for r in abl])
+    wcsv.writerow(["MEAN", f"{tb:.3f}", f"{100.0 - tb:.2f}",
+                   f'{np.mean([float(r["agree_D"]) for r in abl]):.2f}',
+                   f'{np.mean([float(r["agree_D2"]) for r in abl]):.2f}'])
+print("baseline table -> results/baseline_agreement.csv", flush=True)
 
 # 2 -- depth accuracy before/after (held-out)
 D1 = {"cecum-t1-a": (64.2, 98.9), "desc-t4-a": (69.0, 91.8), "trans-t1-a": (66.0, 97.9),
