@@ -4,10 +4,12 @@ count polyp clips with max>=t (hits) and nopolyp clips with max>=t (false alarms
 Choose the (geometry, t) maximizing calib hits subject to ZERO calib false alarms;
 ties broken by the widest margin (distance from t to the highest control cluster),
 then by preferring W over C over T (simpler claim). Freeze. Then score TEST split once."""
-import csv
+import sys, csv
 import numpy as np
 
-rows = list(csv.DictReader(open("results/batch_study/results.csv")))
+SRC = sys.argv[1] if len(sys.argv) > 1 else "results/batch_study/results.csv"
+print(f"analyzing {SRC}\n")
+rows = list(csv.DictReader(open(SRC)))
 for r in rows:
     for k in ("maxW", "maxC", "maxT", "frames", "gated", "fired"):
         r[k] = int(r[k])

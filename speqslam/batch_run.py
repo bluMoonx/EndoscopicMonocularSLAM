@@ -8,18 +8,21 @@ under THREE candidate geometries, all recorded:
 Nothing is decided here; the calibration analysis picks ONE rule on the calib split,
 freezes it, and only then reads the test split.
 
-Usage: python speqslam/batch_run.py [minutes_budget]   (default 8; resumes where it left off)
+Usage: python speqslam/batch_run.py [minutes] [results_csv] [detector_weights]
+       (default 8 minutes, results/batch_study/results.csv, original detector;
+        resumes where it left off)
 """
 import sys, os, csv, time, json
-import numpy as np, cv2
+import numpy as np, cv2, torch
 sys.path.insert(0, "speqslam")
 import demo_app, direct_vo as dv
 from glare_removal import specular_mask
-from polyp_detect import load_model, segment
+from polyp_detect import load_model, segment, DEV
 from polyp_measure import diameter_mm
 
 BUDGET_S = (float(sys.argv[1]) if len(sys.argv) > 1 else 8.0) * 60
-RES = "results/batch_study/results.csv"
+RES = sys.argv[2] if len(sys.argv) > 2 else "results/batch_study/results.csv"
+ALT_WEIGHTS = sys.argv[3] if len(sys.argv) > 3 else None
 COLS = ["file", "label", "split", "frames", "fired", "gated",
         "maxW", "maxC", "maxT", "path_mm", "secs"]
 
@@ -33,6 +36,9 @@ else:
 
 net = demo_app.DepthNet()
 model = load_model()
+if ALT_WEIGHTS:
+    model.load_state_dict(torch.load(ALT_WEIGHTS, map_location=DEV, weights_only=True))
+    print(f"detector weights: {ALT_WEIGHTS}", flush=True)
 t_start = time.time()
 
 def biggest(positions, radius):
