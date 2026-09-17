@@ -16,7 +16,7 @@ class DepthEngine(context: Context) {
     var lastGrid: FloatArray? = null
     val gridN = 42
 
-    fun run(frame: Bitmap): Bitmap {
+    fun infer(frame: Bitmap): Array<FloatArray> {
         val s = Bitmap.createScaledBitmap(frame, sz, sz, true)
         val px = IntArray(sz * sz)
         s.getPixels(px, 0, sz, 0, 0, sz, sz)
@@ -35,9 +35,26 @@ class DepthEngine(context: Context) {
         buf.rewind()
 
         val input = OnnxTensor.createTensor(env, buf, longArrayOf(1L, 3L, sz.toLong(), sz.toLong()))
-        val disp = session.run(mapOf("pixels" to input)).use { out ->
+        return session.run(mapOf("pixels" to input)).use { out ->
             (out[0].value as Array<Array<FloatArray>>)[0]
         }
+    }
+
+    // Raw disparity pooled to n x n, for the on-device study pipeline.
+    fun disparityGrid(frame: Bitmap, n: Int): FloatArray {
+        val disp = infer(frame)
+        val g = FloatArray(n * n)
+        val k = sz / n
+        for (gy in 0 until n) for (gx in 0 until n) {
+            var s2 = 0f
+            for (dy in 0 until k) for (dx in 0 until k) s2 += disp[gy * k + dy][gx * k + dx]
+            g[gy * n + gx] = s2 / (k * k)
+        }
+        return g
+    }
+
+    fun run(frame: Bitmap): Bitmap {
+        val disp = infer(frame)
 
         var lo = Float.MAX_VALUE; var hi = -Float.MAX_VALUE
         for (row in disp) for (v in row) { if (v < lo) lo = v; if (v > hi) hi = v }

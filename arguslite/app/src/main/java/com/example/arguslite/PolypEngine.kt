@@ -17,9 +17,14 @@ class PolypEngine(context: Context) {
         OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
 
     data class Result(val overlay: Bitmap, val found: Boolean, val areaPct: Float,
-                      val avgConf: Float, val peakConf: Float, val boxW: Int, val boxH: Int)
+                      val avgConf: Float, val peakConf: Float, val boxW: Int, val boxH: Int,
+                      val cx: Float = 0.5f, val cy: Float = 0.5f, val outW: Int = 1,
+                      val outH: Int = 1, val maskGrid: BooleanArray? = null)
 
-    fun run(src: Bitmap): Result {
+    // exclude126: static-overlay mask on a 126x126 grid — burned-in scope UI is not tissue
+    // and must not count as a detection. gridN > 0 additionally returns the segmentation
+    // mask resampled to gridN x gridN, for depth lookups over the whole mask.
+    fun run(src: Bitmap, exclude126: BooleanArray? = null, gridN: Int = 0): Result {
         val inW = 384; val inH = 288
         val s = Bitmap.createScaledBitmap(src, inW, inH, true)
         val px = IntArray(inW * inH)
@@ -51,15 +56,18 @@ class PolypEngine(context: Context) {
         outBmp.getPixels(opx, 0, w, 0, 0, w, h)
 
         var hit = 0; var minX = w; var minY = h; var maxX = -1; var maxY = -1
-        var sumP = 0f; var peak = 0f
+        var sumP = 0f; var peak = 0f; var sumX = 0L; var sumY = 0L
         for (y in 0 until h) {
             val my = y * inH / h
             for (x in 0 until w) {
+                if (exclude126 != null &&
+                    exclude126[(y * 126 / h) * 126 + (x * 126 / w)]) continue
                 val pv = prob[my][x * inW / w]
                 if (pv > 0.5f) {
                     hit++
                     if (x < minX) minX = x; if (x > maxX) maxX = x
                     if (y < minY) minY = y; if (y > maxY) maxY = y
+                    sumX += x; sumY += y
                     val p = opx[y * w + x]
                     sumP += pv; if (pv > peak) peak = pv
                     val r = (p shr 16) and 0xFF; val g = (p shr 8) and 0xFF; val b = p and 0xFF
@@ -81,7 +89,18 @@ class PolypEngine(context: Context) {
                 color = Color.rgb(90, 255, 90); textSize = 34f; isFakeBoldText = true }
             cv.drawText("polyp", minX.toFloat(), maxOf(36f, minY - 10f), tp)
         }
+        var grid: BooleanArray? = null
+        if (gridN > 0) {
+            grid = BooleanArray(gridN * gridN)
+            for (gy in 0 until gridN) for (gx in 0 until gridN) {
+                if (exclude126 != null &&
+                    exclude126[(gy * 126 / gridN) * 126 + (gx * 126 / gridN)]) continue
+                grid[gy * gridN + gx] = prob[gy * inH / gridN][gx * inW / gridN] > 0.5f
+            }
+        }
         return Result(outBmp, found, areaPct, if (hit > 0) sumP / hit else 0f, peak,
-            maxOf(0, maxX - minX), maxOf(0, maxY - minY))
+            maxOf(0, maxX - minX), maxOf(0, maxY - minY),
+            if (hit > 0) sumX.toFloat() / hit / w else 0.5f,
+            if (hit > 0) sumY.toFloat() / hit / h else 0.5f, w, h, grid)
     }
 }

@@ -62,6 +62,8 @@ import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.foundation.layout.aspectRatio
 import kotlin.math.sqrt
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 
 class MainActivity : ComponentActivity() {
 
@@ -124,7 +126,7 @@ class MainActivity : ComponentActivity() {
             "Mission" to Icons.Filled.Info,
             "Results" to Icons.Filled.Star,
             "Home" to Icons.Filled.Home,
-            "Map" to Icons.Filled.Place,
+            "Studies" to Icons.Filled.Place,
             "More" to Icons.Filled.Menu,
         )
         Scaffold(bottomBar = {
@@ -311,7 +313,8 @@ class MainActivity : ComponentActivity() {
             val mainCards = listOf(
                 Triple(0, "Mission", "What this project set out to prove, and how it went."),
                 Triple(1, "Results", "The numbers, measured against ground truth."),
-                Triple(3, "Map", "A real colon in 3D. Spin it, zoom it, and watch it build itself."))
+                Triple(3, "Studies", "Two validated runs in 3D — and a live one: feed the " +
+                        "pipeline footage it has never seen and watch it work."))
 
             val labCards = listOf(
                 Triple(4, "Scope", "Point the camera at anything and watch a neural network " +
@@ -667,8 +670,75 @@ class MainActivity : ComponentActivity() {
 
     class Anchor(val x: Float, val y: Float, val z: Float, val title: String, val body: String)
 
+    private fun studyReport(fr: StudyEngine.StudyResult): String {
+        val when0 = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date())
+        val sb = StringBuilder()
+        sb.appendLine("ARGUS live study report — $when0")
+        sb.appendLine("source: ${StudyRunner.sourceName}")
+        sb.appendLine("frames analyzed: ${fr.frames}")
+        sb.appendLine("surface patches mapped: ${fr.voxels}")
+        sb.appendLine("wall seen fewer than 3 times: %.1f%%".format(fr.blindPct))
+        sb.appendLine("camera path: %.0f mm (estimated, uncalibrated)".format(fr.pathMm))
+        sb.appendLine("detector firings: ${fr.detectionFrames} of ${fr.frames} frames")
+        if (fr.lesions.isEmpty())
+            sb.appendLine("findings: none passed the persistence filter")
+        else fr.lesions.forEachIndexed { i, l ->
+            sb.appendLine("finding ${i + 1}: polyp candidate ~%.1f mm, %d supporting frames, avg confidence %.2f"
+                .format(l.sizeMm, l.support, l.avgConf))
+        }
+        sb.appendLine("stage timing: depth %.1fs (%.1f fps) | tracking %.1fs (%.1f fps) | fusion %.1fs | detection %.1fs (%.1f fps)"
+            .format(fr.stageSecs[0], fr.frames / maxOf(0.01f, fr.stageSecs[0]),
+                fr.stageSecs[1], fr.frames / maxOf(0.01f, fr.stageSecs[1]), fr.stageSecs[2],
+                fr.stageSecs[3], fr.frames / maxOf(0.01f, fr.stageSecs[3])))
+        sb.appendLine("total: %.0f s on-device (%.2f frames/s end-to-end)"
+            .format(fr.secondsTaken, fr.frames / fr.secondsTaken))
+        sb.appendLine("note: computed on this device from the chosen video; distances are " +
+                "uncalibrated estimates; detection settings fixed in advance.")
+        return sb.toString()
+    }
+
+    // A finished on-device study, reshaped into the same structure the reference runs use,
+    // so the whole Studies screen (canvas, replay, anchors) works on it unchanged.
+    private fun colonMapFromStudy(sr: StudyEngine.StudyResult): ColonMap {
+        val total = sr.pts.size / 3
+        val stride = maxOf(1, total / 6000)
+        val idx = (0 until total step stride).toList()
+        val n = idx.size
+        val xyz = FloatArray(3 * n)
+        val r = IntArray(n); val g = IntArray(n); val b = IntArray(n)
+        val blind = BooleanArray(n); val born = IntArray(n)
+        for ((j, i) in idx.withIndex()) {
+            xyz[3 * j] = sr.pts[3 * i]; xyz[3 * j + 1] = sr.pts[3 * i + 1]
+            xyz[3 * j + 2] = sr.pts[3 * i + 2]
+            r[j] = (sr.colors[i] shr 16) and 0xFF
+            g[j] = (sr.colors[i] shr 8) and 0xFF
+            b[j] = sr.colors[i] and 0xFF
+            blind[j] = sr.blind[i]; born[j] = sr.born[i]
+        }
+        val lesions = sr.lesions.map { floatArrayOf(it.x, it.y, it.z, it.sizeMm) }
+        return ColonMap(n, xyz, r, g, b, blind, born, sr.frames, sr.traj, lesions)
+    }
+
+    private fun makeLiveAnchors(map: ColonMap, sr: StudyEngine.StudyResult?): List<Anchor> {
+        if (map.n == 0 || sr == null) return emptyList()
+        val out = mutableListOf<Anchor>()
+        val bi = map.blind.indexOfFirst { it }
+        if (bi >= 0) out.add(Anchor(map.xyz[3 * bi], map.xyz[3 * bi + 1], map.xyz[3 * bi + 2],
+            "A blind spot",
+            "This patch was seen fewer than three times in the analyzed footage. " +
+                    "Every red point on this model is a place the camera never properly inspected."))
+        sr.lesions.forEach { l ->
+            out.add(Anchor(l.x, l.y, l.z, "Polyp candidate — found in this study",
+                "Flagged in ${l.support} separate frames, each within ten millimeters of " +
+                        "this spot, average confidence %.2f. Estimated size about %.1f mm — "
+                            .format(l.avgConf, l.sizeMm) +
+                        "an estimate, because this camera is uncalibrated."))
+        }
+        return out
+    }
 
     private fun makeAnchors(map: ColonMap): List<Anchor> {
+        if (map.n == 0) return emptyList()
         val bi = map.blind.indexOfFirst { it }.coerceAtLeast(0)
         var si = 0; var best = Float.MAX_VALUE
         for (i in 0 until map.n) {
@@ -700,8 +770,19 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MapScreen() {
         var run by remember { mutableIntStateOf(0) }
-        val map = remember(run) { loadColonMap(if (run == 0) "colon_map2.bin" else "hk_map.bin") }
-        val anchors = remember(run) { makeAnchors(map) }
+        val live = StudyRunner.result
+        val map = remember(run, live) {
+            when (run) {
+                0 -> loadColonMap("colon_map2.bin")
+                1 -> loadColonMap("hk_map.bin")
+                else -> live?.let { colonMapFromStudy(it) }
+                    ?: ColonMap(0, FloatArray(0), IntArray(0), IntArray(0), IntArray(0),
+                        BooleanArray(0), IntArray(0), 0, FloatArray(0), emptyList())
+            }
+        }
+        val anchors = remember(run, live) {
+            if (run == 2) makeLiveAnchors(map, live) else makeAnchors(map)
+        }
         var yaw by remember { mutableFloatStateOf(0.6f) }
         var pitch by remember { mutableFloatStateOf(0.3f) }
         var zoom by remember { mutableFloatStateOf(1f) }
@@ -793,6 +874,14 @@ class MainActivity : ComponentActivity() {
                 Text("drag · pinch · tap markers", Modifier.align(Alignment.TopEnd).padding(8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (run == 2 && map.n == 0)
+                    Text(if (StudyRunner.running) "Study in progress — the map appears here " +
+                            "when it finishes." else "No live study yet. Open \"Run the " +
+                            "system\" below and feed the pipeline a video.",
+                        Modifier.align(Alignment.Center).padding(24.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 picked?.let { a ->
                     Card(Modifier.align(Alignment.BottomCenter).padding(8.dp)) {
                         Column(Modifier.padding(12.dp)) {
@@ -806,7 +895,7 @@ class MainActivity : ComponentActivity() {
             }
 
             // ---------- REPLAY STRIP: appears only during a run ----------
-            if (replay) {
+            if (replay && run < 2) {
                 val fMax = if (run == 0) 91 else 59
                 val dir = if (run == 0) "replay" else "hkreplay"
                 val frameIdx = (t / map.trajN * fMax).toInt().coerceIn(0, fMax)
@@ -829,6 +918,41 @@ class MainActivity : ComponentActivity() {
                             Text("POLYP DETECTED", style = MaterialTheme.typography.labelLarge,
                                 color = Color(0xFFDCA645))
                     }
+                }
+            }
+            if (replay && run == 2 && live != null) {
+                val frameIdx = t.toInt().coerceIn(0, live.frames - 1)
+                Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Image(live.thumbs[frameIdx].asImageBitmap(), null,
+                        Modifier.weight(1f).height(86.dp))
+                    Column(Modifier.weight(1.4f)) {
+                        Text("frame ${frameIdx + 1}/${live.frames}",
+                            style = MaterialTheme.typography.labelLarge)
+                        Text("${live.frameVoxels[frameIdx]} patches · " +
+                                "%.1f%% under-seen".format(live.frameBlindPct[frameIdx]),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(StudyRunner.sourceName, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (live.lesions.any { it.frame <= frameIdx })
+                            Text("POLYP PINNED", style = MaterialTheme.typography.labelLarge,
+                                color = Color(0xFFDCA645))
+                    }
+                }
+            }
+            if (replay && map.trajN > 1) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    FilledTonalButton(onClick = {
+                        if (!playing && t >= map.trajN - 1) t = 0f
+                        playing = !playing
+                    }) { Text(if (playing) "Pause" else "Play") }
+                    Slider(value = t, onValueChange = { playing = false; t = it },
+                        valueRange = 0f..(map.trajN - 1).toFloat(),
+                        modifier = Modifier.weight(1f))
                 }
             }
 
@@ -865,24 +989,40 @@ class MainActivity : ComponentActivity() {
                             run = 1; replay = false; playing = false; t = 0f },
                             label = { Text("Real footage") })
                     }
+                    FilterChip(selected = run == 2, onClick = {
+                        run = 2; replay = false; playing = false; t = 0f },
+                        label = { Text("New footage — run a live study") })
+                    if (run == 2) {
+                        StudySourcePanel()
+                        Spacer(Modifier.height(6.dp))
+                    }
                     Button(onClick = {
                         replay = !replay
                         if (replay) { t = 0f; playing = true; open = 1 } else playing = false
-                    }) { Text(if (replay) "Back to explore" else "Watch it build") }
-                    if (replay && !playing && t >= map.trajN - 1) {
-                        Text(if (run == 0)
-                            "276 frames fused into one surface. 94.7 percent of the wall was " +
+                    }, enabled = map.trajN > 1) {
+                        Text(if (replay) "Back to explore" else "Watch it build") }
+                    if (replay && !playing && map.trajN > 1 && t >= map.trajN - 1) {
+                        Text(when (run) {
+                            0 -> "276 frames fused into one surface. 94.7 percent of the wall was " +
                                     "properly inspected. No polyps here: this phantom is clean, and " +
                                     "saying so is the honest half of detection."
-                        else
-                            "Real colonoscopy, 60 frames. The system tracked the camera, " +
+                            1 -> "Real colonoscopy, 60 frames. The system tracked the camera, " +
                                     "built this surface, and found one polyp of about 6 mm. Its gold " +
-                                    "marker is on the model above.",
-                            Modifier.padding(top = 8.dp))
+                                    "marker is on the model above."
+                            else -> live?.let {
+                                "${it.frames} frames of ${StudyRunner.sourceName} fused into " +
+                                        "${it.voxels} surface patches. %.1f%% of the mapped wall "
+                                            .format(it.blindPct) +
+                                        "was seen fewer than three times. " +
+                                        if (it.lesions.isEmpty()) "No polyp met the detection bar."
+                                        else "One or more polyp candidates were pinned — gold " +
+                                                "markers above."
+                            } ?: ""
+                        }, Modifier.padding(top = 8.dp))
                     }
                 }
                 Section(2, "Blind spots") {
-                    val pct = 100f * map.blind.count { it } / map.n
+                    val pct = 100f * map.blind.count { it } / maxOf(1, map.n)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(checked = showBlind, onCheckedChange = {
                             showBlind = it; if (it) open = 2 })
@@ -894,7 +1034,31 @@ class MainActivity : ComponentActivity() {
                             "would be sent back to check.")
                 }
                 Section(3, "Findings") {
-                    if (map.lesions.isEmpty())
+                    if (run == 2) {
+                        val fr = live
+                        if (fr == null)
+                            Text("No live study yet. Open \"Run the system\" and feed the " +
+                                    "pipeline a video.")
+                        else {
+                            Text("Source: ${StudyRunner.sourceName}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (fr.lesions.isEmpty())
+                                Text("No polyp met the detection bar (confidence at least 0.7, " +
+                                        "plausible size, repeated hits at one 3D location). The " +
+                                        "detector fired on ${fr.detectionFrames} of ${fr.frames} " +
+                                        "frames without that persistence.")
+                            else fr.lesions.forEach { l ->
+                                Text("Polyp candidate — about %.1f mm".format(l.sizeMm),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = Color(0xFFDCA645))
+                                Text("Flagged in ${l.support} frames at the same 3D location, " +
+                                        "average confidence %.2f. Size is an estimate — this "
+                                            .format(l.avgConf) +
+                                        "camera is uncalibrated.")
+                            }
+                        }
+                    } else if (map.lesions.isEmpty())
                         Text("No polyps detected in this run. On a clean phantom, that is " +
                                 "the correct answer.")
                     else map.lesions.forEach { lesion ->
@@ -906,11 +1070,52 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 Section(4, "The numbers") {
-                    Text("Blind-spot agreement with ground truth: 98.6 percent\n" +
-                            "Camera tracking error: 0.91 mm average\n" +
-                            "Surface accuracy: 1.3 to 2.4 mm\n" +
-                            "All measured against a phantom whose true shape and camera path " +
-                            "were recorded by machines.")
+                    if (run == 2) {
+                        val fr = live
+                        if (fr == null)
+                            Text("Numbers appear here once a live study has run.")
+                        else {
+                            Text("Frames analyzed: ${fr.frames}\n" +
+                                    "Surface patches mapped: ${fr.voxels}\n" +
+                                    "Wall seen fewer than 3 times: %.1f%%\n".format(fr.blindPct) +
+                                    "Camera path: %.0f mm (estimated)\n".format(fr.pathMm) +
+                                    "Computed in %.0f s on this device (%.2f frames/s end-to-end)"
+                                        .format(fr.secondsTaken, fr.frames / fr.secondsTaken))
+                            Text("Stage timing — depth %.1f s (%.1f fps) · tracking %.1f s (%.1f fps) · fusion %.1f s · detection %.1f s (%.1f fps)"
+                                .format(fr.stageSecs[0], fr.frames / maxOf(0.01f, fr.stageSecs[0]),
+                                    fr.stageSecs[1], fr.frames / maxOf(0.01f, fr.stageSecs[1]),
+                                    fr.stageSecs[2],
+                                    fr.stageSecs[3], fr.frames / maxOf(0.01f, fr.stageSecs[3])),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Every number here was computed from the chosen video during " +
+                                    "this run. Distances are estimates: the camera is " +
+                                    "uncalibrated, and detection settings are fixed in advance, " +
+                                    "never adjusted to the video.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            var showReport by remember(fr) { mutableStateOf(false) }
+                            val clip = LocalClipboardManager.current
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilledTonalButton(onClick = { showReport = !showReport }) {
+                                    Text(if (showReport) "Hide report" else "Show report")
+                                }
+                                if (showReport) FilledTonalButton(onClick = {
+                                    clip.setText(AnnotatedString(studyReport(fr)))
+                                }) { Text("Copy") }
+                            }
+                            if (showReport) OutlinedTextField(
+                                value = studyReport(fr), onValueChange = {}, readOnly = true,
+                                textStyle = MaterialTheme.typography.bodySmall.copy(
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+                                modifier = Modifier.fillMaxWidth().height(230.dp))
+                        }
+                    } else
+                        Text("Blind-spot agreement with ground truth: 98.6 percent\n" +
+                                "Camera tracking error: 0.91 mm average\n" +
+                                "Surface accuracy: 1.3 to 2.4 mm\n" +
+                                "All measured against a phantom whose true shape and camera path " +
+                                "were recorded by machines.")
                 }
                 Section(5, "How it works") {
                     Text("A neural network reads depth from each flat frame. A tracking " +
