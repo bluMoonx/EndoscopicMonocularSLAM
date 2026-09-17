@@ -198,6 +198,38 @@ ax.set_title("Calibrating the detector on videos known to be clean")
 ax.set_xticks(sup); ax.legend()
 save(fig, "fig8_calibration")
 
+# 10 -- the second domain-gap cure: detector fine-tune, before/after on the 30-clip
+# batch study. Biggest persistent detection cluster per clip (camera-frame geometry,
+# the frozen rule's); controls should sit under the support line, polyp clips above it.
+try:
+    before = {r["file"]: r for r in rows("results/batch_study/results.csv")}
+    after = {r["file"]: r for r in rows("results/batch_study/results_ft.csv")}
+    common = [k for k in before if k in after]
+    ctrls = sorted([k for k in common if "nopolyp" in k],
+                   key=lambda k: -int(before[k]["maxC"]))
+    pols = sorted([k for k in common if "nopolyp" not in k],
+                  key=lambda k: -int(before[k]["maxC"]))
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.6), sharey=True)
+    for ax2, keys, ttl in [(axes[0], ctrls, "control clips (no polyp) — should stay quiet"),
+                           (axes[1], pols, "polyp clips — should cluster")]:
+        xx = np.arange(len(keys))
+        ax2.bar(xx - 0.2, [int(before[k]["maxC"]) for k in keys], 0.4,
+                color=CORAL, label="off-the-shelf detector")
+        ax2.bar(xx + 0.2, [int(after[k]["maxC"]) for k in keys], 0.4,
+                color=TEAL, label="domain fine-tuned")
+        ax2.axhline(14, color=MUTED, ls="--", lw=1)
+        ax2.set_xticks([])
+        ax2.set_title(ttl, fontsize=12)
+    axes[0].set_ylabel("largest persistent detection cluster (frames)")
+    axes[0].text(len(ctrls) - 0.6, 15.5, "finding threshold", color=MUTED,
+                 fontsize=9, ha="right")
+    axes[1].legend(loc="upper right", fontsize=10)
+    fig.suptitle("The domain gap, cured a second time: detector before vs after fine-tuning",
+                 fontweight="bold", fontsize=14)
+    save(fig, "fig10_detector_fix")
+except FileNotFoundError:
+    print("  (fig10 skipped: batch study CSVs missing)", flush=True)
+
 # 9 -- edge computing: one network, three machines
 fig, ax = plt.subplots(figsize=(6.5, 4.4))
 devs = ["workstation\nGPU", "workstation\nCPU", "Pixel 9\n(in your hand)"]

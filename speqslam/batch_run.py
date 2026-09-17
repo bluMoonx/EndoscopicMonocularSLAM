@@ -23,10 +23,11 @@ from polyp_measure import diameter_mm
 BUDGET_S = (float(sys.argv[1]) if len(sys.argv) > 1 else 8.0) * 60
 RES = sys.argv[2] if len(sys.argv) > 2 else "results/batch_study/results.csv"
 ALT_WEIGHTS = sys.argv[3] if len(sys.argv) > 3 else None
+MANIFEST = sys.argv[4] if len(sys.argv) > 4 else "results/batch_study/manifest.csv"
 COLS = ["file", "label", "split", "frames", "fired", "gated",
         "maxW", "maxC", "maxT", "path_mm", "secs"]
 
-manifest = list(csv.DictReader(open("results/batch_study/manifest.csv")))
+manifest = list(csv.DictReader(open(MANIFEST)))
 done = set()
 if os.path.exists(RES):
     done = {r["file"] for r in csv.DictReader(open(RES))}
