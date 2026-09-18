@@ -838,17 +838,22 @@ class MainActivity : ComponentActivity() {
                     canvasW = size.width; canvasH = size.height
                     val cy = cos(yaw); val sy = sin(yaw)
                     val cp = cos(pitch); val sp = sin(pitch)
+                    val blindPct = map.blind.count { it }.toFloat() / maxOf(1, map.n)
+                    val rare = blindPct < 0.25f
                     for (i in 0 until map.n) {
                         if (replay && map.born[i] > t) continue
                         val (px, py, persp) = project(map.xyz[3 * i], map.xyz[3 * i + 1],
                             map.xyz[3 * i + 2], cy, sy, cp, sp)
                         val shade = (0.45f + 0.75f * persp / zoom).coerceIn(0.35f, 1f)
+                        // When blind spots are rare, emphasize them (bigger, dim the rest).
+                        // When they dominate, draw both classes equally so the picture
+                        // matches the percentage instead of exaggerating it.
                         if (showBlind && map.blind[i]) {
-                            drawCircle(Color(0xFFE63946), 5f, Offset(px, py))
+                            drawCircle(Color(0xFFE63946), if (rare) 5f else 3f, Offset(px, py))
                         } else {
                             drawCircle(Color(map.r[i] / 255f * shade, map.g[i] / 255f * shade,
                                 map.b[i] / 255f * shade), 3f, Offset(px, py),
-                                alpha = if (showBlind) 0.30f else 1f)
+                                alpha = if (showBlind && rare) 0.30f else 1f)
                         }
                     }
                     val upTo = (if (replay) t.toInt() else map.trajN - 1)
