@@ -214,7 +214,18 @@ fun StreamScreen() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
+        if (StreamRunner.running && live != null && live.frames == 0) {
+            Text("Calibrating: ${live.warmDone} of ${live.warmTotal} frames — learning " +
+                    "which pixels are scene and which are overlay before measuring anything.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary)
+            LinearProgressIndicator(
+                progress = { live.warmDone.toFloat() / live.warmTotal },
+                Modifier.fillMaxWidth())
+        }
+
         if (live != null && live.frames > 0) {
+            var showBlind by remember { mutableStateOf(true) }
             var yaw by remember { mutableFloatStateOf(0.6f) }
             var pitch by remember { mutableFloatStateOf(0.3f) }
             var zoom by remember { mutableFloatStateOf(1f) }
@@ -238,7 +249,7 @@ fun StreamScreen() {
                 for (i in 0 until live.pts.size / 3) {
                     val (px, py, persp) = proj(live.pts[3*i], live.pts[3*i+1], live.pts[3*i+2])
                     if (persp <= 0f) continue
-                    val c = if (live.blind[i]) Color(0xFFB0524A)
+                    val c = if (showBlind && live.blind[i]) Color(0xFFE0524A)
                     else Color((live.colors[i] shr 16) and 0xFF,
                         (live.colors[i] shr 8) and 0xFF, live.colors[i] and 0xFF)
                     drawCircle(c, 1.7f * persp, Offset(px, py))
@@ -276,7 +287,17 @@ fun StreamScreen() {
                         Text("POLYP PINNED — ~%.1f mm".format(live.lesions[0].sizeMm),
                             color = Color(0xFFE8B33C),
                             style = MaterialTheme.typography.labelLarge)
+                    else if (live.bestSupport > 0)
+                        Text("polyp evidence: ${live.bestSupport} of " +
+                                "${live.needSupport} needed at one spot",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFE8B33C))
                 }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = showBlind, onCheckedChange = { showBlind = it })
+                Text("Highlight under-seen wall (red)")
             }
             if (StreamRunner.running) {
                 Button(onClick = { StreamRunner.stop(context,

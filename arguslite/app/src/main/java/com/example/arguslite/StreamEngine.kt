@@ -25,7 +25,9 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
                       val sizeMm: Float, val conf: Float, val frame: Int)
 
     // ---- accumulating state (all guarded by synchronized(this)) ----
-    private var n = 0
+    private var n = 0            // processed frames (after warm-up)
+    private var warm = 0         // calibration-only frames
+    private val WARMUP = 12
     private var prevGray: FloatArray? = null
     private var prevDepth: FloatArray? = null
     private var pose = StudyEngine.Pose.identity()
@@ -66,7 +68,6 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
 
     private fun stepLocked(bmp: Bitmap) {
         var t0 = System.nanoTime()
-        val disp = depthNet.disparityGrid(bmp, W)
         val small = Bitmap.createScaledBitmap(bmp, W, W, true)
         val px = IntArray(W * W)
         small.getPixels(px, 0, W, 0, 0, W, W)
@@ -77,19 +78,31 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
             val b = px[j] and 0xFF
             gray[j] = (0.299f * r + 0.587f * g + 0.114f * b) / 255f
         }
-        // online static mask (Welford); active after 12 frames
+        // online static mask (Welford), continuously refreshed
+        val seenTotal = warm + n + 1
         for (j in gray.indices) {
             val d = gray[j] - runMean[j]
-            runMean[j] += d / (n + 1)
+            runMean[j] += d / seenTotal
             runM2[j] += d * (gray[j] - runMean[j])
         }
-        if (n >= 12) {
-            for (j in gray.indices) staticMask[j] = runM2[j] / (n + 1) < 2e-4f
+        // Warm-up: the first frames only calibrate the static mask, so the depth scale
+        // (and everything downstream) is set from clean scene pixels — the same
+        // mask-first-scale-second ordering the batch pipeline uses.
+        if (warm < WARMUP) {
+            warm++
+            lastFrame = bmp
+            if (warm == WARMUP) {
+                for (j in gray.indices) staticMask[j] = runM2[j] / seenTotal < 2e-4f
+            }
+            return
         }
+        for (j in gray.indices) staticMask[j] = runM2[j] / seenTotal < 2e-4f
+        val disp = depthNet.disparityGrid(bmp, W)
         if (scale < 0f) {
             val inv = ArrayList<Float>(W * W)
             for (j in disp.indices)
-                if (disp[j] > 1e-6f && gray[j] < study.GLARE) inv.add(1f / disp[j])
+                if (!staticMask[j] && disp[j] > 1e-6f && gray[j] < study.GLARE)
+                    inv.add(1f / disp[j])
             inv.sort()
             scale = 35f / (if (inv.isEmpty()) 1f else inv[inv.size / 2])
         }
@@ -192,10 +205,12 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
     }
 
     // ---- lesion clustering at the frozen rule (camera-frame ball, scaled support) ----
+    private var bestCluster = 0
     private fun lesions(): List<StudyEngine.Lesion> {
         val minSupport = maxOf(6, n / 5)
         val used = BooleanArray(dets.size)
         val out = ArrayList<StudyEngine.Lesion>()
+        bestCluster = 0
         for (i in dets.indices) {
             if (used[i]) continue
             val grp = ArrayList<Det>()
@@ -205,6 +220,7 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
                 val dz = dets[j].cz - dets[i].cz
                 if (dx*dx + dy*dy + dz*dz < 100f) { grp.add(dets[j]); used[j] = true }
             }
+            if (grp.size > bestCluster) bestCluster = grp.size
             if (grp.size >= minSupport) {
                 val sizes = grp.map { it.sizeMm }.sorted()
                 val frames0 = grp.map { it.frame }.sorted()
@@ -223,7 +239,8 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
                     val pathMm: Float, val pts: FloatArray, val colors: IntArray,
                     val blind: BooleanArray, val traj: FloatArray,
                     val lesions: List<StudyEngine.Lesion>, val stageMs: FloatArray,
-                    val thumb: Bitmap?)
+                    val thumb: Bitmap?, val warming: Boolean, val warmDone: Int,
+                    val warmTotal: Int, val bestSupport: Int, val needSupport: Int)
 
     fun snapshot(): LiveState = synchronized(this) {
         val keys = ArrayList(views.keys)
@@ -266,7 +283,8 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
         val ms = FloatArray(4)
         for (i in 0..3) ms[i] = 1000f * stageSecs[i] / maxOf(1, n)
         LiveState(n, views.size, 100f * blAll / maxOf(1, views.size), pathMm,
-            pts, cols, blind, traj, les, ms, lastFrame)
+            pts, cols, blind, traj, les, ms, lastFrame,
+            warm < WARMUP, warm, WARMUP, bestCluster, maxOf(6, n / 5))
     }
 
     /** Convert the accumulated stream into a StudyResult so the Studies tab can replay it. */
