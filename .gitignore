@@ -14,3 +14,4 @@ arguslite/build/
 arguslite/app/build/
 arguslite/local.properties
 arguslite/app/src/main/assets/*.onnx
+*.onnx.*.bak

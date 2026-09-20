@@ -230,6 +230,33 @@ try:
 except FileNotFoundError:
     print("  (fig10 skipped: batch study CSVs missing)", flush=True)
 
+# 11 -- deformation, measured: C3VDv2 deforming phantoms vs matched rigid controls,
+# tracked by the deployed pipeline against GT poses. The stationary-camera deforming
+# sequence isolates the mechanism: wall motion masquerading as camera motion.
+try:
+    dz = rows("results/c3vdv2_deform.csv")
+    dz = [r for r in dz if r["ate_mm"]]
+    order = sorted(dz, key=lambda r: (r["kind"] != "control", float(r["ate_mm"])))
+    fig, ax = plt.subplots(figsize=(9.5, 4.8))
+    x = np.arange(len(order))
+    cols = [TEAL if r["kind"] == "control" else CORAL for r in order]
+    ax.bar(x, [float(r["ate_mm"]) for r in order], 0.62, color=cols)
+    for i, r in enumerate(order):
+        pct = 100 * float(r["ate_mm"]) / max(1.0, float(r["path_mm"]))
+        ax.text(i, float(r["ate_mm"]) + 0.4, f'{pct:.0f}%\nof path', ha="center",
+                fontsize=8, color=MUTED)
+    ax.set_xticks(x, [r["seq"].replace("c1_", "").replace("c2_", "c2 ")
+                      .replace("_", "\n") for r in order], fontsize=8)
+    ax.set_ylabel("trajectory error vs ground truth (mm)")
+    import matplotlib.patches as mpatches
+    ax.legend(handles=[mpatches.Patch(color=TEAL, label="rigid phantom (control)"),
+                       mpatches.Patch(color=CORAL, label="actively deforming phantom")],
+              loc="upper left", fontsize=10)
+    ax.set_title("Deformation, measured: error grows to ~3–13 mm, and never collapses")
+    save(fig, "fig11_deformation")
+except FileNotFoundError:
+    print("  (fig11 skipped: c3vdv2 CSV missing)", flush=True)
+
 # 9 -- edge computing: one network, three machines
 fig, ax = plt.subplots(figsize=(6.5, 4.4))
 devs = ["workstation\nGPU", "workstation\nCPU", "Pixel 9\n(in your hand)"]
