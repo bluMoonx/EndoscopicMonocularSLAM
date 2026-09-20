@@ -42,7 +42,7 @@ print("tracked", flush=True)
 
 intr = o3d.camera.PinholeCameraIntrinsic(w, h, K[0,0], K[1,1], K[0,2], K[1,2])
 vol = o3d.pipelines.integration.ScalableTSDFVolume(
-    voxel_length=0.0012, sdf_trunc=0.005,
+    voxel_length=0.0008, sdf_trunc=0.0035,
     color_type=o3d.pipelines.integration.TSDFVolumeColorType.RGB8)
 for i in range(len(frames)):
     col = o3d.geometry.Image(cv2.cvtColor(frames[i], cv2.COLOR_BGR2RGB))
