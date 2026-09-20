@@ -152,7 +152,8 @@ class MainActivity : ComponentActivity() {
                     7 -> TrajScreen()
                     8 -> XRayScreen()
                     9 -> GlareLabScreen()
-                    else -> StreamScreen()
+                    10 -> StreamScreen()
+                    else -> ShowcaseScreen()
                 }
                 if (showMore) {
                     ModalBottomSheet(onDismissRequest = { showMore = false }) {
@@ -314,6 +315,8 @@ class MainActivity : ComponentActivity() {
                     "map of what has been inspected and what has not. This app carries the heart of " +
                     "that system.", textAlign = TextAlign.Center)
             val mainCards = listOf(
+                Triple(11, "Showcase", "The whole project in 45 hands-free seconds. " +
+                        "Start here."),
                 Triple(0, "Mission", "What this project set out to prove, and how it went."),
                 Triple(1, "Results", "The numbers, measured against ground truth."),
                 Triple(3, "Studies", "Reference runs in 3D, plus every study this phone has " +
@@ -790,9 +793,19 @@ class MainActivity : ComponentActivity() {
     fun MapScreen() {
         var run by remember { mutableIntStateOf(0) }
         val live = StudyRunner.result
+        val refMesh = remember { runCatching {
+            loadMeshBin(assets.open("mesh_cecum.bin").readBytes()) }.getOrNull() }
         val map = remember(run, live) {
             when (run) {
-                0 -> loadColonMap("colon_map2.bin")
+                0 -> loadColonMap("colon_map2.bin").let { base ->
+                    if (refMesh != null) {
+                        val cs = meshCenterSpan(refMesh)
+                        ColonMap(base.n, base.xyz, base.r, base.g, base.b, base.blind,
+                            base.born, base.trajN, base.traj, base.lesions,
+                            base.views, cs[3], refMesh,
+                            floatArrayOf(cs[0], cs[1], cs[2]))
+                    } else base
+                }
                 1 -> loadColonMap("hk_map.bin")
                 else -> live?.let { colonMapFromStudy(it) }
                     ?: ColonMap(0, FloatArray(0), IntArray(0), IntArray(0), IntArray(0),

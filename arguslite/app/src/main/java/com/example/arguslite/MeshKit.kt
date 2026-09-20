@@ -34,6 +34,42 @@ class MeshData(val verts: FloatArray,   // world mm, 3 per vertex
                val views: IntArray,     // coverage count per vertex
                val tris: IntArray)      // 3 vertex indices per triangle
 
+/** Load a workstation-exported mesh (assets/mesh_*.bin):
+ *  int32 nv, int32 nt, f32 verts[3nv] mm, f32 norms[3nv], u8 rgb[3nv],
+ *  u8 views[nv], int32 tris[3nt]. */
+fun loadMeshBin(bytes: ByteArray): MeshData {
+    val bb = java.nio.ByteBuffer.wrap(bytes).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+    val nv = bb.int; val nt = bb.int
+    val verts = FloatArray(3 * nv) { bb.float }
+    val norms = FloatArray(3 * nv) { bb.float }
+    val cols = IntArray(nv)
+    for (i in 0 until nv) {
+        val r = bb.get().toInt() and 0xFF
+        val g = bb.get().toInt() and 0xFF
+        val b = bb.get().toInt() and 0xFF
+        cols[i] = (r shl 16) or (g shl 8) or b
+    }
+    val views = IntArray(nv) { bb.get().toInt() and 0xFF }
+    val tris = IntArray(3 * nt) { bb.int }
+    return MeshData(verts, norms, cols, views, tris)
+}
+
+fun meshCenterSpan(m: MeshData): FloatArray {
+    var mn = floatArrayOf(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE)
+    var mx = floatArrayOf(-Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE)
+    var i = 0
+    while (i < m.verts.size) {
+        for (a in 0..2) {
+            if (m.verts[i + a] < mn[a]) mn[a] = m.verts[i + a]
+            if (m.verts[i + a] > mx[a]) mx[a] = m.verts[i + a]
+        }
+        i += 3
+    }
+    val span = maxOf(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2], 1e-3f) / 2f
+    return floatArrayOf((mn[0] + mx[0]) / 2f, (mn[1] + mx[1]) / 2f,
+        (mn[2] + mx[2]) / 2f, span)
+}
+
 private val DX = 1L shl 26
 private val DY = 1L shl 13
 private val DZ = 1L
