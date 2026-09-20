@@ -37,6 +37,15 @@ import kotlin.concurrent.thread
 import kotlin.math.cos
 import kotlin.math.sin
 
+/** Coverage heat palette — same violet-to-red-to-yellow ramp as the depth view:
+ *  cold = barely seen, hot = inspected many times. t in 0..1. */
+fun coverageColor(t: Float, shade: Float = 1f): Color {
+    val r = minOf(1f, t * 2f)
+    val g = maxOf(0f, t * 2f - 1f)
+    val b = 0.38f * maxOf(0f, 1f - t * 2.5f) + 0.10f
+    return Color(r * shade, g * shade, b * shade)
+}
+
 /** Live-study state that survives tab switches. Video streaming runs on its own thread;
  *  camera mode feeds frames in while the screen is open. */
 object StreamRunner {
@@ -225,7 +234,8 @@ fun StreamScreen() {
         }
 
         if (live != null && live.frames > 0) {
-            var showBlind by remember { mutableStateOf(true) }
+            var showBlind by remember { mutableStateOf(false) }
+            var heatMode by remember { mutableStateOf(true) }
             var yaw by remember { mutableFloatStateOf(0.6f) }
             var pitch by remember { mutableFloatStateOf(0.3f) }
             var zoom by remember { mutableFloatStateOf(1f) }
@@ -258,11 +268,15 @@ fun StreamScreen() {
                     val persp = ppA[i]
                     if (persp <= 0f) continue
                     val shade = (0.45f + 0.75f * persp / zoom).coerceIn(0.35f, 1f)
-                    val c = if (showBlind && live.blind[i])
-                        Color(0.88f * shade, 0.24f * shade, 0.26f * shade)
-                    else Color(((live.colors[i] shr 16) and 0xFF) / 255f * shade,
-                        ((live.colors[i] shr 8) and 0xFF) / 255f * shade,
-                        (live.colors[i] and 0xFF) / 255f * shade)
+                    val c = when {
+                        heatMode -> coverageColor(
+                            minOf(live.viewsArr[i], 8) / 8f, shade)
+                        showBlind && live.blind[i] ->
+                            Color(0.88f * shade, 0.24f * shade, 0.26f * shade)
+                        else -> Color(((live.colors[i] shr 16) and 0xFF) / 255f * shade,
+                            ((live.colors[i] shr 8) and 0xFF) / 255f * shade,
+                            (live.colors[i] and 0xFF) / 255f * shade)
+                    }
                     drawCircle(c, 1.7f * persp, Offset(pxA[i], pyA[i]))
                 }
                 var prev: Offset? = null
@@ -305,10 +319,17 @@ fun StreamScreen() {
                             color = Color(0xFFE8B33C))
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = showBlind, onCheckedChange = { showBlind = it })
-                Text("Highlight under-seen wall (red)", Modifier.weight(1f))
+                FilterChip(selected = heatMode, onClick = { heatMode = true },
+                    label = { Text("coverage heat") })
+                FilterChip(selected = !heatMode && !showBlind,
+                    onClick = { heatMode = false; showBlind = false },
+                    label = { Text("tissue") })
+                FilterChip(selected = !heatMode && showBlind,
+                    onClick = { heatMode = false; showBlind = true },
+                    label = { Text("blind") })
+                Spacer(Modifier.weight(1f))
                 TextButton(onClick = {
                     if (live.traj.size >= 6) {
                         val li = live.traj.size - 3

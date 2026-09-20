@@ -651,7 +651,8 @@ class MainActivity : ComponentActivity() {
 
     class ColonMap(val n: Int, val xyz: FloatArray, val r: IntArray, val g: IntArray,
                    val b: IntArray, val blind: BooleanArray, val born: IntArray,
-                   val trajN: Int, val traj: FloatArray, val lesions: List<FloatArray>)
+                   val trajN: Int, val traj: FloatArray, val lesions: List<FloatArray>,
+                   val views: IntArray? = null, val spanMm: Float = 0f)
 
     private fun loadColonMap(file: String): ColonMap {
         val bb = java.nio.ByteBuffer.wrap(assets.open(file).readBytes())
@@ -721,6 +722,7 @@ class MainActivity : ComponentActivity() {
         val xyz = FloatArray(3 * n)
         val r = IntArray(n); val g = IntArray(n); val b = IntArray(n)
         val blind = BooleanArray(n); val born = IntArray(n)
+        val vcs = IntArray(n)
         for ((j, i) in idx.withIndex()) {
             xyz[3 * j] = sr.pts[3 * i]; xyz[3 * j + 1] = sr.pts[3 * i + 1]
             xyz[3 * j + 2] = sr.pts[3 * i + 2]
@@ -728,9 +730,11 @@ class MainActivity : ComponentActivity() {
             g[j] = (sr.colors[i] shr 8) and 0xFF
             b[j] = sr.colors[i] and 0xFF
             blind[j] = sr.blind[i]; born[j] = sr.born[i]
+            vcs[j] = sr.viewCounts?.getOrNull(i) ?: if (sr.blind[i]) 1 else 4
         }
         val lesions = sr.lesions.map { floatArrayOf(it.x, it.y, it.z, it.sizeMm) }
-        return ColonMap(n, xyz, r, g, b, blind, born, sr.frames, sr.traj, lesions)
+        return ColonMap(n, xyz, r, g, b, blind, born, sr.frames, sr.traj, lesions,
+            vcs, sr.spanMm)
     }
 
     private fun makeLiveAnchors(map: ColonMap, sr: StudyEngine.StudyResult?): List<Anchor> {
@@ -801,6 +805,9 @@ class MainActivity : ComponentActivity() {
         var pitch by remember { mutableFloatStateOf(0.3f) }
         var zoom by remember { mutableFloatStateOf(1f) }
         var showBlind by remember { mutableStateOf(false) }
+        var heatMode by remember(run) { mutableStateOf(run == 2) }
+        var measureMode by remember(run) { mutableStateOf(false) }
+        var mSel by remember(run) { mutableStateOf(listOf<Int>()) }
         var replay by remember { mutableStateOf(false) }
         var playing by remember { mutableStateOf(false) }
         var t by remember { mutableFloatStateOf(0f) }
@@ -842,7 +849,20 @@ class MainActivity : ComponentActivity() {
                         detectTapGestures { tap ->
                             val cy = cos(yaw); val sy = sin(yaw)
                             val cp = cos(pitch); val sp = sin(pitch)
-                            picked = anchors.firstOrNull {
+                            if (measureMode) {
+                                // pick the nearest model point: Measure, on the map itself
+                                var best = -1; var bestD = 45f * 45f
+                                for (i in 0 until map.n) {
+                                    val (px, py, _) = project(map.xyz[3 * i],
+                                        map.xyz[3 * i + 1], map.xyz[3 * i + 2],
+                                        cy, sy, cp, sp)
+                                    val dx = tap.x - px; val dy = tap.y - py
+                                    val d = dx * dx + dy * dy
+                                    if (d < bestD) { bestD = d; best = i }
+                                }
+                                if (best >= 0)
+                                    mSel = (mSel + best).takeLast(2)
+                            } else picked = anchors.firstOrNull {
                                 val (px, py, _) = project(it.x, it.y, it.z, cy, sy, cp, sp)
                                 val dx = tap.x - px; val dy = tap.y - py
                                 dx * dx + dy * dy < 55f * 55f
@@ -872,7 +892,11 @@ class MainActivity : ComponentActivity() {
                         // When blind spots are rare, emphasize them (bigger, dim the rest).
                         // When they dominate, draw both classes equally so the picture
                         // matches the percentage instead of exaggerating it.
-                        if (showBlind && map.blind[i]) {
+                        if (heatMode) {
+                            val vc = map.views?.getOrNull(i) ?: if (map.blind[i]) 1 else 4
+                            drawCircle(coverageColor(minOf(vc, 8) / 8f, shade), 3f,
+                                Offset(pxA[i], pyA[i]))
+                        } else if (showBlind && map.blind[i]) {
                             drawCircle(Color(0.90f * shade, 0.23f * shade, 0.27f * shade),
                                 if (rare) 5f else 3f, Offset(pxA[i], pyA[i]))
                         } else {
@@ -889,6 +913,16 @@ class MainActivity : ComponentActivity() {
                         val (bx, by, _) = project(map.traj[3 * j], map.traj[3 * j + 1],
                             map.traj[3 * j + 2], cy, sy, cp, sp)
                         drawLine(Color(0xFF3FD6FF), Offset(ax, ay), Offset(bx, by), 3f)
+                    }
+                    if (measureMode && mSel.isNotEmpty()) {
+                        val ends = mSel.map { i ->
+                            val (px, py, _) = project(map.xyz[3 * i], map.xyz[3 * i + 1],
+                                map.xyz[3 * i + 2], cy, sy, cp, sp)
+                            Offset(px, py)
+                        }
+                        ends.forEach { drawCircle(Color(0xFF3FD6A0), 8f, it) }
+                        if (ends.size == 2)
+                            drawLine(Color(0xFF3FD6A0), ends[0], ends[1], 4f)
                     }
                     anchors.forEach {
                         val gold = it.title.startsWith("Polyp")
@@ -915,6 +949,29 @@ class MainActivity : ComponentActivity() {
                     val z1 = -dx * sin(ny) + dz * cos(ny)
                     yaw = ny; pitch = kotlin.math.atan2(dy, z1); zoom = 1.3f
                 }, Modifier.align(Alignment.TopStart)) { Text("down the tube") }
+                Row(Modifier.align(Alignment.BottomStart)) {
+                    TextButton(onClick = { heatMode = !heatMode }) {
+                        Text(if (heatMode) "tissue colors" else "coverage heat")
+                    }
+                    TextButton(onClick = {
+                        measureMode = !measureMode; mSel = listOf(); picked = null
+                    }) { Text(if (measureMode) "done measuring" else "measure") }
+                }
+                if (measureMode) {
+                    val label = if (mSel.size == 2) {
+                        val a = mSel[0]; val b = mSel[1]
+                        val dx = map.xyz[3*a] - map.xyz[3*b]
+                        val dy = map.xyz[3*a+1] - map.xyz[3*b+1]
+                        val dz = map.xyz[3*a+2] - map.xyz[3*b+2]
+                        val d = sqrt(dx*dx + dy*dy + dz*dz)
+                        if (map.spanMm > 0f) "≈ %.1f mm (estimated)".format(d * map.spanMm)
+                        else "%.2f model units (no scale on this replay)".format(d)
+                    } else "tap two points on the model"
+                    Card(Modifier.align(Alignment.BottomCenter).padding(bottom = 44.dp)) {
+                        Text(label, Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelLarge)
+                    }
+                }
                 if (run == 2 && map.n == 0)
                     Text(if (StudyRunner.running) "Study in progress — the map appears here " +
                             "when it finishes." else "No live study yet. Open \"Run the " +

@@ -240,7 +240,8 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
                     val blind: BooleanArray, val traj: FloatArray,
                     val lesions: List<StudyEngine.Lesion>, val stageMs: FloatArray,
                     val thumb: Bitmap?, val warming: Boolean, val warmDone: Int,
-                    val warmTotal: Int, val bestSupport: Int, val needSupport: Int)
+                    val warmTotal: Int, val bestSupport: Int, val needSupport: Int,
+                    val viewsArr: IntArray, val spanMm: Float)
 
     fun snapshot(): LiveState = synchronized(this) {
         val keys = ArrayList(views.keys)
@@ -262,12 +263,14 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
         val pts = FloatArray(3 * sel.size)
         val cols = IntArray(sel.size)
         val blind = BooleanArray(sel.size)
+        val vcs = IntArray(sel.size)
         for (i in sel.indices) {
             pts[3*i] = (raw[3*i] - cx) / span
             pts[3*i+1] = (raw[3*i+1] - cy) / span
             pts[3*i+2] = (raw[3*i+2] - cz) / span
             cols[i] = colorMap[sel[i]] ?: 0
-            blind[i] = (views[sel[i]] ?: 0) < study.BLIND_VIEWS
+            vcs[i] = views[sel[i]] ?: 0
+            blind[i] = vcs[i] < study.BLIND_VIEWS
         }
         var blAll = 0
         for (v in views.values) if (v < study.BLIND_VIEWS) blAll++
@@ -284,7 +287,7 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
         for (i in 0..3) ms[i] = 1000f * stageSecs[i] / maxOf(1, n)
         LiveState(n, views.size, 100f * blAll / maxOf(1, views.size), pathMm,
             pts, cols, blind, traj, les, ms, lastFrame,
-            warm < WARMUP, warm, WARMUP, bestCluster, maxOf(6, n / 5))
+            warm < WARMUP, warm, WARMUP, bestCluster, maxOf(6, n / 5), vcs, span)
     }
 
     /** Convert the accumulated stream into a StudyResult so the Studies tab can replay it. */
@@ -319,6 +322,6 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
             it.support, it.avgConf, mapFrame(it.frame)) }
         StudyEngine.StudyResult(s.pts, s.colors, s.blind, born, traj2, les,
             tn, views.size, s.blindPct, pathMm, detFrames, totalSecs,
-            fv, fb, fp, ArrayList(thumbs), stageSecs.copyOf())
+            fv, fb, fp, ArrayList(thumbs), stageSecs.copyOf(), s.viewsArr, s.spanMm)
     }
 }

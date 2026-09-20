@@ -43,7 +43,9 @@ class StudyEngine(private val depth: DepthEngine, private val polyp: PolypEngine
         val frameBlindPct: FloatArray,// per-frame: % of patches still under 3 views
         val framePathMm: FloatArray,  // per-frame: cumulative camera path
         val thumbs: List<Bitmap>,     // small preview of every analyzed frame
-        val stageSecs: FloatArray)    // seconds in [depth, tracking, fusion, scanning]
+        val stageSecs: FloatArray,    // seconds in [depth, tracking, fusion, scanning]
+        val viewCounts: IntArray? = null,  // per displayed point: times seen (coverage heat)
+        val spanMm: Float = 0f)       // mm per normalized display unit (for on-map measuring)
 
     // processing resolution: depth grid and gray images are W x W
     internal val W = 126
@@ -294,13 +296,15 @@ class StudyEngine(private val depth: DepthEngine, private val polyp: PolypEngine
         val cols = IntArray(keys.size)
         val blind = BooleanArray(keys.size)
         val born = IntArray(keys.size)
+        val vcs = IntArray(keys.size)
         var blindCount = 0
         for (idx in keys.indices) {
             pts[3 * idx] = nx(raw[3 * idx], cxm)
             pts[3 * idx + 1] = nx(raw[3 * idx + 1], cym)
             pts[3 * idx + 2] = nx(raw[3 * idx + 2], czm)
             cols[idx] = color[keys[idx]] ?: 0
-            blind[idx] = (views[keys[idx]] ?: 0) < BLIND_VIEWS
+            vcs[idx] = views[keys[idx]] ?: 0
+            blind[idx] = vcs[idx] < BLIND_VIEWS
             born[idx] = bornMap[keys[idx]] ?: 0
         }
         var blindAll = 0
@@ -328,7 +332,7 @@ class StudyEngine(private val depth: DepthEngine, private val polyp: PolypEngine
                     marks[3], n / maxOf(0.01f, marks[3]), totalS, n / totalS))
         return StudyResult(pts, cols, blind, born, traj, lesions, n, views.size,
             100f * blindCount / maxOf(1, views.size), pathMm, detFrames,
-            totalS, frameVoxels, frameBlindPct, framePathMm, thumbs, marks)
+            totalS, frameVoxels, frameBlindPct, framePathMm, thumbs, marks, vcs, span)
     }
 
     // ------------------------- direct visual odometry -------------------------
