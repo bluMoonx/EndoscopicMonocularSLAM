@@ -122,6 +122,7 @@ class MainActivity : ComponentActivity() {
     fun ArgusApp() {
         var tab by remember { mutableIntStateOf(2) }
         var showMore by remember { mutableStateOf(false) }
+        var showcase by remember { mutableStateOf(false) }
         val tabs = listOf(
             "Mission" to Icons.Filled.Info,
             "Results" to Icons.Filled.Star,
@@ -144,7 +145,7 @@ class MainActivity : ComponentActivity() {
                 when (tab) {
                     0 -> MissionScreen()
                     1 -> ResultsScreen()
-                    2 -> HomeScreen { tab = it }
+                    2 -> HomeScreen(onGo = { tab = it }, onShowcase = { showcase = true })
                     3 -> MapScreen()
                     4 -> ScopeScreen()
                     5 -> DetectScreen()
@@ -152,8 +153,26 @@ class MainActivity : ComponentActivity() {
                     7 -> TrajScreen()
                     8 -> XRayScreen()
                     9 -> GlareLabScreen()
-                    10 -> StreamScreen()
-                    else -> ShowcaseScreen()
+                    else -> StreamScreen()
+                }
+                // Showcase is a moment, not a tab: tapping the Home model zooms it in,
+                // and the X (or back-tap on the close) zooms it away.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showcase,
+                    enter = androidx.compose.animation.fadeIn(tween(450)) +
+                            androidx.compose.animation.scaleIn(
+                                initialScale = 0.62f, animationSpec = tween(450)),
+                    exit = androidx.compose.animation.fadeOut(tween(240)) +
+                            androidx.compose.animation.scaleOut(
+                                targetScale = 0.80f, animationSpec = tween(240))) {
+                    Box(Modifier.fillMaxSize().background(Color(0xFF121519))) {
+                        ShowcaseScreen()
+                        IconButton(onClick = { showcase = false },
+                            Modifier.align(Alignment.TopEnd).padding(6.dp)) {
+                            Icon(Icons.Filled.Close, "close showcase",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                 }
                 if (showMore) {
                     ModalBottomSheet(onDismissRequest = { showMore = false }) {
@@ -273,14 +292,15 @@ class MainActivity : ComponentActivity() {
         }
     }
     @Composable
-    fun HomeScreen(onGo: (Int) -> Unit) {
+    fun HomeScreen(onGo: (Int) -> Unit, onShowcase: () -> Unit = {}) {
         val map = remember { loadColonMap("colon_map2.bin") }
         var spin by remember { mutableFloatStateOf(0f) }
         LaunchedEffect(Unit) { while (true) { spin += 0.006f; delay(16.milliseconds) } }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Canvas(Modifier.fillMaxWidth().height(320.dp)) {
+            Canvas(Modifier.fillMaxWidth().height(320.dp)
+                .pointerInput(Unit) { detectTapGestures { onShowcase() } }) {
                 val cy = cos(spin); val sy = sin(spin)
                 val cp = cos(0.35f); val sp = sin(0.35f)
                 val s = size.minDimension * 0.40f
@@ -295,6 +315,9 @@ class MainActivity : ComponentActivity() {
                         Offset(size.width / 2 + x1 * s * persp, size.height / 2 + y1 * s * persp))
                 }
             }
+            Text("tap the model for the showcase",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline)
 
             val taglines = listOf(
                 "the all-seeing monster" to Color(0xFF5FB5AD),
@@ -315,8 +338,6 @@ class MainActivity : ComponentActivity() {
                     "map of what has been inspected and what has not. This app carries the heart of " +
                     "that system.", textAlign = TextAlign.Center)
             val mainCards = listOf(
-                Triple(11, "Showcase", "The whole project in 45 hands-free seconds. " +
-                        "Start here."),
                 Triple(0, "Mission", "What this project set out to prove, and how it went."),
                 Triple(1, "Results", "The numbers, measured against ground truth."),
                 Triple(3, "Studies", "Reference runs in 3D, plus every study this phone has " +
