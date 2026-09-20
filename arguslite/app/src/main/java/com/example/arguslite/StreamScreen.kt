@@ -239,7 +239,8 @@ fun StreamScreen() {
             var yaw by remember { mutableFloatStateOf(0.6f) }
             var pitch by remember { mutableFloatStateOf(0.3f) }
             var zoom by remember { mutableFloatStateOf(1f) }
-            Canvas(Modifier.fillMaxWidth().height(280.dp)
+            Box(Modifier.fillMaxWidth().height(280.dp)) {
+            Canvas(Modifier.fillMaxSize()
                 .pointerInput(Unit) {
                     detectTransformGestures { _, pan, gz, _ ->
                         yaw += pan.x * 0.008f; pitch += pan.y * 0.008f
@@ -277,7 +278,8 @@ fun StreamScreen() {
                             ((live.colors[i] shr 8) and 0xFF) / 255f * shade,
                             (live.colors[i] and 0xFF) / 255f * shade)
                     }
-                    drawCircle(c, 1.7f * persp, Offset(pxA[i], pyA[i]))
+                    // splat-sized points: big enough to overlap and fuse into a surface
+                    drawCircle(c, 3.6f * persp, Offset(pxA[i], pyA[i]), alpha = 0.95f)
                 }
                 var prev: Offset? = null
                 for (k in 0 until live.traj.size / 3) {
@@ -291,6 +293,18 @@ fun StreamScreen() {
                     drawCircle(Color(0xFFE8B33C), 9f * persp, Offset(px, py))
                     drawCircle(Color(0xFF121519), 4f * persp, Offset(px, py))
                 }
+            }
+            TextButton(onClick = {
+                if (live.traj.size >= 6) {
+                    val li = live.traj.size - 3
+                    val dx = live.traj[li] - live.traj[0]
+                    val dy = live.traj[li + 1] - live.traj[1]
+                    val dz = live.traj[li + 2] - live.traj[2]
+                    val ny = kotlin.math.atan2(-dx, dz)
+                    val z1 = -dx * sin(ny) + dz * cos(ny)
+                    yaw = ny; pitch = kotlin.math.atan2(dy, z1); zoom = 1.3f
+                }
+            }, Modifier.align(Alignment.TopEnd)) { Text("down the tube") }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
@@ -329,18 +343,6 @@ fun StreamScreen() {
                 FilterChip(selected = !heatMode && showBlind,
                     onClick = { heatMode = false; showBlind = true },
                     label = { Text("blind") })
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = {
-                    if (live.traj.size >= 6) {
-                        val li = live.traj.size - 3
-                        val dx = live.traj[li] - live.traj[0]
-                        val dy = live.traj[li + 1] - live.traj[1]
-                        val dz = live.traj[li + 2] - live.traj[2]
-                        val ny = kotlin.math.atan2(-dx, dz)
-                        val z1 = -dx * sin(ny) + dz * cos(ny)
-                        yaw = ny; pitch = kotlin.math.atan2(dy, z1); zoom = 1.3f
-                    }
-                }) { Text("down the tube") }
             }
             if (StreamRunner.running) {
                 Button(onClick = { StreamRunner.stop(context,

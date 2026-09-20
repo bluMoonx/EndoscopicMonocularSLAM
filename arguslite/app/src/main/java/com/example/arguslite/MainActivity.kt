@@ -892,17 +892,21 @@ class MainActivity : ComponentActivity() {
                         // When blind spots are rare, emphasize them (bigger, dim the rest).
                         // When they dominate, draw both classes equally so the picture
                         // matches the percentage instead of exaggerating it.
+                        // splat-sized points fuse into a surface instead of reading as dots
                         if (heatMode) {
                             val vc = map.views?.getOrNull(i) ?: if (map.blind[i]) 1 else 4
-                            drawCircle(coverageColor(minOf(vc, 8) / 8f, shade), 3f,
-                                Offset(pxA[i], pyA[i]))
+                            drawCircle(coverageColor(minOf(vc, 8) / 8f, shade),
+                                4.2f * persp.coerceIn(0.6f, 1.6f),
+                                Offset(pxA[i], pyA[i]), alpha = 0.95f)
                         } else if (showBlind && map.blind[i]) {
                             drawCircle(Color(0.90f * shade, 0.23f * shade, 0.27f * shade),
-                                if (rare) 5f else 3f, Offset(pxA[i], pyA[i]))
+                                if (rare) 5.5f else 4.2f * persp.coerceIn(0.6f, 1.6f),
+                                Offset(pxA[i], pyA[i]))
                         } else {
                             drawCircle(Color(map.r[i] / 255f * shade, map.g[i] / 255f * shade,
-                                map.b[i] / 255f * shade), 3f, Offset(pxA[i], pyA[i]),
-                                alpha = if (showBlind && rare) 0.30f else 1f)
+                                map.b[i] / 255f * shade),
+                                4.2f * persp.coerceIn(0.6f, 1.6f), Offset(pxA[i], pyA[i]),
+                                alpha = if (showBlind && rare) 0.30f else 0.95f)
                         }
                     }
                     val upTo = (if (replay) t.toInt() else map.trajN - 1)
