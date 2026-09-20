@@ -1,4 +1,4 @@
-package com.example.arguslite
+﻿package com.example.arguslite
 
 import android.graphics.Bitmap
 import kotlin.math.abs
@@ -46,13 +46,13 @@ class StudyEngine(private val depth: DepthEngine, private val polyp: PolypEngine
         val stageSecs: FloatArray)    // seconds in [depth, tracking, fusion, scanning]
 
     // processing resolution: depth grid and gray images are W x W
-    private val W = 126
-    private val F = 0.55f * W          // nominal pinhole focal (uncalibrated scope)
-    private val CX = W / 2f
-    private val CY = W / 2f
-    private val VOXEL = 1.4f           // mm
-    private val BLIND_VIEWS = 3
-    private val GLARE = 0.94f          // normalized intensity above this is excluded
+    internal val W = 126
+    internal val F = 0.55f * W          // nominal pinhole focal (uncalibrated scope)
+    internal val CX = W / 2f
+    internal val CY = W / 2f
+    internal val VOXEL = 1.4f           // mm
+    internal val BLIND_VIEWS = 3
+    internal val GLARE = 0.94f          // normalized intensity above this is excluded
 
     // tracker health telemetry, logged per study
     private var gnPixels = 0L
@@ -366,7 +366,7 @@ class StudyEngine(private val depth: DepthEngine, private val polyp: PolypEngine
     }
 
     // Estimates the motion T (points in A-coords -> B-coords) between two frames.
-    private fun trackPair(grayA: FloatArray, depthA: FloatArray, grayB: FloatArray,
+    internal fun trackPair(grayA: FloatArray, depthA: FloatArray, grayB: FloatArray,
                           staticMask: BooleanArray): Pose {
         var T = Pose.identity()
         val levels = intArrayOf(4, 2, 1)          // downsample factors, coarse to fine
@@ -556,17 +556,18 @@ class StudyEngine(private val depth: DepthEngine, private val polyp: PolypEngine
 
     // ------------------------- voxel hashing -------------------------
 
-    private fun voxelKey(x: Float, y: Float, z: Float): Long {
+    internal fun voxelKey(x: Float, y: Float, z: Float): Long {
         val ix = (x / VOXEL).toInt() + 4096
         val iy = (y / VOXEL).toInt() + 4096
         val iz = (z / VOXEL).toInt() + 4096
         return (ix.toLong() shl 26) or (iy.toLong() shl 13) or iz.toLong()
     }
 
-    private fun voxelCenter(key: Long): Triple<Float, Float, Float> {
+    internal fun voxelCenter(key: Long): Triple<Float, Float, Float> {
         val ix = ((key shr 26) and 0x1FFF).toInt() - 4096
         val iy = ((key shr 13) and 0x1FFF).toInt() - 4096
         val iz = (key and 0x1FFF).toInt() - 4096
         return Triple((ix + 0.5f) * VOXEL, (iy + 0.5f) * VOXEL, (iz + 0.5f) * VOXEL)
     }
 }
+

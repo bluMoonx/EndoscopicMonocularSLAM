@@ -151,11 +151,15 @@ class MainActivity : ComponentActivity() {
                     6 -> MeasureScreen()
                     7 -> TrajScreen()
                     8 -> XRayScreen()
-                    else -> GlareLabScreen()
+                    9 -> GlareLabScreen()
+                    else -> StreamScreen()
                 }
                 if (showMore) {
                     ModalBottomSheet(onDismissRequest = { showMore = false }) {
                         Column(Modifier.padding(bottom = 32.dp)) {
+                            ListItem(headlineContent = { Text("Live Study") },
+                                supportingContent = { Text("The pipeline running as footage streams — map, coverage, and findings grow live") },
+                                modifier = Modifier.clickable { tab = 10; showMore = false })
                             ListItem(headlineContent = { Text("Scope") },
                                 modifier = Modifier.clickable { tab = 4; showMore = false })
                             ListItem(headlineContent = { Text("Detect") },
@@ -677,7 +681,10 @@ class MainActivity : ComponentActivity() {
         sb.appendLine("source: ${StudyRunner.sourceName}")
         sb.appendLine("frames analyzed: ${fr.frames}")
         sb.appendLine("surface patches mapped: ${fr.voxels}")
-        sb.appendLine("wall seen fewer than 3 times: %.1f%%".format(fr.blindPct))
+        sb.appendLine("wall seen fewer than 3 times in the 80 analyzed frames: %.1f%%"
+            .format(fr.blindPct))
+        sb.appendLine("  (a harsher statistic than the validated coverage numbers: short " +
+                "clip, sampled frames, uncalibrated camera — describes this run, not the colon)")
         sb.appendLine("camera path: %.0f mm (estimated, uncalibrated)".format(fr.pathMm))
         sb.appendLine("detector firings: ${fr.detectionFrames} of ${fr.frames} frames")
         if (fr.lesions.isEmpty())
@@ -1082,7 +1089,7 @@ class MainActivity : ComponentActivity() {
                         else {
                             Text("Frames analyzed: ${fr.frames}\n" +
                                     "Surface patches mapped: ${fr.voxels}\n" +
-                                    "Wall seen fewer than 3 times: %.1f%%\n".format(fr.blindPct) +
+                                    "Wall seen fewer than 3 times in the 80 analyzed frames: %.1f%%\n".format(fr.blindPct) +
                                     "Camera path: %.0f mm (estimated)\n".format(fr.pathMm) +
                                     "Computed in %.0f s on this device (%.2f frames/s end-to-end)"
                                         .format(fr.secondsTaken, fr.frames / fr.secondsTaken))
