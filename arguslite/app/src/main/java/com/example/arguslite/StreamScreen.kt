@@ -69,16 +69,31 @@ object StreamRunner {
                     MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0L
                 var t = 0L
                 val stepMs = 150L                    // ~7 frames per second of footage
-                while (!stopFlag && (durMs == 0L || t < durMs * 1000L / 1000L)) {
+                // Missing duration metadata plus a retriever that returns the LAST frame
+                // for any time past the end would loop forever — so also detect the
+                // end of the stream by the footage going static.
+                var lastSig = 0L
+                var sameCount = 0
+                val capMs = if (durMs > 0) durMs else 5 * 60 * 1000L
+                while (!stopFlag && t < capMs) {
                     val f = mmr.getFrameAtTime(t * 1000L,
                         MediaMetadataRetriever.OPTION_CLOSEST) ?: break
+                    var sig = 0L
+                    for (yy in 0 until 8) for (xx in 0 until 8)
+                        sig = sig * 31 + f.getPixel(xx * f.width / 8, yy * f.height / 8)
+                    if (sig == lastSig) {
+                        sameCount++
+                        if (sameCount >= 3) break     // footage stopped changing: done
+                        t += stepMs
+                        continue
+                    }
+                    lastSig = sig; sameCount = 0
                     val w = 512
                     val h = maxOf(1, w * f.height / f.width)
                     val s = Bitmap.createScaledBitmap(f, w, h, true)
                     if (s !== f) f.recycle()
                     e.step(s)
                     t += stepMs
-                    if (durMs > 0 && t >= durMs) break
                 }
                 mmr.release()
                 File(path).takeIf { it.name.startsWith("stream_") }?.delete()

@@ -158,7 +158,6 @@ class MainActivity : ComponentActivity() {
                     ModalBottomSheet(onDismissRequest = { showMore = false }) {
                         Column(Modifier.padding(bottom = 32.dp)) {
                             ListItem(headlineContent = { Text("Live Study") },
-                                supportingContent = { Text("The pipeline running as footage streams — map, coverage, and findings grow live") },
                                 modifier = Modifier.clickable { tab = 10; showMore = false })
                             ListItem(headlineContent = { Text("Scope") },
                                 modifier = Modifier.clickable { tab = 4; showMore = false })
@@ -301,7 +300,7 @@ class MainActivity : ComponentActivity() {
 
                 "leaves no surface unmapped" to Color(0xFFE0796B),
                 "one camera. one vision." to Color(0xFF3FD6FF),
-                "98.6% accuracy" to Color(0xFFDCA645))
+                "98.6% agreement" to Color(0xFFDCA645))
             var tag by remember { mutableIntStateOf(0) }
             LaunchedEffect(Unit) { while (true) { delay(1400.milliseconds); tag = (tag + 1) % taglines.size } }
             androidx.compose.animation.Crossfade(targetState = tag, label = "tag") { i ->
@@ -317,8 +316,10 @@ class MainActivity : ComponentActivity() {
             val mainCards = listOf(
                 Triple(0, "Mission", "What this project set out to prove, and how it went."),
                 Triple(1, "Results", "The numbers, measured against ground truth."),
-                Triple(3, "Studies", "Two validated runs in 3D — and a live one: feed the " +
-                        "pipeline footage it has never seen and watch it work."))
+                Triple(3, "Studies", "Reference runs in 3D, plus every study this phone has " +
+                        "run on new footage — replayable frame by frame."),
+                Triple(10, "Live Study", "The whole pipeline running as footage streams: " +
+                        "the map, the coverage count, and any findings grow in real time."))
 
             val labCards = listOf(
                 Triple(4, "Scope", "Point the camera at anything and watch a neural network " +
@@ -630,7 +631,13 @@ class MainActivity : ComponentActivity() {
             listOf("0.91 mm" to "average camera tracking error, using video alone",
                 "98.6 %" to "blind spot agreement with ground truth",
                 "1.3 to 2.4 mm" to "3D surface accuracy, from video alone",
-                "0.60 mm" to "median measurement error on polyp sized targets").forEach { (n, d) ->
+                "0.60 mm" to "median measurement error on polyp sized targets",
+                "11 of 21" to "unseen polyp videos flagged at thresholds fixed in advance — " +
+                        "while 17 of 20 control videos stayed clean, and every flagged " +
+                        "control turned out to be real non-polyp pathology",
+                "9×" to "the tracking-error cost of an actively deforming colon, measured " +
+                        "against a rigid twin of the same phantom with ground-truth " +
+                        "camera paths").forEach { (n, d) ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp)) {
                         Text(n, style = MaterialTheme.typography.headlineSmall,
