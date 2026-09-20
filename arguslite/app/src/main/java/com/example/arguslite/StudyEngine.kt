@@ -45,7 +45,9 @@ class StudyEngine(private val depth: DepthEngine, private val polyp: PolypEngine
         val thumbs: List<Bitmap>,     // small preview of every analyzed frame
         val stageSecs: FloatArray,    // seconds in [depth, tracking, fusion, scanning]
         val viewCounts: IntArray? = null,  // per displayed point: times seen (coverage heat)
-        val spanMm: Float = 0f)       // mm per normalized display unit (for on-map measuring)
+        val spanMm: Float = 0f,       // mm per normalized display unit (for on-map measuring)
+        val mesh: MeshData? = null,   // fused surface (world mm), when TSDF was accumulated
+        val centerMm: FloatArray? = null)  // world-mm center used for display normalization
 
     // processing resolution: depth grid and gray images are W x W
     internal val W = 126
@@ -168,6 +170,7 @@ class StudyEngine(private val depth: DepthEngine, private val polyp: PolypEngine
         val views = HashMap<Long, Int>()
         val color = HashMap<Long, Int>()
         val bornMap = HashMap<Long, Int>()
+        val tsdf = HashMap<Long, Long>()
         val frameVoxels = IntArray(n)
         val frameBlindPct = FloatArray(n)
         for (k in 0 until n) {
@@ -192,6 +195,21 @@ class StudyEngine(private val depth: DepthEngine, private val polyp: PolypEngine
                             if (!bornMap.containsKey(key)) bornMap[key] = k
                         }
                         color[key] = px[j]
+                        // signed-distance band along the ray, for the surface mesh
+                        var rx = wx - P.t[0]; var ry = wy - P.t[1]; var rz = wz - P.t[2]
+                        val rl = sqrt(rx * rx + ry * ry + rz * rz)
+                        if (rl > 1e-3f) {
+                            rx /= rl; ry /= rl; rz /= rl
+                            val trunc = TSDF_TRUNC_VOXELS * VOXEL
+                            for (mstep in -2..2) {
+                                val h2 = mstep * VOXEL
+                                val kk = voxelKey(wx - rx * h2, wy - ry * h2, wz - rz * h2)
+                                val sd = (h2 / trunc).coerceIn(-1f, 1f)
+                                val prev = tsdf[kk]
+                                tsdf[kk] = if (prev == null) tsdfPack(sd, 1f)
+                                else tsdfPack(tsdfSum(prev) + sd, tsdfWeight(prev) + 1f)
+                            }
+                        }
                     }
                     x += 2
                 }
@@ -330,9 +348,11 @@ class StudyEngine(private val depth: DepthEngine, private val polyp: PolypEngine
                 .format(n, marks[0], n / maxOf(0.01f, marks[0]),
                     marks[1], n / maxOf(0.01f, marks[1]), marks[2],
                     marks[3], n / maxOf(0.01f, marks[3]), totalS, n / totalS))
+        val mesh = buildSurface(tsdf, color, views, ::voxelCenter)
         return StudyResult(pts, cols, blind, born, traj, lesions, n, views.size,
             100f * blindCount / maxOf(1, views.size), pathMm, detFrames,
-            totalS, frameVoxels, frameBlindPct, framePathMm, thumbs, marks, vcs, span)
+            totalS, frameVoxels, frameBlindPct, framePathMm, thumbs, marks, vcs, span,
+            mesh, floatArrayOf(cxm, cym, czm))
     }
 
     // ------------------------- direct visual odometry -------------------------

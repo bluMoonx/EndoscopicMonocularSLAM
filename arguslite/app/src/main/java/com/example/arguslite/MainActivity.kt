@@ -652,7 +652,8 @@ class MainActivity : ComponentActivity() {
     class ColonMap(val n: Int, val xyz: FloatArray, val r: IntArray, val g: IntArray,
                    val b: IntArray, val blind: BooleanArray, val born: IntArray,
                    val trajN: Int, val traj: FloatArray, val lesions: List<FloatArray>,
-                   val views: IntArray? = null, val spanMm: Float = 0f)
+                   val views: IntArray? = null, val spanMm: Float = 0f,
+                   val mesh: MeshData? = null, val centerMm: FloatArray? = null)
 
     private fun loadColonMap(file: String): ColonMap {
         val bb = java.nio.ByteBuffer.wrap(assets.open(file).readBytes())
@@ -734,7 +735,7 @@ class MainActivity : ComponentActivity() {
         }
         val lesions = sr.lesions.map { floatArrayOf(it.x, it.y, it.z, it.sizeMm) }
         return ColonMap(n, xyz, r, g, b, blind, born, sr.frames, sr.traj, lesions,
-            vcs, sr.spanMm)
+            vcs, sr.spanMm, sr.mesh, sr.centerMm)
     }
 
     private fun makeLiveAnchors(map: ColonMap, sr: StudyEngine.StudyResult?): List<Anchor> {
@@ -874,11 +875,22 @@ class MainActivity : ComponentActivity() {
                     val cp = cos(pitch); val sp = sin(pitch)
                     val blindPct = map.blind.count { it }.toFloat() / maxOf(1, map.n)
                     val rare = blindPct < 0.25f
+                    // Fused surface when available (and not replaying the build animation);
+                    // otherwise points in painter's order.
+                    val meshOk = map.mesh != null && map.centerMm != null &&
+                            map.spanMm > 0f && !replay
+                    if (meshOk) {
+                        val cmm = map.centerMm!!
+                        drawMeshLit(map.mesh!!, cmm[0], cmm[1], cmm[2], map.spanMm,
+                            yaw, pitch, zoom,
+                            if (heatMode) 1 else if (showBlind) 2 else 0, 3)
+                    }
                     // Painter's order: far wall drawn first so the near wall covers it —
                     // this is what makes the cloud read as a tube instead of a blob.
                     val pxA = FloatArray(map.n); val pyA = FloatArray(map.n)
                     val ppA = FloatArray(map.n) { -1f }
                     for (i in 0 until map.n) {
+                        if (meshOk) break
                         if (replay && map.born[i] > t) continue
                         val (px, py, persp) = project(map.xyz[3 * i], map.xyz[3 * i + 1],
                             map.xyz[3 * i + 2], cy, sy, cp, sp)

@@ -36,6 +36,9 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
     private val views = HashMap<Long, Int>()
     private val colorMap = HashMap<Long, Int>()
     private val bornMap = HashMap<Long, Int>()
+    private val tsdf = HashMap<Long, Long>()
+    private var meshCache: MeshData? = null
+    private var meshBuiltAt = -1
     private val dets = ArrayList<Det>()
     private var detFrames = 0
     private val trajList = ArrayList<Float>()
@@ -146,10 +149,29 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
                         if (!bornMap.containsKey(key)) bornMap[key] = n
                     }
                     colorMap[key] = px[j]
+                    // signed-distance band along the viewing ray, for the surface mesh
+                    var rx = wx - pose.t[0]; var ry = wy - pose.t[1]; var rz = wz - pose.t[2]
+                    val rl = sqrt(rx * rx + ry * ry + rz * rz)
+                    if (rl > 1e-3f) {
+                        rx /= rl; ry /= rl; rz /= rl
+                        val trunc = TSDF_TRUNC_VOXELS * study.VOXEL
+                        for (mstep in -2..2) {
+                            val h = mstep * study.VOXEL
+                            val kk = study.voxelKey(wx - rx * h, wy - ry * h, wz - rz * h)
+                            val sd = (h / trunc).coerceIn(-1f, 1f)
+                            val prev = tsdf[kk]
+                            tsdf[kk] = if (prev == null) tsdfPack(sd, 1f)
+                            else tsdfPack(tsdfSum(prev) + sd, tsdfWeight(prev) + 1f)
+                        }
+                    }
                 }
                 x += 2
             }
             y += 2
+        }
+        if (n - meshBuiltAt >= 12) {
+            meshCache = buildSurface(tsdf, colorMap, views, study::voxelCenter)
+            meshBuiltAt = n
         }
         statVoxels.add(views.size)
         var bl = 0
@@ -241,7 +263,8 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
                     val lesions: List<StudyEngine.Lesion>, val stageMs: FloatArray,
                     val thumb: Bitmap?, val warming: Boolean, val warmDone: Int,
                     val warmTotal: Int, val bestSupport: Int, val needSupport: Int,
-                    val viewsArr: IntArray, val spanMm: Float)
+                    val viewsArr: IntArray, val spanMm: Float,
+                    val mesh: MeshData?, val cX: Float, val cY: Float, val cZ: Float)
 
     fun snapshot(): LiveState = synchronized(this) {
         val keys = ArrayList(views.keys)
@@ -287,11 +310,14 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
         for (i in 0..3) ms[i] = 1000f * stageSecs[i] / maxOf(1, n)
         LiveState(n, views.size, 100f * blAll / maxOf(1, views.size), pathMm,
             pts, cols, blind, traj, les, ms, lastFrame,
-            warm < WARMUP, warm, WARMUP, bestCluster, maxOf(6, n / 5), vcs, span)
+            warm < WARMUP, warm, WARMUP, bestCluster, maxOf(6, n / 5), vcs, span,
+            meshCache, cx, cy, cz)
     }
 
     /** Convert the accumulated stream into a StudyResult so the Studies tab can replay it. */
     fun finish(totalSecs: Float): StudyEngine.StudyResult = synchronized(this) {
+        meshCache = buildSurface(tsdf, colorMap, views, study::voxelCenter)
+        meshBuiltAt = n
         val s = snapshot()
         // compress the timeline to the thumbnail timeline
         val tn = maxOf(1, thumbs.size)
@@ -322,6 +348,7 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
             it.support, it.avgConf, mapFrame(it.frame)) }
         StudyEngine.StudyResult(s.pts, s.colors, s.blind, born, traj2, les,
             tn, views.size, s.blindPct, pathMm, detFrames, totalSecs,
-            fv, fb, fp, ArrayList(thumbs), stageSecs.copyOf(), s.viewsArr, s.spanMm)
+            fv, fb, fp, ArrayList(thumbs), stageSecs.copyOf(), s.viewsArr, s.spanMm,
+            s.mesh, floatArrayOf(s.cX, s.cY, s.cZ))
     }
 }

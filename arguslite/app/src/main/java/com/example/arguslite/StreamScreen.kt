@@ -257,6 +257,11 @@ fun StreamScreen() {
                     return Triple(size.width / 2f + x1 * s * persp,
                         size.height / 2f + y1 * s * persp, persp)
                 }
+                val meshMode = if (heatMode) 1 else if (showBlind) 2 else 0
+                if (live.mesh != null && live.mesh.tris.isNotEmpty()) {
+                    drawMeshLit(live.mesh, live.cX, live.cY, live.cZ,
+                        maxOf(live.spanMm, 1e-3f), yaw, pitch, zoom, meshMode, 3)
+                } else {
                 // painter's order + depth shading: far wall first and dimmer, so the
                 // growing cloud reads as a tube rather than a blob
                 val m = live.pts.size / 3
@@ -280,6 +285,7 @@ fun StreamScreen() {
                     }
                     // splat-sized points: big enough to overlap and fuse into a surface
                     drawCircle(c, 3.6f * persp, Offset(pxA[i], pyA[i]), alpha = 0.95f)
+                }
                 }
                 var prev: Offset? = null
                 for (k in 0 until live.traj.size / 3) {
