@@ -795,6 +795,9 @@ class MainActivity : ComponentActivity() {
         val live = StudyRunner.result
         val refMesh = remember { runCatching {
             loadMeshBin(assets.open("mesh_cecum.bin").readBytes()) }.getOrNull() }
+        val refMeshHk = remember { runCatching {
+            loadMeshBin(assets.open("mesh_hk.bin").readBytes()) }.getOrNull() }
+        var surfaceMode by remember(run) { mutableStateOf(true) }
         val map = remember(run, live) {
             when (run) {
                 0 -> loadColonMap("colon_map2.bin").let { base ->
@@ -806,7 +809,15 @@ class MainActivity : ComponentActivity() {
                             floatArrayOf(cs[0], cs[1], cs[2]))
                     } else base
                 }
-                1 -> loadColonMap("hk_map.bin")
+                1 -> loadColonMap("hk_map.bin").let { base ->
+                    if (refMeshHk != null) {
+                        val cs = meshCenterSpan(refMeshHk)
+                        ColonMap(base.n, base.xyz, base.r, base.g, base.b, base.blind,
+                            base.born, base.trajN, base.traj, base.lesions,
+                            base.views, cs[3], refMeshHk,
+                            floatArrayOf(cs[0], cs[1], cs[2]))
+                    } else base
+                }
                 else -> live?.let { colonMapFromStudy(it) }
                     ?: ColonMap(0, FloatArray(0), IntArray(0), IntArray(0), IntArray(0),
                         BooleanArray(0), IntArray(0), 0, FloatArray(0), emptyList())
@@ -890,7 +901,7 @@ class MainActivity : ComponentActivity() {
                     val rare = blindPct < 0.25f
                     // Fused surface when available (and not replaying the build animation);
                     // otherwise points in painter's order.
-                    val meshOk = map.mesh != null && map.centerMm != null &&
+                    val meshOk = surfaceMode && map.mesh != null && map.centerMm != null &&
                             map.spanMm > 0f && !replay
                     if (meshOk) {
                         val cmm = map.centerMm!!
@@ -979,6 +990,9 @@ class MainActivity : ComponentActivity() {
                     yaw = ny; pitch = kotlin.math.atan2(dy, z1); zoom = 1.3f
                 }, Modifier.align(Alignment.TopStart)) { Text("down the tube") }
                 Row(Modifier.align(Alignment.BottomStart)) {
+                    if (map.mesh != null) TextButton(onClick = { surfaceMode = !surfaceMode }) {
+                        Text(if (surfaceMode) "point cloud" else "surface")
+                    }
                     TextButton(onClick = { heatMode = !heatMode }) {
                         Text(if (heatMode) "tissue colors" else "coverage heat")
                     }

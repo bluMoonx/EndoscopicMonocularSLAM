@@ -236,6 +236,7 @@ fun StreamScreen() {
         if (live != null && live.frames > 0) {
             var showBlind by remember { mutableStateOf(false) }
             var heatMode by remember { mutableStateOf(true) }
+            var surfaceM by remember { mutableStateOf(true) }
             var yaw by remember { mutableFloatStateOf(0.6f) }
             var pitch by remember { mutableFloatStateOf(0.3f) }
             var zoom by remember { mutableFloatStateOf(1f) }
@@ -258,7 +259,7 @@ fun StreamScreen() {
                         size.height / 2f + y1 * s * persp, persp)
                 }
                 val meshMode = if (heatMode) 1 else if (showBlind) 2 else 0
-                if (live.mesh != null && live.mesh.tris.isNotEmpty()) {
+                if (surfaceM && live.mesh != null && live.mesh.tris.isNotEmpty()) {
                     drawMeshLit(live.mesh, live.cX, live.cY, live.cZ,
                         maxOf(live.spanMm, 1e-3f), yaw, pitch, zoom, meshMode, 3)
                 } else {
@@ -311,6 +312,10 @@ fun StreamScreen() {
                     yaw = ny; pitch = kotlin.math.atan2(dy, z1); zoom = 1.3f
                 }
             }, Modifier.align(Alignment.TopEnd)) { Text("down the tube") }
+            if (live.mesh != null) TextButton(onClick = { surfaceM = !surfaceM },
+                Modifier.align(Alignment.TopStart)) {
+                Text(if (surfaceM) "point cloud" else "surface")
+            }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
