@@ -246,13 +246,24 @@ fun StreamScreen() {
                     return Triple(size.width / 2f + x1 * s * persp,
                         size.height / 2f + y1 * s * persp, persp)
                 }
-                for (i in 0 until live.pts.size / 3) {
+                // painter's order + depth shading: far wall first and dimmer, so the
+                // growing cloud reads as a tube rather than a blob
+                val m = live.pts.size / 3
+                val pxA = FloatArray(m); val pyA = FloatArray(m); val ppA = FloatArray(m)
+                for (i in 0 until m) {
                     val (px, py, persp) = proj(live.pts[3*i], live.pts[3*i+1], live.pts[3*i+2])
+                    pxA[i] = px; pyA[i] = py; ppA[i] = persp
+                }
+                for (i in (0 until m).sortedBy { ppA[it] }) {
+                    val persp = ppA[i]
                     if (persp <= 0f) continue
-                    val c = if (showBlind && live.blind[i]) Color(0xFFE0524A)
-                    else Color((live.colors[i] shr 16) and 0xFF,
-                        (live.colors[i] shr 8) and 0xFF, live.colors[i] and 0xFF)
-                    drawCircle(c, 1.7f * persp, Offset(px, py))
+                    val shade = (0.45f + 0.75f * persp / zoom).coerceIn(0.35f, 1f)
+                    val c = if (showBlind && live.blind[i])
+                        Color(0.88f * shade, 0.24f * shade, 0.26f * shade)
+                    else Color(((live.colors[i] shr 16) and 0xFF) / 255f * shade,
+                        ((live.colors[i] shr 8) and 0xFF) / 255f * shade,
+                        (live.colors[i] and 0xFF) / 255f * shade)
+                    drawCircle(c, 1.7f * persp, Offset(pxA[i], pyA[i]))
                 }
                 var prev: Offset? = null
                 for (k in 0 until live.traj.size / 3) {
@@ -297,7 +308,18 @@ fun StreamScreen() {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 Switch(checked = showBlind, onCheckedChange = { showBlind = it })
-                Text("Highlight under-seen wall (red)")
+                Text("Highlight under-seen wall (red)", Modifier.weight(1f))
+                TextButton(onClick = {
+                    if (live.traj.size >= 6) {
+                        val li = live.traj.size - 3
+                        val dx = live.traj[li] - live.traj[0]
+                        val dy = live.traj[li + 1] - live.traj[1]
+                        val dz = live.traj[li + 2] - live.traj[2]
+                        val ny = kotlin.math.atan2(-dx, dz)
+                        val z1 = -dx * sin(ny) + dz * cos(ny)
+                        yaw = ny; pitch = kotlin.math.atan2(dy, z1); zoom = 1.3f
+                    }
+                }) { Text("down the tube") }
             }
             if (StreamRunner.running) {
                 Button(onClick = { StreamRunner.stop(context,

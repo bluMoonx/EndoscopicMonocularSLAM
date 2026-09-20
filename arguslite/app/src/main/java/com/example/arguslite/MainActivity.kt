@@ -854,19 +854,30 @@ class MainActivity : ComponentActivity() {
                     val cp = cos(pitch); val sp = sin(pitch)
                     val blindPct = map.blind.count { it }.toFloat() / maxOf(1, map.n)
                     val rare = blindPct < 0.25f
+                    // Painter's order: far wall drawn first so the near wall covers it —
+                    // this is what makes the cloud read as a tube instead of a blob.
+                    val pxA = FloatArray(map.n); val pyA = FloatArray(map.n)
+                    val ppA = FloatArray(map.n) { -1f }
                     for (i in 0 until map.n) {
                         if (replay && map.born[i] > t) continue
                         val (px, py, persp) = project(map.xyz[3 * i], map.xyz[3 * i + 1],
                             map.xyz[3 * i + 2], cy, sy, cp, sp)
+                        pxA[i] = px; pyA[i] = py; ppA[i] = persp
+                    }
+                    val order = (0 until map.n).sortedBy { ppA[it] }
+                    for (i in order) {
+                        val persp = ppA[i]
+                        if (persp <= 0f) continue
                         val shade = (0.45f + 0.75f * persp / zoom).coerceIn(0.35f, 1f)
                         // When blind spots are rare, emphasize them (bigger, dim the rest).
                         // When they dominate, draw both classes equally so the picture
                         // matches the percentage instead of exaggerating it.
                         if (showBlind && map.blind[i]) {
-                            drawCircle(Color(0xFFE63946), if (rare) 5f else 3f, Offset(px, py))
+                            drawCircle(Color(0.90f * shade, 0.23f * shade, 0.27f * shade),
+                                if (rare) 5f else 3f, Offset(pxA[i], pyA[i]))
                         } else {
                             drawCircle(Color(map.r[i] / 255f * shade, map.g[i] / 255f * shade,
-                                map.b[i] / 255f * shade), 3f, Offset(px, py),
+                                map.b[i] / 255f * shade), 3f, Offset(pxA[i], pyA[i]),
                                 alpha = if (showBlind && rare) 0.30f else 1f)
                         }
                     }
@@ -893,6 +904,17 @@ class MainActivity : ComponentActivity() {
                 Text("drag · pinch · tap markers", Modifier.align(Alignment.TopEnd).padding(8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (map.trajN > 1) TextButton(onClick = {
+                    // align the view along the camera's overall direction of travel —
+                    // the tunnel view, where a colon looks like a colon
+                    val li = 3 * (map.trajN - 1)
+                    val dx = map.traj[li] - map.traj[0]
+                    val dy = map.traj[li + 1] - map.traj[1]
+                    val dz = map.traj[li + 2] - map.traj[2]
+                    val ny = kotlin.math.atan2(-dx, dz)
+                    val z1 = -dx * sin(ny) + dz * cos(ny)
+                    yaw = ny; pitch = kotlin.math.atan2(dy, z1); zoom = 1.3f
+                }, Modifier.align(Alignment.TopStart)) { Text("down the tube") }
                 if (run == 2 && map.n == 0)
                     Text(if (StudyRunner.running) "Study in progress — the map appears here " +
                             "when it finishes." else "No live study yet. Open \"Run the " +
