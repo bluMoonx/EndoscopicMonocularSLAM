@@ -818,6 +818,8 @@ class MainActivity : ComponentActivity() {
             loadMeshBin(assets.open("mesh_cecum.bin").readBytes()) }.getOrNull() }
         val refMeshHk = remember { runCatching {
             loadMeshBin(assets.open("mesh_hk.bin").readBytes()) }.getOrNull() }
+        val refMeshFull = remember { runCatching {
+            loadMeshBin(assets.open("mesh_full.bin").readBytes()) }.getOrNull() }
         var surfaceMode by remember(run) { mutableStateOf(true) }
         val map = remember(run, live) {
             when (run) {
@@ -839,6 +841,13 @@ class MainActivity : ComponentActivity() {
                             floatArrayOf(cs[0], cs[1], cs[2]))
                     } else base
                 }
+                3 -> if (refMeshFull != null) {
+                    val cs = meshCenterSpan(refMeshFull)
+                    ColonMap(0, FloatArray(0), IntArray(0), IntArray(0), IntArray(0),
+                        BooleanArray(0), IntArray(0), 0, FloatArray(0), emptyList(),
+                        null, cs[3], refMeshFull, floatArrayOf(cs[0], cs[1], cs[2]))
+                } else ColonMap(0, FloatArray(0), IntArray(0), IntArray(0), IntArray(0),
+                    BooleanArray(0), IntArray(0), 0, FloatArray(0), emptyList())
                 else -> live?.let { colonMapFromStudy(it) }
                     ?: ColonMap(0, FloatArray(0), IntArray(0), IntArray(0), IntArray(0),
                         BooleanArray(0), IntArray(0), 0, FloatArray(0), emptyList())
@@ -851,7 +860,7 @@ class MainActivity : ComponentActivity() {
         var pitch by remember { mutableFloatStateOf(0.3f) }
         var zoom by remember { mutableFloatStateOf(1f) }
         var showBlind by remember { mutableStateOf(false) }
-        var heatMode by remember(run) { mutableStateOf(run == 2) }
+        var heatMode by remember(run) { mutableStateOf(run >= 2) }
         var measureMode by remember(run) { mutableStateOf(false) }
         var mSel by remember(run) { mutableStateOf(listOf<Int>()) }
         var replay by remember { mutableStateOf(false) }
@@ -1151,6 +1160,9 @@ class MainActivity : ComponentActivity() {
                             run = 1; replay = false; playing = false; t = 0f },
                             label = { Text("Real footage") })
                     }
+                    FilterChip(selected = run == 3, onClick = {
+                        run = 3; replay = false; playing = false; t = 0f },
+                        label = { Text("Full withdrawal (screening speed)") })
                     FilterChip(selected = run == 2, onClick = {
                         run = 2; replay = false; playing = false; t = 0f },
                         label = { Text("New footage — run a live study") })
@@ -1184,7 +1196,10 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 Section(2, "Blind spots") {
-                    val pct = 100f * map.blind.count { it } / maxOf(1, map.n)
+                    val pct = if (run == 3 && map.mesh != null)
+                        100f * map.mesh!!.views.count { it < 3 } /
+                                maxOf(1, map.mesh!!.views.size)
+                    else 100f * map.blind.count { it } / maxOf(1, map.n)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(checked = showBlind, onCheckedChange = {
                             showBlind = it; if (it) open = 2 })
@@ -1196,7 +1211,13 @@ class MainActivity : ComponentActivity() {
                             "would be sent back to check.")
                 }
                 Section(3, "Findings") {
-                    if (run == 2) {
+                    if (run == 3) {
+                        Text("This reference shows what coverage looks like at genuine " +
+                                "screening speed: a complete withdrawal performed by a " +
+                                "gastroenterologist, mapped by the pipeline. Nearly half " +
+                                "the mapped wall got fewer than three proper looks — " +
+                                "the problem this project exists to make visible.")
+                    } else if (run == 2) {
                         val fr = live
                         if (fr == null)
                             Text("No live study yet. Open \"Run the system\" and feed the " +
@@ -1232,7 +1253,15 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 Section(4, "The numbers") {
-                    if (run == 2) {
+                    if (run == 3) {
+                        Text("Complete withdrawal, camera driven by a gastroenterologist, " +
+                                "camera path recorded as ground truth.\n" +
+                                "Frames analyzed: 700 (every 12th of 8,400)\n" +
+                                "Tracking error: 150 mm over a 4,299 mm path (3.5%)\n" +
+                                "Wall seen fewer than 3 times at real speed: 44.4%\n" +
+                                "The same pipeline, the same settings — only the footage " +
+                                "is longer and the motion is human.")
+                    } else if (run == 2) {
                         val fr = live
                         if (fr == null)
                             Text("Numbers appear here once a live study has run.")
