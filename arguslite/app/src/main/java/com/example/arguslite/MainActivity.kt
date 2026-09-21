@@ -820,6 +820,14 @@ class MainActivity : ComponentActivity() {
             loadMeshBin(assets.open("mesh_hk.bin").readBytes()) }.getOrNull() }
         val refMeshFull = remember { runCatching {
             loadMeshBin(assets.open("mesh_full.bin").readBytes()) }.getOrNull() }
+        // aligned camera path for the full withdrawal, already normalized to the
+        // mesh's center/span (int32 n, then 3n float32)
+        val trajFull = remember { runCatching {
+            val bb = java.nio.ByteBuffer.wrap(assets.open("traj_full.bin").readBytes())
+                .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+            val tn = bb.int
+            FloatArray(3 * tn) { bb.float }
+        }.getOrNull() }
         var surfaceMode by remember(run) { mutableStateOf(true) }
         val map = remember(run, live) {
             when (run) {
@@ -843,8 +851,9 @@ class MainActivity : ComponentActivity() {
                 }
                 3 -> if (refMeshFull != null) {
                     val cs = meshCenterSpan(refMeshFull)
+                    val tr = trajFull ?: FloatArray(0)
                     ColonMap(0, FloatArray(0), IntArray(0), IntArray(0), IntArray(0),
-                        BooleanArray(0), IntArray(0), 0, FloatArray(0), emptyList(),
+                        BooleanArray(0), IntArray(0), tr.size / 3, tr, emptyList(),
                         null, cs[3], refMeshFull, floatArrayOf(cs[0], cs[1], cs[2]))
                 } else ColonMap(0, FloatArray(0), IntArray(0), IntArray(0), IntArray(0),
                     BooleanArray(0), IntArray(0), 0, FloatArray(0), emptyList())
@@ -931,8 +940,10 @@ class MainActivity : ComponentActivity() {
                     val rare = blindPct < 0.25f
                     // Fused surface when available (and not replaying the build animation);
                     // otherwise points in painter's order.
+                    // replay hides the mesh only when there are points to animate in its
+                    // place; on mesh-only runs the camera path sweeps over the surface
                     val meshOk = surfaceMode && map.mesh != null && map.centerMm != null &&
-                            map.spanMm > 0f && !replay
+                            map.spanMm > 0f && (!replay || map.n == 0)
                     if (meshOk) {
                         val cmm = map.centerMm!!
                         drawMeshLit(map.mesh!!, cmm[0], cmm[1], cmm[2], map.spanMm,
@@ -1183,6 +1194,9 @@ class MainActivity : ComponentActivity() {
                             1 -> "Real colonoscopy, 60 frames. The system tracked the camera, " +
                                     "built this surface, and found one polyp of about 6 mm. Its gold " +
                                     "marker is on the model above."
+                            3 -> "700 frames — a gastroenterologist's complete withdrawal at " +
+                                    "screening speed. The blue line you just watched is the " +
+                                    "camera's estimated path through the whole colon."
                             else -> live?.let {
                                 "${it.frames} frames of ${StudyRunner.sourceName} fused into " +
                                         "${it.voxels} surface patches. %.1f%% of the mapped wall "
@@ -1258,7 +1272,7 @@ class MainActivity : ComponentActivity() {
                                 "camera path recorded as ground truth.\n" +
                                 "Frames analyzed: 700 (every 12th of 8,400)\n" +
                                 "Tracking error: 150 mm over a 4,299 mm path (3.5%)\n" +
-                                "Wall seen fewer than 3 times at real speed: 44.4%\n" +
+                                "Wall seen fewer than 3 times at real speed: 45.4%\n" +
                                 "The same pipeline, the same settings — only the footage " +
                                 "is longer and the motion is human.")
                     } else if (run == 2) {
