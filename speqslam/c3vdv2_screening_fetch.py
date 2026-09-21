@@ -52,12 +52,17 @@ kept = 0
 with zipfile.ZipFile(final) as z:
     names = z.namelist()
     print("sample entries:", names[:5], flush=True)
-    imgs = sorted(n for n in names
-                  if n.lower().endswith((".png", ".jpg", ".jpeg"))
-                  and "depth" not in n.lower() and "normal" not in n.lower()
-                  and "flow" not in n.lower() and "occlusion" not in n.lower()
-                  and "diffuse" not in n.lower())
-    poses = [n for n in names if n.replace("\\", "/").lower().endswith("pose.txt")]
+    def framenum(n):
+        stem = os.path.splitext(os.path.basename(n))[0]
+        digits = "".join(c for c in stem if c.isdigit())
+        return int(digits) if digits else 0
+    imgs = sorted((n for n in names
+                   if n.lower().endswith((".png", ".jpg", ".jpeg"))
+                   and "depth" not in n.lower() and "normal" not in n.lower()
+                   and "flow" not in n.lower() and "occlusion" not in n.lower()
+                   and "diffuse" not in n.lower()), key=framenum)
+    poses = [n for n in names
+             if "pose" in n.replace("\\", "/").lower() and n.lower().endswith(".txt")]
     print(f"{len(imgs)} image frames, {len(poses)} pose files; "
           f"keeping every {KEEP_EVERY}th", flush=True)
     if not imgs or not poses:
