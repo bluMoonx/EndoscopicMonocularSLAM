@@ -1,0 +1,11 @@
+{
+ "seq": "c1_full_t4_v1",
+ "frames": 700,
+ "sample_stride": 12,
+ "ate_mm": 149.7,
+ "path_mm": 4299,
+ "ate_pct": 3.48,
+ "mesh_verts": 39204,
+ "mesh_tris": 80000,
+ "blind_pct": 44.4
+}
