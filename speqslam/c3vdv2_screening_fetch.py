@@ -50,20 +50,31 @@ dest = f"{OUT}/{NAME}"
 os.makedirs(dest, exist_ok=True)
 kept = 0
 with zipfile.ZipFile(final) as z:
-    rgb = sorted(n for n in z.namelist()
-                 if "/rgb/" in n.replace("\\", "/") and n.lower().endswith(".png"))
-    poses = [n for n in z.namelist() if n.replace("\\", "/").endswith("pose.txt")]
-    print(f"{len(rgb)} frames in archive; keeping every {KEEP_EVERY}th", flush=True)
+    names = z.namelist()
+    print("sample entries:", names[:5], flush=True)
+    imgs = sorted(n for n in names
+                  if n.lower().endswith((".png", ".jpg", ".jpeg"))
+                  and "depth" not in n.lower() and "normal" not in n.lower()
+                  and "flow" not in n.lower() and "occlusion" not in n.lower()
+                  and "diffuse" not in n.lower())
+    poses = [n for n in names if n.replace("\\", "/").lower().endswith("pose.txt")]
+    print(f"{len(imgs)} image frames, {len(poses)} pose files; "
+          f"keeping every {KEEP_EVERY}th", flush=True)
+    if not imgs or not poses:
+        print("layout not recognized - keeping zip for inspection", flush=True)
+        sys.exit(1)
     os.makedirs(f"{dest}/rgb", exist_ok=True)
-    for i in range(0, len(rgb), KEEP_EVERY):
-        with z.open(rgb[i]) as src:
-            with open(f"{dest}/rgb/{os.path.basename(rgb[i])}", "wb") as out:
+    for i in range(0, len(imgs), KEEP_EVERY):
+        with z.open(imgs[i]) as src:
+            with open(f"{dest}/rgb/{os.path.basename(imgs[i])}", "wb") as out:
                 out.write(src.read())
         kept += 1
-    for p in poses[:1]:
-        with z.open(p) as src:
-            with open(f"{dest}/pose.txt", "wb") as out:
-                out.write(src.read())
+    with z.open(poses[0]) as src:
+        with open(f"{dest}/pose.txt", "wb") as out:
+            out.write(src.read())
+if kept == 0:
+    print("kept nothing - zip retained", flush=True)
+    sys.exit(1)
 os.remove(final)
-open(mark, "w").write(f"kept {kept} of {len(rgb)} frames, every {KEEP_EVERY}th\n")
+open(mark, "w").write(f"kept {kept} of {len(imgs)} frames, every {KEEP_EVERY}th\n")
 print(f"kept {kept} frames + pose.txt; zip removed", flush=True)
