@@ -9,10 +9,26 @@ import java.nio.FloatBuffer
 class DepthEngine(context: Context) {
     private val sz = 252
     private val env = OrtEnvironment.getEnvironment()
-    private val session = env.createSession(
-        context.assets.open("depth.onnx").readBytes(),
-        ai.onnxruntime.OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) }
-    )
+    private val session = run {
+        // prefer the accuracy-verified quantized model when shipped; try hardware
+        // acceleration first and fall back to plain CPU without complaint
+        val bytes = runCatching { context.assets.open("depth_q.onnx").readBytes() }
+            .getOrElse { context.assets.open("depth.onnx").readBytes() }
+        val accelerated = runCatching {
+            val o = ai.onnxruntime.OrtSession.SessionOptions()
+            o.setIntraOpNumThreads(4)
+            o.addNnapi()
+            env.createSession(bytes, o)
+        }.getOrNull()
+        if (accelerated != null) {
+            android.util.Log.i("ArgusStudy", "depth session: NNAPI accelerated")
+            accelerated
+        } else {
+            android.util.Log.i("ArgusStudy", "depth session: CPU")
+            env.createSession(bytes,
+                ai.onnxruntime.OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
+        }
+    }
     var lastGrid: FloatArray? = null
     val gridN = 42
 

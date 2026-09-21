@@ -12,9 +12,23 @@ import java.nio.FloatBuffer
 
 class PolypEngine(context: Context) {
     private val env = OrtEnvironment.getEnvironment()
-    private val session = env.createSession(
-        context.assets.open("polyp.onnx").readBytes(),
-        OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
+    private val session = run {
+        val bytes = context.assets.open("polyp.onnx").readBytes()
+        val accelerated = runCatching {
+            val o = OrtSession.SessionOptions()
+            o.setIntraOpNumThreads(4)
+            o.addNnapi()
+            env.createSession(bytes, o)
+        }.getOrNull()
+        if (accelerated != null) {
+            android.util.Log.i("ArgusStudy", "polyp session: NNAPI accelerated")
+            accelerated
+        } else {
+            android.util.Log.i("ArgusStudy", "polyp session: CPU")
+            env.createSession(bytes,
+                OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
+        }
+    }
 
     data class Result(val overlay: Bitmap, val found: Boolean, val areaPct: Float,
                       val avgConf: Float, val peakConf: Float, val boxW: Int, val boxH: Int,
