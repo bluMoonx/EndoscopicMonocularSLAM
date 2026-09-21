@@ -1194,10 +1194,12 @@ class MainActivity : ComponentActivity() {
                             1 -> "Real colonoscopy, 60 frames. The system tracked the camera, " +
                                     "built this surface, and found one polyp of about 6 mm. Its gold " +
                                     "marker is on the model above."
-                            3 -> "700 frames — a gastroenterologist's complete withdrawal at " +
-                                    "screening speed. The blue line is the camera's estimated " +
-                                    "path with the divergence guard active; at this speed the " +
-                                    "estimate is unreliable, and that is the finding."
+                            3 -> "A gastroenterologist's complete withdrawal. The blue line " +
+                                    "is the camera's estimated path from the 9 fps run — the " +
+                                    "frame rate at which tracking holds (101 mm error where " +
+                                    "blind guessing scores 168). At a quarter of this frame " +
+                                    "rate the same tracker fails, and both results are " +
+                                    "reported."
                             else -> live?.let {
                                 "${it.frames} frames of ${StudyRunner.sourceName} fused into " +
                                         "${it.voxels} surface patches. %.1f%% of the mapped wall "
@@ -1227,15 +1229,18 @@ class MainActivity : ComponentActivity() {
                 }
                 Section(3, "Findings") {
                     if (run == 3) {
-                        Text("This chip is the system's measured speed limit, shown " +
-                                "honestly. A complete withdrawal at genuine screening " +
-                                "speed, sampled at one frame in twelve, pushes 16% of " +
-                                "frame pairs past what the tracker can follow — a safety " +
-                                "guard bridges those, but the global camera path is no " +
-                                "longer trustworthy, and the rough, lumpy map above is " +
-                                "what that failure honestly looks like. About a third of " +
-                                "the mapped wall still shows fewer than three looks, but " +
-                                "read that number with the tracking caveat attached.")
+                        Text("A complete withdrawal by a real gastroenterologist — and " +
+                                "the experiment that found the system's speed limit. " +
+                                "Sampled at one frame in twelve (~2 fps), 16% of frame " +
+                                "pairs outran the tracker and the camera path collapsed " +
+                                "to guesswork; that failure is reported, not hidden. At " +
+                                "one frame in three (~9 fps), the same frozen pipeline " +
+                                "holds: path error 101 mm where blind guessing scores " +
+                                "168, with only 3% of pairs needing the safety guard. " +
+                                "The winding tube above is the 9 fps map — surface " +
+                                "exists only where the camera actually looked, and 37% " +
+                                "of it got fewer than three proper looks at screening " +
+                                "pace. Frame rate is the lever, and now it's measured.")
                     } else if (run == 2) {
                         val fr = live
                         if (fr == null)
@@ -1274,18 +1279,19 @@ class MainActivity : ComponentActivity() {
                 Section(4, "The numbers") {
                     if (run == 3) {
                         Text("Complete withdrawal, camera driven by a gastroenterologist, " +
-                                "camera path recorded as ground truth.\n" +
-                                "Frames analyzed: 700 (every 12th of 8,400)\n" +
-                                "Frame pairs beyond the tracker's limit: 111 of 699 (16%), " +
-                                "bridged by a divergence guard\n" +
-                                "Global path error: 146 mm — barely better than the 168 mm " +
-                                "a do-nothing baseline scores, so tracking at this speed " +
-                                "is reported as a failure, not a result\n" +
-                                "Wall seen fewer than 3 times: 31% (carries the tracking " +
-                                "caveat)\n" +
-                                "Same pipeline, same frozen settings — only the motion is " +
-                                "real. Finding the system's speed limit, and saying so, " +
-                                "is the measurement.")
+                                "camera path recorded as ground truth. Every path error " +
+                                "is printed beside the 168 mm a do-nothing baseline " +
+                                "scores — a number only means something if it beats that.\n" +
+                                "At 1 frame in 12 (~2 fps): 16% of pairs beyond the " +
+                                "tracker's limit; guarded path error 146 mm ≈ baseline. " +
+                                "Reported as a failure — the system's speed limit.\n" +
+                                "At 1 frame in 3 (~9 fps): 3% of pairs guarded; path " +
+                                "error 101 mm over a 5.4 m path (1.9%), clearly under " +
+                                "baseline. The model above is this run.\n" +
+                                "Wall seen fewer than 3 times at screening pace (700-" +
+                                "frame budget): 37%\n" +
+                                "Same pipeline, same frozen settings at every frame rate " +
+                                "— only the sampling changed.")
                     } else if (run == 2) {
                         val fr = live
                         if (fr == null)
