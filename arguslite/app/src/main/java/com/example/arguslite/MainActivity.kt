@@ -1195,8 +1195,9 @@ class MainActivity : ComponentActivity() {
                                     "built this surface, and found one polyp of about 6 mm. Its gold " +
                                     "marker is on the model above."
                             3 -> "700 frames — a gastroenterologist's complete withdrawal at " +
-                                    "screening speed. The blue line you just watched is the " +
-                                    "camera's estimated path through the whole colon."
+                                    "screening speed. The blue line is the camera's estimated " +
+                                    "path with the divergence guard active; at this speed the " +
+                                    "estimate is unreliable, and that is the finding."
                             else -> live?.let {
                                 "${it.frames} frames of ${StudyRunner.sourceName} fused into " +
                                         "${it.voxels} surface patches. %.1f%% of the mapped wall "
@@ -1226,11 +1227,15 @@ class MainActivity : ComponentActivity() {
                 }
                 Section(3, "Findings") {
                     if (run == 3) {
-                        Text("This reference shows what coverage looks like at genuine " +
-                                "screening speed: a complete withdrawal performed by a " +
-                                "gastroenterologist, mapped by the pipeline. Nearly half " +
-                                "the mapped wall got fewer than three proper looks — " +
-                                "the problem this project exists to make visible.")
+                        Text("This chip is the system's measured speed limit, shown " +
+                                "honestly. A complete withdrawal at genuine screening " +
+                                "speed, sampled at one frame in twelve, pushes 16% of " +
+                                "frame pairs past what the tracker can follow — a safety " +
+                                "guard bridges those, but the global camera path is no " +
+                                "longer trustworthy, and the rough, lumpy map above is " +
+                                "what that failure honestly looks like. About a third of " +
+                                "the mapped wall still shows fewer than three looks, but " +
+                                "read that number with the tracking caveat attached.")
                     } else if (run == 2) {
                         val fr = live
                         if (fr == null)
@@ -1271,10 +1276,16 @@ class MainActivity : ComponentActivity() {
                         Text("Complete withdrawal, camera driven by a gastroenterologist, " +
                                 "camera path recorded as ground truth.\n" +
                                 "Frames analyzed: 700 (every 12th of 8,400)\n" +
-                                "Tracking error: 150 mm over a 4,299 mm path (3.5%)\n" +
-                                "Wall seen fewer than 3 times at real speed: 45.4%\n" +
-                                "The same pipeline, the same settings — only the footage " +
-                                "is longer and the motion is human.")
+                                "Frame pairs beyond the tracker's limit: 111 of 699 (16%), " +
+                                "bridged by a divergence guard\n" +
+                                "Global path error: 146 mm — barely better than the 168 mm " +
+                                "a do-nothing baseline scores, so tracking at this speed " +
+                                "is reported as a failure, not a result\n" +
+                                "Wall seen fewer than 3 times: 31% (carries the tracking " +
+                                "caveat)\n" +
+                                "Same pipeline, same frozen settings — only the motion is " +
+                                "real. Finding the system's speed limit, and saying so, " +
+                                "is the measurement.")
                     } else if (run == 2) {
                         val fr = live
                         if (fr == null)
@@ -1299,21 +1310,6 @@ class MainActivity : ComponentActivity() {
                                     "never adjusted to the video.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            var showReport by remember(fr) { mutableStateOf(false) }
-                            val clip = LocalClipboardManager.current
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                FilledTonalButton(onClick = { showReport = !showReport }) {
-                                    Text(if (showReport) "Hide report" else "Show report")
-                                }
-                                if (showReport) FilledTonalButton(onClick = {
-                                    clip.setText(AnnotatedString(studyReport(fr)))
-                                }) { Text("Copy") }
-                            }
-                            if (showReport) OutlinedTextField(
-                                value = studyReport(fr), onValueChange = {}, readOnly = true,
-                                textStyle = MaterialTheme.typography.bodySmall.copy(
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
-                                modifier = Modifier.fillMaxWidth().height(230.dp))
                         }
                     } else
                         Text("Blind-spot agreement with ground truth: 98.6 percent\n" +
@@ -1322,7 +1318,24 @@ class MainActivity : ComponentActivity() {
                                 "All measured against a phantom whose true shape and camera path " +
                                 "were recorded by machines.")
                 }
-                Section(5, "How it works") {
+                Section(5, "Report") {
+                    val fr = live
+                    if (fr == null)
+                        Text("The full text report is generated by a live study: run one " +
+                                "under \"New footage\" and it appears here, ready to copy.")
+                    else {
+                        val clip = LocalClipboardManager.current
+                        FilledTonalButton(onClick = {
+                            clip.setText(AnnotatedString(studyReport(fr)))
+                        }) { Text("Copy report") }
+                        OutlinedTextField(
+                            value = studyReport(fr), onValueChange = {}, readOnly = true,
+                            textStyle = MaterialTheme.typography.bodySmall.copy(
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+                            modifier = Modifier.fillMaxWidth().height(280.dp).padding(top = 8.dp))
+                    }
+                }
+                Section(6, "How it works") {
                     Text("A neural network reads depth from each flat frame. A tracking " +
                             "algorithm recovers the camera's motion. Thousands of noisy " +
                             "snapshots vote themselves into one clean surface. Every patch " +

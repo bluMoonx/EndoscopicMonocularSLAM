@@ -2,10 +2,15 @@
  "seq": "c1_full_t4_v1",
  "frames": 700,
  "sample_stride": 12,
- "ate_mm": 149.7,
+ "ate_mm": 146.3,
  "path_mm": 4299,
- "ate_pct": 3.48,
- "mesh_verts": 28289,
- "mesh_tris": 60000,
- "blind_pct": 45.4
+ "ate_pct": 3.4,
+ "mesh_verts": 30993,
+ "mesh_tris": 59999,
+ "blind_pct": 31.1,
+ "constant_point_baseline_mm": 168.3,
+ "guarded_pairs": "111 of 699 (16%)",
+ "verdict": "tracking does not hold at screening speed with 12x temporal subsampling; ATE ~ baseline, reported as a measured limit",
+ "tracking": "divergence guard active (see c3vdv2_screening_track2.py); first unguarded pass diverged and its 3.5% figure is retracted",
+ "mesh_frame": "sim3-aligned metric (one global Umeyama scale/rotation, disclosed)"
 }
