@@ -23,5 +23,40 @@
   "blind_pct_700frame_budget": 36.9,
   "verdict": "tracking informative at ~9 fps effective; frame rate is the lever"
  },
- "mesh_source": "stride-3 guarded trajectory, all 2800 frames fused; under-seen stat kept on the 700-frame stride-12 budget for comparability"
+ "mesh_source": "stride-3 guarded trajectory, all 2800 frames fused; under-seen stat kept on the 700-frame stride-12 budget for comparability",
+ "framerate_curve": [
+  {
+   "stride": 24,
+   "guard_pct": 39.5,
+   "ate_mm": 120.2,
+   "baseline_mm": 168.2,
+   "path_mm": 3756,
+   "ate_over_baseline": 0.71
+  },
+  {
+   "stride": 12,
+   "guard_pct": 16.0,
+   "ate_mm": 146.3,
+   "baseline_mm": 168.3,
+   "path_mm": 4299,
+   "ate_over_baseline": 0.87
+  },
+  {
+   "stride": 6,
+   "guard_pct": 6.7,
+   "ate_mm": 132.8,
+   "baseline_mm": 168.3,
+   "path_mm": 4790,
+   "ate_over_baseline": 0.79
+  },
+  {
+   "stride": 3,
+   "guard_pct": 3.0,
+   "ate_mm": 101.4,
+   "baseline_mm": 168.3,
+   "path_mm": 5452,
+   "ate_over_baseline": 0.6
+  }
+ ],
+ "framerate_note": "guard rate is the primary metric; ATE/baseline is meaningful only when the guard is quiet (at stride 24, 40% of the path is coasting, so its ATE reflects dead-reckoning, not tracking)"
 }
