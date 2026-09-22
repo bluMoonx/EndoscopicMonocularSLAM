@@ -828,6 +828,14 @@ class MainActivity : ComponentActivity() {
             val tn = bb.int
             FloatArray(3 * tn) { bb.float }
         }.getOrNull() }
+        // per mesh vertex: the first replay frame whose camera saw it (u16),
+        // so the full-withdrawal tube builds patch-by-patch during replay
+        val bornFull = remember { runCatching {
+            val bb = java.nio.ByteBuffer.wrap(assets.open("born_full.bin").readBytes())
+                .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+            val bn = bb.int
+            IntArray(bn) { bb.short.toInt() and 0xFFFF }
+        }.getOrNull() }
         var surfaceMode by remember(run) { mutableStateOf(true) }
         val map = remember(run, live) {
             when (run) {
@@ -852,9 +860,27 @@ class MainActivity : ComponentActivity() {
                 3 -> if (refMeshFull != null) {
                     val cs = meshCenterSpan(refMeshFull)
                     val tr = trajFull ?: FloatArray(0)
-                    ColonMap(0, FloatArray(0), IntArray(0), IntArray(0), IntArray(0),
-                        BooleanArray(0), IntArray(0), tr.size / 3, tr, emptyList(),
-                        null, cs[3], refMeshFull, floatArrayOf(cs[0], cs[1], cs[2]))
+                    // the mesh's own vertices double as the chip's point cloud, so
+                    // the point view, measure, and the build replay all work
+                    val m = refMeshFull
+                    val pn = m.verts.size / 3
+                    val xyz = FloatArray(3 * pn)
+                    for (i in 0 until 3 * pn step 3) {
+                        xyz[i] = (m.verts[i] - cs[0]) / cs[3]
+                        xyz[i + 1] = (m.verts[i + 1] - cs[1]) / cs[3]
+                        xyz[i + 2] = (m.verts[i + 2] - cs[2]) / cs[3]
+                    }
+                    val cr = IntArray(pn); val cg = IntArray(pn); val cb = IntArray(pn)
+                    for (i in 0 until pn) {
+                        val c = m.baseCol[i]
+                        cr[i] = (c shr 16) and 0xFF; cg[i] = (c shr 8) and 0xFF
+                        cb[i] = c and 0xFF
+                    }
+                    ColonMap(pn, xyz, cr, cg, cb,
+                        BooleanArray(pn) { m.views[it] < 3 },
+                        bornFull?.takeIf { it.size == pn } ?: IntArray(pn),
+                        tr.size / 3, tr, emptyList(),
+                        m.views, cs[3], m, floatArrayOf(cs[0], cs[1], cs[2]))
                 } else ColonMap(0, FloatArray(0), IntArray(0), IntArray(0), IntArray(0),
                     BooleanArray(0), IntArray(0), 0, FloatArray(0), emptyList())
                 else -> live?.let { colonMapFromStudy(it) }
@@ -894,7 +920,9 @@ class MainActivity : ComponentActivity() {
         }
 
         LaunchedEffect(playing) {
-            while (playing && t < map.trajN - 1) { t += 2f; delay(70.milliseconds) }
+            // ~30-45 s replay regardless of trajectory length
+            val step = maxOf(2f, map.trajN / 450f)
+            while (playing && t < map.trajN - 1) { t += step; delay(70.milliseconds) }
             if (t >= map.trajN - 1) playing = false
         }
 
@@ -1077,9 +1105,9 @@ class MainActivity : ComponentActivity() {
             }
 
             // ---------- REPLAY STRIP: appears only during a run ----------
-            if (replay && run < 2) {
-                val fMax = if (run == 0) 91 else 59
-                val dir = if (run == 0) "replay" else "hkreplay"
+            if (replay && (run < 2 || run == 3)) {
+                val fMax = when (run) { 0 -> 91; 1 -> 59; else -> 69 }
+                val dir = when (run) { 0 -> "replay"; 1 -> "hkreplay"; else -> "fullreplay" }
                 val frameIdx = (t / map.trajN * fMax).toInt().coerceIn(0, fMax)
                 val raw = remember(run, frameIdx) {
                     BitmapFactory.decodeStream(assets.open("$dir/f%03d.jpg".format(frameIdx))) }
