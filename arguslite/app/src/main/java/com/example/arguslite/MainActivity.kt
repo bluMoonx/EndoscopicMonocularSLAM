@@ -324,7 +324,7 @@ class MainActivity : ComponentActivity() {
 
                 "leaves no surface unmapped" to Color(0xFFE0796B),
                 "one camera. one vision." to Color(0xFF3FD6FF),
-                "98.6% agreement" to Color(0xFFDCA645))
+                "false alarms: 40% → 4%" to Color(0xFFDCA645))
             var tag by remember { mutableIntStateOf(0) }
             LaunchedEffect(Unit) { while (true) { delay(1400.milliseconds); tag = (tag + 1) % taglines.size } }
             androidx.compose.animation.Crossfade(targetState = tag, label = "tag") { i ->
@@ -653,7 +653,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
             listOf("0.91 mm" to "average camera tracking error, using video alone",
-                "98.6 %" to "blind spot agreement with ground truth",
+                "40% → 4%" to "of the wall falsely flagged as never-inspected, before vs " +
+                        "after teaching the AI what a colon looks like",
                 "1.3 to 2.4 mm" to "3D surface accuracy, from video alone",
                 "0.60 mm" to "median measurement error on polyp sized targets",
                 "11 of 21" to "unseen polyp videos flagged at thresholds fixed in advance — " +
