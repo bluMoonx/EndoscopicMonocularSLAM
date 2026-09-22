@@ -1275,6 +1275,15 @@ class MainActivity : ComponentActivity() {
                                 "exists only where the camera actually looked, and 37% " +
                                 "of it got fewer than three proper looks at screening " +
                                 "pace. Frame rate is the lever, and now it's measured.")
+                        Text("The polyp detector ran over the withdrawal too: eight " +
+                                "persistent findings, and on visual review most are the " +
+                                "fecal debris this phantom deliberately carries — " +
+                                "polyp-shaped bait, and the phantom ships no polyp labels " +
+                                "to settle the rest. A silicone colon full of debris is " +
+                                "yet another domain for a detector tuned on real tissue; " +
+                                "the project's oldest lesson, appearing once more.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else if (run == 2) {
                         val fr = live
                         if (fr == null)
