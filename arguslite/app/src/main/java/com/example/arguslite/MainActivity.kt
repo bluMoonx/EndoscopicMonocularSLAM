@@ -981,16 +981,21 @@ class MainActivity : ComponentActivity() {
                     }
                     // Painter's order: far wall drawn first so the near wall covers it —
                     // this is what makes the cloud read as a tube instead of a blob.
+                    // big maps (the full-withdrawal chip's 32k mesh vertices) get
+                    // subsampled with slightly larger splats: same picture, a third
+                    // of the per-frame draw calls, so point mode stays interactive
+                    val ptStep = 1 + map.n / 12000
+                    val splat = if (ptStep > 1) 1.4f else 1f
                     val pxA = FloatArray(map.n); val pyA = FloatArray(map.n)
                     val ppA = FloatArray(map.n) { -1f }
-                    for (i in 0 until map.n) {
+                    for (i in 0 until map.n step ptStep) {
                         if (meshOk) break
                         if (replay && map.born[i] > t) continue
                         val (px, py, persp) = project(map.xyz[3 * i], map.xyz[3 * i + 1],
                             map.xyz[3 * i + 2], cy, sy, cp, sp)
                         pxA[i] = px; pyA[i] = py; ppA[i] = persp
                     }
-                    val order = (0 until map.n).sortedBy { ppA[it] }
+                    val order = (0 until map.n step ptStep).sortedBy { ppA[it] }
                     for (i in order) {
                         val persp = ppA[i]
                         if (persp <= 0f) continue
@@ -1002,16 +1007,16 @@ class MainActivity : ComponentActivity() {
                         if (heatMode) {
                             val vc = map.views?.getOrNull(i) ?: if (map.blind[i]) 1 else 4
                             drawCircle(coverageColor(minOf(vc, 8) / 8f, shade),
-                                4.2f * persp.coerceIn(0.6f, 1.6f),
+                                4.2f * splat * persp.coerceIn(0.6f, 1.6f),
                                 Offset(pxA[i], pyA[i]), alpha = 0.95f)
                         } else if (showBlind && map.blind[i]) {
                             drawCircle(Color(0.90f * shade, 0.23f * shade, 0.27f * shade),
-                                if (rare) 5.5f else 4.2f * persp.coerceIn(0.6f, 1.6f),
+                                if (rare) 5.5f * splat else 4.2f * splat * persp.coerceIn(0.6f, 1.6f),
                                 Offset(pxA[i], pyA[i]))
                         } else {
                             drawCircle(Color(map.r[i] / 255f * shade, map.g[i] / 255f * shade,
                                 map.b[i] / 255f * shade),
-                                4.2f * persp.coerceIn(0.6f, 1.6f), Offset(pxA[i], pyA[i]),
+                                4.2f * splat * persp.coerceIn(0.6f, 1.6f), Offset(pxA[i], pyA[i]),
                                 alpha = if (showBlind && rare) 0.30f else 0.95f)
                         }
                     }
