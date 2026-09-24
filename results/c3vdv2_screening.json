@@ -77,5 +77,26 @@
    "guarded": "151 of 916 (16.5%)"
   },
   "verdict": "frame-rate requirement replicates on the second colon model: guard rate 16.5% at 1/12 vs 1.5% at 1/3 (c1: 16.0% vs 3.0%)"
- }
+ },
+ "replication_c1_full_t1_v1": {
+  "frames_s3": 3667,
+  "gt_path_mm": 7814,
+  "stride3": {
+   "ate_mm": 114.5,
+   "ate_pct": 1.47,
+   "baseline_mm": 157.6,
+   "ate_over_baseline": 0.73,
+   "guarded": "112 of 3666 (3.1%)"
+  },
+  "stride12": {
+   "ate_mm": 94.4,
+   "ate_pct": 1.46,
+   "baseline_mm": 157.6,
+   "ate_over_baseline": 0.6,
+   "guarded": "211 of 916 (23.0%)",
+   "note": "23% of the path is guard coasting - per the Trap-5 rule its ATE reflects dead-reckoning, not tracking; guard rate is the verdict"
+  },
+  "verdict": "third withdrawal (model 1, different texture): fails at 1/12 (23.0% guarded), holds at 1/3 (3.1%)"
+ },
+ "replication_summary": "n=3 complete withdrawals, 2 colon models, 20.3 m combined GT path: guard rate 16-23% at 1/12 native rate vs 1.5-3.1% at 1/3; all stride-3 ATEs 0.60-0.73x their baselines"
 }

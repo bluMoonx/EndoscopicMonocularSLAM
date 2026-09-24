@@ -14,8 +14,9 @@ import numpy as np
 
 # seq label, stride-12 guard %, stride-3 guard %, s12 (ate, base), s3 (ate, base)
 SEQS = [
-    ("colon model 1\n(c1_full_t4, 5.5 m)", 16.0, 3.0, (146.3, 168.3), (101.4, 168.3)),
-    ("colon model 2\n(c2_full_t1, 7.0 m)", 16.5, 1.5, (103.0, 133.4), (92.1, 133.4)),
+    ("model 1, texture 4\n(c1_full_t4, 5.5 m)", 16.0, 3.0, (146.3, 168.3), (101.4, 168.3)),
+    ("model 2, texture 1\n(c2_full_t1, 7.0 m)", 16.5, 1.5, (103.0, 133.4), (92.1, 133.4)),
+    ("model 1, texture 1\n(c1_full_t1, 7.8 m)", 23.0, 3.1, (94.4, 157.6), (114.5, 157.6)),
 ]
 
 fig, ax = plt.subplots(figsize=(7.0, 4.2))
@@ -33,10 +34,10 @@ for bars in (b1, b2):
 ax.set_xticks(x)
 ax.set_xticklabels([s[0] for s in SEQS])
 ax.set_ylabel("frame pairs beyond tracker limit (%)")
-ax.set_ylim(0, 20)
+ax.set_ylim(0, 27)
 ax.legend(fontsize=9)
-ax.set_title("The speed limit replicates: two colon models, two complete\n"
-             "withdrawals, one frozen pipeline")
+ax.set_title("The speed limit replicates: three complete withdrawals,\n"
+             "two colon models, one frozen pipeline")
 fig.tight_layout()
 fig.savefig("results/poster/fig14_replication.png", dpi=170)
 print("wrote results/poster/fig14_replication.png")
@@ -50,5 +51,20 @@ res["replication_c2_full_t1_v1"] = dict(
                   ate_over_baseline=0.77, guarded="151 of 916 (16.5%)"),
     verdict="frame-rate requirement replicates on the second colon model: "
             "guard rate 16.5% at 1/12 vs 1.5% at 1/3 (c1: 16.0% vs 3.0%)")
+res["replication_c1_full_t1_v1"] = dict(
+    frames_s3=3667, gt_path_mm=7814,
+    stride3=dict(ate_mm=114.5, ate_pct=1.47, baseline_mm=157.6,
+                 ate_over_baseline=0.73, guarded="112 of 3666 (3.1%)"),
+    stride12=dict(ate_mm=94.4, ate_pct=1.46, baseline_mm=157.6,
+                  ate_over_baseline=0.60, guarded="211 of 916 (23.0%)",
+                  note="23% of the path is guard coasting - per the Trap-5 "
+                       "rule its ATE reflects dead-reckoning, not tracking; "
+                       "guard rate is the verdict"),
+    verdict="third withdrawal (model 1, different texture): fails at 1/12 "
+            "(23.0% guarded), holds at 1/3 (3.1%)")
+res["replication_summary"] = ("n=3 complete withdrawals, 2 colon models, "
+                              "20.3 m combined GT path: guard rate 16-23% at "
+                              "1/12 native rate vs 1.5-3.1% at 1/3; all "
+                              "stride-3 ATEs 0.60-0.73x their baselines")
 json.dump(res, open("results/c3vdv2_screening.json", "w"), indent=1)
 print("replication recorded in results/c3vdv2_screening.json")
