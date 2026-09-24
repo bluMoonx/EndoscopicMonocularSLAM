@@ -13,9 +13,11 @@ import java.nio.FloatBuffer
 class PolypEngine(context: Context) {
     private val env = OrtEnvironment.getEnvironment()
     // CPU only: the NNAPI attempt measured ~3x slower than plain CPU on-device
-    // (143s of detection in an 80-frame study) - reverted on evidence
+    // (143s of detection in an 80-frame study) - reverted on evidence. Prefers
+    // the accuracy-gated int8 model when shipped (same gate recipe as depth).
     private val session = env.createSession(
-        context.assets.open("polyp.onnx").readBytes(),
+        runCatching { context.assets.open("polyp_q.onnx").readBytes() }
+            .getOrElse { context.assets.open("polyp.onnx").readBytes() },
         OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
 
     data class Result(val overlay: Bitmap, val found: Boolean, val areaPct: Float,
