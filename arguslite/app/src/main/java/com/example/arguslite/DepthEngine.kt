@@ -12,25 +12,16 @@ class DepthEngine(context: Context) {
     var accelerated = false
         private set
     private val session = run {
-        // prefer the accuracy-verified quantized model when shipped; try hardware
-        // acceleration first and fall back to plain CPU without complaint
+        // prefer the accuracy-verified quantized model when shipped. CPU only:
+        // NNAPI partitions this graph into many fragments on real devices and
+        // measured 8x SLOWER than plain CPU (162.7s of depth in an 80-frame
+        // study vs ~20s before) - hardware acceleration must earn its place
+        // with a measurement, and it didn't.
         val bytes = runCatching { context.assets.open("depth_q.onnx").readBytes() }
             .getOrElse { context.assets.open("depth.onnx").readBytes() }
-        val accelerated = runCatching {
-            val o = ai.onnxruntime.OrtSession.SessionOptions()
-            o.setIntraOpNumThreads(4)
-            o.addNnapi()
-            env.createSession(bytes, o)
-        }.getOrNull()
-        if (accelerated != null) {
-            android.util.Log.i("ArgusStudy", "depth session: NNAPI accelerated")
-            this.accelerated = true
-            accelerated
-        } else {
-            android.util.Log.i("ArgusStudy", "depth session: CPU")
-            env.createSession(bytes,
-                ai.onnxruntime.OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
-        }
+        android.util.Log.i("ArgusStudy", "depth session: CPU (int8 preferred)")
+        env.createSession(bytes,
+            ai.onnxruntime.OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
     }
     var lastGrid: FloatArray? = null
     val gridN = 42

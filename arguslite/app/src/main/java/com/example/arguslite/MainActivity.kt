@@ -14,6 +14,7 @@ import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -1136,19 +1137,20 @@ class MainActivity : ComponentActivity() {
                     val z1 = -dx * sin(ny) + dz * cos(ny)
                     yaw = ny; pitch = kotlin.math.atan2(dy, z1); zoom = 1.3f
                 }, Modifier.align(Alignment.TopStart)) { Text("down the tube") }
-                Row(Modifier.align(Alignment.BottomStart)) {
+                Row(Modifier.align(Alignment.BottomStart).fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())) {
                     if (map.mesh != null) TextButton(onClick = { surfaceMode = !surfaceMode }) {
-                        Text(if (surfaceMode) "point cloud" else "surface")
+                        Text(if (surfaceMode) "point cloud" else "surface", maxLines = 1)
                     }
                     if (run == 3 && gtFull != null) TextButton(onClick = {
                         showTruth = !showTruth
-                    }) { Text(if (showTruth) "hide truth" else "vs truth") }
+                    }) { Text(if (showTruth) "hide truth" else "vs truth", maxLines = 1) }
                     TextButton(onClick = { heatMode = !heatMode }) {
-                        Text(if (heatMode) "tissue colors" else "coverage heat")
+                        Text(if (heatMode) "tissue colors" else "coverage heat", maxLines = 1)
                     }
                     TextButton(onClick = {
                         measureMode = !measureMode; mSel = listOf(); picked = null
-                    }) { Text(if (measureMode) "done measuring" else "measure") }
+                    }) { Text(if (measureMode) "done measuring" else "measure", maxLines = 1) }
                 }
                 if (measureMode) {
                     val label = if (mSel.size == 2) {
