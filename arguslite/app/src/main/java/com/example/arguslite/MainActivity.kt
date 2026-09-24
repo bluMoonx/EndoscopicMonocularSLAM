@@ -22,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -652,9 +653,53 @@ class MainActivity : ComponentActivity() {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Measure this phone", style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary)
+                    Text("Every number above was measured; this one is measured right " +
+                            "now, on this device. The button runs the quantized depth " +
+                            "network twelve times on a colonoscopy frame and reports the " +
+                            "median.", style = MaterialTheme.typography.bodySmall)
+                    var bench by remember { mutableStateOf<String?>(null) }
+                    var running by remember { mutableStateOf(false) }
+                    FilledTonalButton(enabled = !running, onClick = {
+                        running = true; bench = "loading model…"
+                        kotlin.concurrent.thread {
+                            try {
+                                val eng = DepthEngine(this@MainActivity)
+                                val frame = BitmapFactory.decodeStream(
+                                    assets.open("fullreplay/f000.jpg"))
+                                repeat(2) { eng.infer(frame) }   // warm-up
+                                val times = LongArray(12) {
+                                    val t0 = android.os.SystemClock.elapsedRealtime()
+                                    eng.infer(frame)
+                                    android.os.SystemClock.elapsedRealtime() - t0
+                                }.sorted()
+                                bench = "depth: ${times[6]} ms/frame (int8, " +
+                                        (if (eng.accelerated) "NNAPI accelerated" else
+                                            "CPU") + ") — measured just now"
+                            } catch (e: Exception) {
+                                bench = "benchmark failed: ${e.message}"
+                            }
+                            running = false
+                        }
+                    }, modifier = Modifier.padding(top = 8.dp)) {
+                        Text(if (running) "measuring…" else "Run the benchmark")
+                    }
+                    bench?.let {
+                        Text(it, Modifier.padding(top = 8.dp),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.secondary)
+                    }
+                }
+            }
             listOf("0.91 mm" to "average camera tracking error, using video alone",
                 "40% → 4%" to "of the wall falsely flagged as never-inspected, before vs " +
                         "after teaching the AI what a colon looks like",
+                "2 → 9 fps" to "the frame rate at which whole-colon tracking fails vs " +
+                        "holds, measured on a gastroenterologist's complete withdrawal — " +
+                        "real endoscopes stream 25 or more",
                 "1.3 to 2.4 mm" to "3D surface accuracy, from video alone",
                 "0.60 mm" to "median measurement error on polyp sized targets",
                 "11 of 21" to "unseen polyp videos flagged at thresholds fixed in advance — " +
@@ -829,6 +874,14 @@ class MainActivity : ComponentActivity() {
             val tn = bb.int
             FloatArray(3 * tn) { bb.float }
         }.getOrNull() }
+        // the recorded ground-truth camera path, same normalized frame as the
+        // estimate: the instrument draws the truth beside its own answer
+        val gtFull = remember { runCatching {
+            val bb = java.nio.ByteBuffer.wrap(assets.open("gt_full.bin").readBytes())
+                .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+            val gn = bb.int
+            FloatArray(3 * gn) { bb.float }
+        }.getOrNull() }
         // per mesh vertex: the first replay frame whose camera saw it (u16),
         // so the full-withdrawal tube builds patch-by-patch during replay
         val bornFull = remember { runCatching {
@@ -896,6 +949,7 @@ class MainActivity : ComponentActivity() {
         var pitch by remember { mutableFloatStateOf(0.3f) }
         var zoom by remember { mutableFloatStateOf(1f) }
         var showBlind by remember { mutableStateOf(false) }
+        var showTruth by remember(run) { mutableStateOf(false) }
         var heatMode by remember(run) { mutableStateOf(run >= 2) }
         var measureMode by remember(run) { mutableStateOf(false) }
         var mSel by remember(run) { mutableStateOf(listOf<Int>()) }
@@ -1020,6 +1074,19 @@ class MainActivity : ComponentActivity() {
                                 alpha = if (showBlind && rare) 0.30f else 0.95f)
                         }
                     }
+                    // the recorded truth, drawn under the estimate on request:
+                    // where grey and cyan separate IS the tracking error
+                    if (showTruth && run == 3 && gtFull != null) {
+                        val gn = gtFull.size / 3
+                        for (j in 2 until gn step 2) {
+                            val (ax, ay, _) = project(gtFull[3 * (j - 2)],
+                                gtFull[3 * (j - 2) + 1], gtFull[3 * (j - 2) + 2],
+                                cy, sy, cp, sp)
+                            val (bx, by, _) = project(gtFull[3 * j], gtFull[3 * j + 1],
+                                gtFull[3 * j + 2], cy, sy, cp, sp)
+                            drawLine(Color(0x99C8C2B8), Offset(ax, ay), Offset(bx, by), 2.5f)
+                        }
+                    }
                     val upTo = (if (replay) t.toInt() else map.trajN - 1)
                         .coerceAtMost(map.trajN - 1)
                     for (j in 1..upTo) {
@@ -1053,6 +1120,11 @@ class MainActivity : ComponentActivity() {
                 Text("drag · pinch · tap markers", Modifier.align(Alignment.TopEnd).padding(8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (showTruth && run == 3)
+                    Text("grey: recorded truth · blue: Argus estimate — the gap is the error",
+                        Modifier.align(Alignment.TopCenter).padding(top = 30.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (map.trajN > 1) TextButton(onClick = {
                     // align the view along the camera's overall direction of travel —
                     // the tunnel view, where a colon looks like a colon
@@ -1068,6 +1140,9 @@ class MainActivity : ComponentActivity() {
                     if (map.mesh != null) TextButton(onClick = { surfaceMode = !surfaceMode }) {
                         Text(if (surfaceMode) "point cloud" else "surface")
                     }
+                    if (run == 3 && gtFull != null) TextButton(onClick = {
+                        showTruth = !showTruth
+                    }) { Text(if (showTruth) "hide truth" else "vs truth") }
                     TextButton(onClick = { heatMode = !heatMode }) {
                         Text(if (heatMode) "tissue colors" else "coverage heat")
                     }
@@ -1335,6 +1410,44 @@ class MainActivity : ComponentActivity() {
                                 "frame budget): 37%\n" +
                                 "Same pipeline, same frozen settings at every frame rate " +
                                 "— only the sampling changed.")
+                        // the measured frame-rate requirement: four sampling rates,
+                        // guard-rejection rate per point
+                        Text("The speed limit, measured", Modifier.padding(top = 10.dp),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.primary)
+                        val curve = listOf("1/24" to 39.5f, "1/12" to 16.0f,
+                            "1/6" to 6.7f, "1/3" to 3.0f)
+                        Canvas(Modifier.fillMaxWidth().height(140.dp).padding(top = 4.dp)) {
+                            val lp = android.graphics.Paint().apply {
+                                color = android.graphics.Color.rgb(0xA2, 0x9A, 0x90)
+                                textSize = 11.dp.toPx()
+                                textAlign = android.graphics.Paint.Align.CENTER
+                            }
+                            val vp = android.graphics.Paint(lp).apply {
+                                color = android.graphics.Color.rgb(0xE0, 0x79, 0x6B)
+                                isFakeBoldText = true
+                            }
+                            fun cx(i: Int) = size.width * (i + 0.5f) / curve.size
+                            fun cy2(v: Float) = 18.dp.toPx() +
+                                    (1f - v / 42f) * (size.height - 42.dp.toPx())
+                            for (j in 1 until curve.size)
+                                drawLine(Color(0xFFE0796B),
+                                    Offset(cx(j - 1), cy2(curve[j - 1].second)),
+                                    Offset(cx(j), cy2(curve[j].second)), 4f)
+                            curve.forEachIndexed { j, (lab, v) ->
+                                drawCircle(Color(0xFFE0796B), 7f, Offset(cx(j), cy2(v)))
+                                drawContext.canvas.nativeCanvas.drawText(
+                                    "$v%", cx(j), cy2(v) - 10.dp.toPx(), vp)
+                                drawContext.canvas.nativeCanvas.drawText(
+                                    lab, cx(j), size.height - 4.dp.toPx(), lp)
+                            }
+                        }
+                        Text("Frame pairs the tracker couldn't follow, at four fractions " +
+                                "of the native frame rate. Real endoscopes stream 25–60 " +
+                                "fps — the requirement is satisfiable; the burden moves " +
+                                "to processing speed.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else if (run == 2) {
                         val fr = live
                         if (fr == null)

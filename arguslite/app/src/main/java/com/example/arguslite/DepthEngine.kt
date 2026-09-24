@@ -9,6 +9,8 @@ import java.nio.FloatBuffer
 class DepthEngine(context: Context) {
     private val sz = 252
     private val env = OrtEnvironment.getEnvironment()
+    var accelerated = false
+        private set
     private val session = run {
         // prefer the accuracy-verified quantized model when shipped; try hardware
         // acceleration first and fall back to plain CPU without complaint
@@ -22,6 +24,7 @@ class DepthEngine(context: Context) {
         }.getOrNull()
         if (accelerated != null) {
             android.util.Log.i("ArgusStudy", "depth session: NNAPI accelerated")
+            this.accelerated = true
             accelerated
         } else {
             android.util.Log.i("ArgusStudy", "depth session: CPU")

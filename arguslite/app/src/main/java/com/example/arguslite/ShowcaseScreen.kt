@@ -146,7 +146,8 @@ fun ShowcaseScreen() {
                     "98.6 %" to "blind-spot agreement (shown beside its 99.0% do-nothing baseline)",
                     "1.3–2.4 mm" to "3D surface accuracy, from video alone",
                     "11 of 21" to "unseen polyp videos flagged · 17 of 20 controls clean",
-                    "9×" to "measured cost of a deforming colon, vs its rigid twin"
+                    "9×" to "measured cost of a deforming colon, vs its rigid twin",
+                    "2 → 9 fps" to "where whole-colon tracking fails vs holds — the speed limit, measured"
                 ).forEach { (n2, d) ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(n2, style = MaterialTheme.typography.headlineSmall,
