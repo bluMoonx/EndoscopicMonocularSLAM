@@ -1,0 +1,28 @@
+{
+ "config": "keyframe appearance candidates (40x40 normalized gray, cos>=0.82, sep>=60 frames) -> two-way photometric verification (fwd-bwd consistency <4deg/6mm) -> odometry-consistency gate (implied drift <= max(0.18u, 10% of chained path)) -> position-only closure edges (sigma 0.10u; rotation/scale disabled) -> soft-L1 robust Sim(3) pose graph; developed on c1_t4, frozen for the two test sequences",
+ "sequences": {
+  "c1_full_t4_v1 (development)": {
+   "closures_verified": 16,
+   "closures_kept": 9,
+   "ate_before": 101.4,
+   "ate_after": 96.4,
+   "change_pct": -5.0
+  },
+  "c2_full_t1_v1 (frozen test)": {
+   "closures_verified": 44,
+   "closures_kept": 41,
+   "ate_before": 92.1,
+   "ate_after": 107.5,
+   "change_pct": 16.7
+  },
+  "c1_full_t1_v1 (frozen test)": {
+   "closures_verified": 46,
+   "closures_kept": 46,
+   "ate_before": 114.5,
+   "ate_after": 115.8,
+   "change_pct": 1.1
+  }
+ },
+ "diagnosis": "recognition works (GT audit: 39/41 gate-surviving closures on c2 are true revisits within 60 mm) but low-parallax revisit alignments systematically UNDERESTIMATE separation (claiming 2-5 mm where GT says 20-60 mm); sparse closures help (c1_t4), dense biased closures contract the dwell region and bend the downstream trajectory (c2). Development iterations that were tried and their per-variant results are retained in git history; the final config was frozen before the c1_t1 test.",
+ "verdict": "NEGATIVE: photometric position-only loop closure does not reliably improve whole-colon ATE on withdrawal-style motion; improving it needs parallax-aware closure covariance or feature-based wide-baseline relative poses"
+}
