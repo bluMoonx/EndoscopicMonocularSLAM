@@ -1,0 +1,57 @@
+{
+ "frames": 3667,
+ "fired": 1592,
+ "gated": 1335,
+ "dwell_events_ge15": 17,
+ "clusters_top": [
+  {
+   "members": 124,
+   "frame_first": 87,
+   "frame_last": 280,
+   "span_frames": 194,
+   "size_mm": 12.5,
+   "conf": 0.91
+  },
+  {
+   "members": 52,
+   "frame_first": 493,
+   "frame_last": 557,
+   "span_frames": 65,
+   "size_mm": 13.3,
+   "conf": 0.91
+  },
+  {
+   "members": 37,
+   "frame_first": 3533,
+   "frame_last": 3592,
+   "span_frames": 60,
+   "size_mm": 7.6,
+   "conf": 0.94
+  },
+  {
+   "members": 34,
+   "frame_first": 1338,
+   "frame_last": 1395,
+   "span_frames": 58,
+   "size_mm": 5.0,
+   "conf": 0.93
+  },
+  {
+   "members": 28,
+   "frame_first": 1035,
+   "frame_last": 1062,
+   "span_frames": 28,
+   "size_mm": 5.5,
+   "conf": 0.95
+  },
+  {
+   "members": 28,
+   "frame_first": 2064,
+   "frame_last": 2123,
+   "span_frames": 60,
+   "size_mm": 13.8,
+   "conf": 0.92
+  }
+ ],
+ "note": "dwell-event clustering: camera-frame 10mm ball + temporal contiguity (<=10-frame gap); frozen gates conf>=0.7 size 2-22mm; >=15 members ~ the live pipeline's support bar at this ~10fps sampling. Phantom contains deliberate debris; no polyp annotations exist, so events are verdicts-by-eye"
+}

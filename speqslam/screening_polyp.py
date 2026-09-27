@@ -18,8 +18,12 @@ import demo_app
 from polyp_detect import load_model, segment, DEV
 from polyp_measure import diameter_mm
 
-BASE = "data/c3vdv2/c1_full_t4_v1_s3"
-OUT = "results/screening_polyp"
+BASE = (sys.argv[1].rstrip("/\\") if len(sys.argv) > 1
+        else "data/c3vdv2/c1_full_t4_v1_s3")
+sys.argv = sys.argv[:1]
+SEQ = os.path.basename(BASE).replace("_s3", "")
+OUT = f"results/screening_polyp_{SEQ}" if SEQ != "c1_full_t4_v1" \
+    else "results/screening_polyp"
 WEIGHTS = "models/polyp_ft/dlv3p_ft_ep8.pth"
 K = np.array([[250.0, 0, 320.0], [0, 250.0, 256.0], [0, 0, 1]])
 
@@ -62,7 +66,7 @@ for i in range(n):
               flush=True)
 print(f"scan done: fired {fired}/{n} frames, {len(det)} gated detections", flush=True)
 
-np.savez("results/screening_polyp_det.npz",
+np.savez(f"{OUT}_det.npz",
          frames=np.array([d[0] for d in det]),
          pos=np.array([d[1] for d in det]),
          size=np.array([d[2] for d in det]),
@@ -122,5 +126,5 @@ res = dict(frames=n, fired=fired, gated=len(det),
                 ">=15 members ~ the live pipeline's support bar at this ~10fps "
                 "sampling. Phantom contains deliberate debris; no polyp "
                 "annotations exist, so events are verdicts-by-eye")
-json.dump(res, open("results/screening_polyp.json", "w"), indent=1)
+json.dump(res, open(f"{OUT}.json", "w"), indent=1)
 print(json.dumps(res, indent=1), flush=True)
