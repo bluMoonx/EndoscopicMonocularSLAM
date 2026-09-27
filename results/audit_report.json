@@ -1,0 +1,216 @@
+{
+ "checks": [
+  {
+   "name": "c1_full_t4_v1 s3 guard%",
+   "expected": 3.0,
+   "actual": 2.965,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t4_v1 s3 ATE mm",
+   "expected": 101.4,
+   "actual": 101.417,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t4_v1 s3 baseline mm",
+   "expected": 168.3,
+   "actual": 168.293,
+   "ok": true
+  },
+  {
+   "name": "c2_full_t1_v1 s3 guard%",
+   "expected": 1.5,
+   "actual": 1.5,
+   "ok": true
+  },
+  {
+   "name": "c2_full_t1_v1 s3 ATE mm",
+   "expected": 92.1,
+   "actual": 92.098,
+   "ok": true
+  },
+  {
+   "name": "c2_full_t1_v1 s3 baseline mm",
+   "expected": 133.4,
+   "actual": 133.377,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t1_v1 s3 guard%",
+   "expected": 3.1,
+   "actual": 3.055,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t1_v1 s3 ATE mm",
+   "expected": 114.5,
+   "actual": 114.511,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t1_v1 s3 baseline mm",
+   "expected": 157.6,
+   "actual": 157.612,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t4_v1 stride6 guard%",
+   "expected": 6.7,
+   "actual": 6.719,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t4_v1 stride6 ATE mm",
+   "expected": 132.8,
+   "actual": 132.769,
+   "ok": true
+  },
+  {
+   "name": "c2_full_t1_v1 stride12 guard%",
+   "expected": 16.5,
+   "actual": 16.485,
+   "ok": true
+  },
+  {
+   "name": "c2_full_t1_v1 stride12 ATE mm",
+   "expected": 103.0,
+   "actual": 103.01,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t1_v1 stride12 guard%",
+   "expected": 23.0,
+   "actual": 23.035,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t1_v1 stride12 ATE mm",
+   "expected": 94.4,
+   "actual": 94.364,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t4_v1 stride12 guard% (repeated-step derivation)",
+   "expected": 16.0,
+   "actual": 15.88,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t4_v1 stride12 ATE mm",
+   "expected": 146.3,
+   "actual": 146.313,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t4_v1 stride12 baseline mm",
+   "expected": 168.3,
+   "actual": 168.273,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t4_v1 stride24 guard%",
+   "expected": 39.5,
+   "actual": 39.542,
+   "ok": true
+  },
+  {
+   "name": "c1_full_t4_v1 stride24 ATE mm",
+   "expected": 120.2,
+   "actual": 120.181,
+   "ok": true
+  },
+  {
+   "name": "app mesh_full.bin integrity (1=ok)",
+   "expected": 1,
+   "actual": 1.0,
+   "ok": true
+  },
+  {
+   "name": "app mesh under-seen % (views<3)",
+   "expected": 36.9,
+   "actual": 36.894,
+   "ok": true
+  },
+  {
+   "name": "app mesh span mm (sane 100-400)",
+   "expected": 1,
+   "actual": 1.0,
+   "ok": true
+  },
+  {
+   "name": "app traj_full.bin points",
+   "expected": 2800,
+   "actual": 2800.0,
+   "ok": true
+  },
+  {
+   "name": "app traj_full.bin normalized (|max|<=1.6)",
+   "expected": 1,
+   "actual": 1.0,
+   "ok": true
+  },
+  {
+   "name": "app gt_full.bin points",
+   "expected": 2800,
+   "actual": 2800.0,
+   "ok": true
+  },
+  {
+   "name": "app gt_full.bin normalized (|max|<=1.6)",
+   "expected": 1,
+   "actual": 1.0,
+   "ok": true
+  },
+  {
+   "name": "app born_full.bin per-vertex",
+   "expected": 31840,
+   "actual": 31840.0,
+   "ok": true
+  },
+  {
+   "name": "app born indices < traj length",
+   "expected": 1,
+   "actual": 1.0,
+   "ok": true
+  },
+  {
+   "name": "frozen test: polyp clips flagged",
+   "expected": 11,
+   "actual": 11.0,
+   "ok": true
+  },
+  {
+   "name": "frozen test: polyp clips total",
+   "expected": 21,
+   "actual": 21.0,
+   "ok": true
+  },
+  {
+   "name": "frozen test: controls flagged",
+   "expected": 3,
+   "actual": 3.0,
+   "ok": true
+  },
+  {
+   "name": "frozen test: controls total",
+   "expected": 20,
+   "actual": 20.0,
+   "ok": true
+  },
+  {
+   "name": "frozen test: Fisher p (two-sided)",
+   "expected": 0.0203,
+   "actual": 0.02,
+   "ok": true
+  },
+  {
+   "name": "frozen test: odds ratio",
+   "expected": 6.2,
+   "actual": 6.233,
+   "ok": true
+  }
+ ],
+ "pass": 35,
+ "fail": 0
+}
