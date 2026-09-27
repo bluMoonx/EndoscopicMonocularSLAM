@@ -1409,7 +1409,11 @@ class MainActivity : ComponentActivity() {
                                 "error 101 mm over a 5.4 m path (1.9%), clearly under " +
                                 "baseline. The model above is this run.\n" +
                                 "Wall seen fewer than 3 times at screening pace (700-" +
-                                "frame budget): 37%\n" +
+                                "frame budget): 37% — and a twin instrument driven by " +
+                                "the recorded true camera path reads 42%, so the " +
+                                "under-inspection is real, not a tracking artifact. " +
+                                "With perfect tracking it reads ~40% on all three " +
+                                "withdrawals studied.\n" +
                                 "Same pipeline, same frozen settings at every frame rate " +
                                 "— only the sampling changed.")
                         // the measured frame-rate requirement: four sampling rates,

@@ -1,0 +1,31 @@
+{
+ "c1_full_t4_v1": {
+  "verts_pipeline": 31840,
+  "verts_gtpose": 31315,
+  "budget_frames": 700,
+  "underseen_pipeline_pct": 36.9,
+  "underseen_gtpose_pct": 42.0,
+  "tracking_gap_points": -5.1,
+  "gt_rotation_transposed": false
+ },
+ "note": "two self-consistent instruments: each pose set fuses its own surface from the same depth maps and counts its own coverage (700-frame stride-12 budget, 4 mm tolerance). The GT-pose instrument isolates what the statistic reads with perfect tracking; the gap is the tracking-attributable coverage error, and the GT-pose residual reflects genuine non-inspection plus depth error.",
+ "c2_full_t1_v1": {
+  "verts_pipeline": 31630,
+  "verts_gtpose": 31168,
+  "budget_frames": 917,
+  "underseen_pipeline_pct": 49.1,
+  "underseen_gtpose_pct": 41.8,
+  "tracking_gap_points": 7.3,
+  "gt_rotation_transposed": false
+ },
+ "c1_full_t1_v1": {
+  "verts_pipeline": 31428,
+  "verts_gtpose": 30955,
+  "budget_frames": 917,
+  "underseen_pipeline_pct": 53.0,
+  "underseen_gtpose_pct": 39.9,
+  "tracking_gap_points": 13.1,
+  "gt_rotation_transposed": false
+ },
+ "summary": "GT-pose instrument: 39.9-42.0% under-seen across all three withdrawals (two colon models) - the clinical thesis with tracking error removed. Pipeline deviation from it: -5.1 to +13.1 points = the measured tracking-attributable coverage error band."
+}
