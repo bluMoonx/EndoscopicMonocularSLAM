@@ -1,0 +1,27 @@
+{
+ "traj1": {
+  "ate_mm": 26.6,
+  "baseline_mm": 42.8,
+  "ratio": 0.62
+ },
+ "traj2": {
+  "ate_mm": 32.0,
+  "baseline_mm": 36.0,
+  "ratio": 0.89
+ },
+ "traj3": {
+  "ate_mm": 47.1,
+  "baseline_mm": 62.0,
+  "ratio": 0.76
+ },
+ "traj4": {
+  "ate_mm": 26.5,
+  "baseline_mm": 42.1,
+  "ratio": 0.63
+ },
+ "traj5": {
+  "ate_mm": 69.2,
+  "baseline_mm": 70.7,
+  "ratio": 0.98
+ }
+}
