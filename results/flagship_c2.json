@@ -1,0 +1,10 @@
+{
+ "seq": "c2_full_t1_v1",
+ "frames": 3667,
+ "ate_mm": 92.1,
+ "path_mm": 7003,
+ "blind_pct": 49.1,
+ "gtpose_blind_pct": 41.8,
+ "pins": 6,
+ "span_mm": 153
+}

@@ -848,11 +848,21 @@ class MainActivity : ComponentActivity() {
                 "The scope entered here. Every point in this model was placed by combining two " +
                         "guesses: how far away each pixel was, and how the camera was moving."))
         map.lesions.forEach { lesion ->
-            base.add(Anchor(lesion[0], lesion[1], lesion[2], "Polyp — found by the system",
+            val body = if (lesion.size >= 6)
+                "The detector locked onto this spot across ${lesion[4].toInt()} frames " +
+                        "at the same 3D location, average confidence %.2f. Estimated size "
+                            .format(lesion[5]) +
+                        "about %.0f mm. Settings were frozen before this footage was "
+                            .format(lesion[3]) +
+                        "ever processed; the phantom ships no polyp labels, so this is a " +
+                        "finding graded by eye — and it looks exactly like the sculpted " +
+                        "polyp it is."
+            else
                 "The detector flagged this spot in 21 separate frames, and every flag landed " +
                         "within ten millimeters of the same 3D location. Estimated size about " +
                         "${lesion[3]} mm. On real footage, with no ground truth given, the full pipeline " +
-                        "found it, placed it, and measured it."))
+                        "found it, placed it, and measured it."
+            base.add(Anchor(lesion[0], lesion[1], lesion[2], "Polyp — found by the system", body))
         }
         return base
     }
@@ -883,6 +893,14 @@ class MainActivity : ComponentActivity() {
             val gn = bb.int
             FloatArray(3 * gn) { bb.float }
         }.getOrNull() }
+        // the flagship withdrawal's pinned findings: strongest frozen-gate dwell
+        // events (x,y,z normalized, size mm, supporting frames, mean confidence)
+        val lesionsFull = remember { runCatching {
+            val bb = java.nio.ByteBuffer.wrap(assets.open("lesions_full.bin").readBytes())
+                .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+            val ln = bb.int
+            List(ln) { FloatArray(6) { bb.float } }
+        }.getOrNull() ?: emptyList() }
         // per mesh vertex: the first replay frame whose camera saw it (u16),
         // so the full-withdrawal tube builds patch-by-patch during replay
         val bornFull = remember { runCatching {
@@ -934,7 +952,7 @@ class MainActivity : ComponentActivity() {
                     ColonMap(pn, xyz, cr, cg, cb,
                         BooleanArray(pn) { m.views[it] < 3 },
                         bornFull?.takeIf { it.size == pn } ?: IntArray(pn),
-                        tr.size / 3, tr, emptyList(),
+                        tr.size / 3, tr, lesionsFull,
                         m.views, cs[3], m, floatArrayOf(cs[0], cs[1], cs[2]))
                 } else ColonMap(0, FloatArray(0), IntArray(0), IntArray(0), IntArray(0),
                     BooleanArray(0), IntArray(0), 0, FloatArray(0), emptyList())
@@ -1305,12 +1323,10 @@ class MainActivity : ComponentActivity() {
                             1 -> "Real colonoscopy, 60 frames. The system tracked the camera, " +
                                     "built this surface, and found one polyp of about 6 mm. Its gold " +
                                     "marker is on the model above."
-                            3 -> "A gastroenterologist's complete withdrawal. The blue line " +
-                                    "is the camera's estimated path from the 9 fps run — the " +
-                                    "frame rate at which tracking holds (101 mm error where " +
-                                    "blind guessing scores 168). At a quarter of this frame " +
-                                    "rate the same tracker fails, and both results are " +
-                                    "reported."
+                            3 -> "3,667 frames — a gastroenterologist's complete 7-meter " +
+                                    "withdrawal, tracked at 92 mm path error where blind " +
+                                    "guessing scores 133. The gold markers are polyps the " +
+                                    "frozen detector locked onto along the way; tap them."
                             else -> live?.let {
                                 "${it.frames} frames of ${StudyRunner.sourceName} fused into " +
                                         "${it.voxels} surface patches. %.1f%% of the mapped wall "
@@ -1340,25 +1356,26 @@ class MainActivity : ComponentActivity() {
                 }
                 Section(3, "Findings") {
                     if (run == 3) {
-                        Text("A complete withdrawal by a real gastroenterologist — and " +
-                                "the experiment that found the system's speed limit. " +
-                                "Sampled at one frame in twelve (~2 fps), 16% of frame " +
-                                "pairs outran the tracker and the camera path collapsed " +
-                                "to guesswork; that failure is reported, not hidden. At " +
-                                "one frame in three (~9 fps), the same frozen pipeline " +
-                                "holds: path error 101 mm where blind guessing scores " +
-                                "168, with only 3% of pairs needing the safety guard. " +
-                                "The winding tube above is the 9 fps map — surface " +
-                                "exists only where the camera actually looked, and 37% " +
-                                "of it got fewer than three proper looks at screening " +
-                                "pace. Frame rate is the lever, and now it's measured.")
-                        Text("The polyp detector ran over the withdrawal too: eight " +
-                                "persistent findings, and on visual review most are the " +
-                                "fecal debris this phantom deliberately carries — " +
-                                "polyp-shaped bait, and the phantom ships no polyp labels " +
-                                "to settle the rest. A silicone colon full of debris is " +
-                                "yet another domain for a detector tuned on real tissue; " +
-                                "the project's oldest lesson, appearing once more.",
+                        Text("The complete story on one procedure: a gastroenterologist's " +
+                                "full 7-meter withdrawal, tracked, mapped, " +
+                                "coverage-counted, and searched for polyps — everything " +
+                                "the project set out to do, on one screen.")
+                        map.lesions.forEach { l ->
+                            Text("Polyp candidate — about %.0f mm".format(l[3]),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color(0xFFDCA645))
+                            Text("Locked for ${l[4].toInt()} frames at one 3D spot, " +
+                                    "average confidence %.2f — gold marker on the model "
+                                        .format(l[5]) +
+                                    "above. Detection settings were frozen long before " +
+                                    "this footage existed.",
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                        Text("The phantom ships no polyp labels, so these are findings " +
+                                "graded by eye — the strongest is an unmistakable " +
+                                "sculpted polyp. Only dwell events with 40+ supporting " +
+                                "frames are pinned; the full sweep, weaker events and " +
+                                "the deliberate debris included, is in the study records.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else if (run == 2) {
@@ -1398,24 +1415,24 @@ class MainActivity : ComponentActivity() {
                 }
                 Section(4, "The numbers") {
                     if (run == 3) {
-                        Text("Complete withdrawal, camera driven by a gastroenterologist, " +
-                                "camera path recorded as ground truth. Every path error " +
-                                "is printed beside the 168 mm a do-nothing baseline " +
-                                "scores — a number only means something if it beats that.\n" +
-                                "At 1 frame in 12 (~2 fps): 16% of pairs beyond the " +
-                                "tracker's limit; guarded path error 146 mm ≈ baseline. " +
-                                "Reported as a failure — the system's speed limit.\n" +
-                                "At 1 frame in 3 (~9 fps): 3% of pairs guarded; path " +
-                                "error 101 mm over a 5.4 m path (1.9%), clearly under " +
-                                "baseline. The model above is this run.\n" +
-                                "Wall seen fewer than 3 times at screening pace (700-" +
-                                "frame budget): 37% — and a twin instrument driven by " +
-                                "the recorded true camera path reads 42%, so the " +
-                                "under-inspection is real, not a tracking artifact. " +
-                                "With perfect tracking it reads ~40% on all three " +
-                                "withdrawals studied.\n" +
-                                "Same pipeline, same frozen settings at every frame rate " +
-                                "— only the sampling changed.")
+                        Text("Complete withdrawal of colon model 2, camera driven by a " +
+                                "gastroenterologist, true path recorded. Every error is " +
+                                "printed beside the 133 mm a do-nothing baseline scores " +
+                                "— a number only means something if it beats that.\n" +
+                                "Frames analyzed: 3,667 (every 3rd of 11,000 — the ~9 fps " +
+                                "rate at which tracking holds)\n" +
+                                "Path error: 92 mm over 7,003 mm (1.3%), with only 1.5% " +
+                                "of frame pairs needing the safety guard\n" +
+                                "At a quarter of this frame rate the same tracker fails " +
+                                "(16% guarded, error ≈ baseline) — the measured speed " +
+                                "limit, replicated on three withdrawals\n" +
+                                "Wall seen fewer than 3 times at screening pace: " +
+                                "49% — and a twin instrument driven by the recorded " +
+                                "true path reads 42%, so the under-inspection is real, " +
+                                "not a tracking artifact; with perfect tracking it reads " +
+                                "~40% on all three withdrawals studied\n" +
+                                "Polyps: pinned above, frozen settings, graded by eye " +
+                                "(the phantom ships no labels)")
                         // the measured frame-rate requirement: four sampling rates,
                         // guard-rejection rate per point
                         Text("The speed limit, measured", Modifier.padding(top = 10.dp),
@@ -1449,7 +1466,9 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         Text("Frame pairs the tracker couldn't follow, at four fractions " +
-                                "of the native frame rate. Real endoscopes stream 25–60 " +
+                                "of the native frame rate — measured on a companion " +
+                                "withdrawal (colon model 1) and replicated at both ends " +
+                                "on all three studied. Real endoscopes stream 25–60 " +
                                 "fps — the requirement is satisfiable; the burden moves " +
                                 "to processing speed.",
                             style = MaterialTheme.typography.bodySmall,
