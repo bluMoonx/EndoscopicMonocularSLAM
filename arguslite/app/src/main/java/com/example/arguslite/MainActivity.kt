@@ -296,6 +296,11 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun HomeScreen(onGo: (Int) -> Unit, onShowcase: () -> Unit = {}) {
         val map = remember { loadColonMap("colon_map2.bin") }
+        // hero model: the flagship whole-colon mesh, lit; falls back to the
+        // legacy point cloud if the asset is absent
+        val heroMesh = remember { runCatching {
+            loadMeshBin(assets.open("mesh_full.bin").readBytes()) }.getOrNull() }
+        val heroCS = remember { heroMesh?.let { meshCenterSpan(it) } }
         var spin by remember { mutableFloatStateOf(0f) }
         LaunchedEffect(Unit) { while (true) { spin += 0.006f; delay(16.milliseconds) } }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -303,18 +308,23 @@ class MainActivity : ComponentActivity() {
             verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Canvas(Modifier.fillMaxWidth().height(320.dp)
                 .pointerInput(Unit) { detectTapGestures { onShowcase() } }) {
-                val cy = cos(spin); val sy = sin(spin)
-                val cp = cos(0.35f); val sp = sin(0.35f)
-                val s = size.minDimension * 0.40f
-                for (i in 0 until map.n step 1) {
-                    val x = map.xyz[3 * i]; val y = map.xyz[3 * i + 1]; val z = map.xyz[3 * i + 2]
-                    val x1 = x * cy + z * sy; val z1 = -x * sy + z * cy
-                    val y1 = y * cp - z1 * sp; val z2 = y * sp + z1 * cp
-                    val persp = 1f / (1.6f - z2 * 0.5f)
-                    val shade = (0.4f + 0.8f * persp).coerceIn(0.3f, 1f)
-                    drawCircle(Color(map.r[i] / 255f * shade, map.g[i] / 255f * shade,
-                        map.b[i] / 255f * shade), 2.5f,
-                        Offset(size.width / 2 + x1 * s * persp, size.height / 2 + y1 * s * persp))
+                if (heroMesh != null && heroCS != null) {
+                    drawMeshLit(heroMesh, heroCS[0], heroCS[1], heroCS[2], heroCS[3],
+                        spin, 0.35f, 1.05f, 0, 3)
+                } else {
+                    val cy = cos(spin); val sy = sin(spin)
+                    val cp = cos(0.35f); val sp = sin(0.35f)
+                    val s = size.minDimension * 0.40f
+                    for (i in 0 until map.n step 1) {
+                        val x = map.xyz[3 * i]; val y = map.xyz[3 * i + 1]; val z = map.xyz[3 * i + 2]
+                        val x1 = x * cy + z * sy; val z1 = -x * sy + z * cy
+                        val y1 = y * cp - z1 * sp; val z2 = y * sp + z1 * cp
+                        val persp = 1f / (1.6f - z2 * 0.5f)
+                        val shade = (0.4f + 0.8f * persp).coerceIn(0.3f, 1f)
+                        drawCircle(Color(map.r[i] / 255f * shade, map.g[i] / 255f * shade,
+                            map.b[i] / 255f * shade), 2.5f,
+                            Offset(size.width / 2 + x1 * s * persp, size.height / 2 + y1 * s * persp))
+                    }
                 }
             }
             Text("tap the model for the showcase",

@@ -53,5 +53,6 @@
    "conf": 0.92
   }
  ],
- "note": "dwell-event clustering: camera-frame 10mm ball + temporal contiguity (<=10-frame gap); frozen gates conf>=0.7 size 2-22mm; >=15 members ~ the live pipeline's support bar at this ~10fps sampling. Phantom contains deliberate debris; no polyp annotations exist, so events are verdicts-by-eye"
+ "note": "dwell-event clustering: camera-frame 10mm ball + temporal contiguity (<=10-frame gap); frozen gates conf>=0.7 size 2-22mm; >=15 members ~ the live pipeline's support bar at this ~10fps sampling. Phantom contains deliberate debris; no polyp annotations exist, so events are verdicts-by-eye",
+ "top_event_verdict": "frames 87-280 (124 members, conf 0.91): zoomed review shows a sharply demarcated reddish, slightly raised oval distinct from surrounding mucosa and from the tan debris seen elsewhere - consistent with a sculpted flat (Paris 0-IIa-like) lesion; graded by eye, no labels ship with the phantom"
 }
