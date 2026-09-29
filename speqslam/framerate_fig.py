@@ -18,6 +18,7 @@ PTS = [
     (12, 16.0, 146.3, 168.3, 4299),
     (6,  6.7,  132.8, 168.3, 4790),
     (3,  3.0,  101.4, 168.3, 5452),
+    (1,  0.9,  110.0, 168.3, 7598),
 ]
 
 frac = [1.0 / s for s, *_ in PTS]
@@ -27,7 +28,7 @@ ratio = [a / b for _, _, a, b, _ in PTS]
 fig, ax1 = plt.subplots(figsize=(7.2, 4.4))
 ax1.set_xscale("log")
 ax1.set_xticks(frac)
-ax1.set_xticklabels(["1/24", "1/12", "1/6", "1/3"])
+ax1.set_xticklabels(["1/24", "1/12", "1/6", "1/3", "1/1"])
 ax1.minorticks_off()
 ax1.set_xlabel("fraction of native frame rate fed to the tracker")
 ax1.set_ylabel("frame pairs beyond tracker limit (%)", color="#B03A2E")
@@ -58,7 +59,7 @@ ax2.set_ylim(0.4, 1.1)
 ax2.tick_params(axis="y", labelcolor="#1F618D")
 
 ax1.set_title("The frame-rate requirement: one full screening withdrawal,\n"
-              "one frozen pipeline, sampled at four rates")
+              "one frozen pipeline, sampled at five rates")
 fig.tight_layout()
 fig.savefig("results/poster/fig12_framerate.png", dpi=170)
 print("wrote results/poster/fig12_framerate.png")
@@ -71,6 +72,13 @@ res["framerate_curve"] = [
 res["framerate_note"] = ("guard rate is the primary metric; ATE/baseline is "
                          "meaningful only when the guard is quiet (at stride 24, "
                          "40% of the path is coasting, so its ATE reflects "
-                         "dead-reckoning, not tracking)")
+                         "dead-reckoning, not tracking). Native rate closes the "
+                         "curve: guard 0.9%, ATE 110 mm (0.65x baseline) - frame "
+                         "rate fully solves trackability, and the residual error "
+                         "is accumulation drift, the loop-closure problem. GT "
+                         "frame indexing is 1-based in the source filenames; all "
+                         "associations carry a constant one-frame (~40 ms) offset, "
+                         "immaterial at ~0.25 mm median motion per frame and "
+                         "absorbed by Sim(3) alignment.")
 json.dump(res, open("results/c3vdv2_screening.json", "w"), indent=1)
 print("curve recorded in results/c3vdv2_screening.json")

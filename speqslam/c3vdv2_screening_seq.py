@@ -28,13 +28,20 @@ MAX_ROT_DEG = 35.0
 t0 = time.time()
 frames_raw = sorted(glob.glob(f"{BASE}/rgb/*.png"),
                     key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))
-nums = [int(os.path.splitext(os.path.basename(p))[0]) for p in frames_raw]
+if frames_raw:
+    nums = [int(os.path.splitext(os.path.basename(p))[0]) for p in frames_raw]
+else:
+    # rgb-less layout (native-rate set: frames were streamed straight from the
+    # archive into undist/ to fit on disk); nums.json carries the GT indices
+    import json as _json
+    nums = _json.load(open(f"{BASE}/nums.json"))
 gt_all = load_poses(f"{BASE}/pose.txt")
-print(f"{BASE}: {len(frames_raw)} frames, {len(gt_all)} GT poses", flush=True)
+print(f"{BASE}: {max(len(frames_raw), len(nums))} frames, {len(gt_all)} GT poses",
+      flush=True)
 
 os.makedirs(UND, exist_ok=True)
 mapu, mapv, K = su.build_map(V2CAL)
-if len(glob.glob(f"{UND}/*.jpg")) < len(frames_raw):
+if frames_raw and len(glob.glob(f"{UND}/*.jpg")) < len(frames_raw):
     for i, p in enumerate(frames_raw):
         out = f"{UND}/{i:04d}.jpg"
         if os.path.exists(out):
