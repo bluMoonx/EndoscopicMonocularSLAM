@@ -1,0 +1,32 @@
+{
+ "experiment": "detector distillation: DeepLabV3+/EfficientNet-B0 student from the deployed B4 teacher",
+ "goal": "a faster detector for near-real-time live studies (teacher dominates the ~1 fps end-to-end rate)",
+ "gates_pre_stated": {
+  "G1_val_dice": ">=0.95 on the frozen held-out 200 Kvasir images (teacher 0.959)",
+  "G2_control_fire": "<=7.5% on the two held-out calibration control clips (teacher 5.0%)",
+  "G3_speed": ">=2.5x teacher ONNX CPU latency (workstation proxy for the phone)"
+ },
+ "runs": [
+  {"run": 1, "recipe": "teacher's fine-tune recipe (8 ep, lr 2e-5) on ImageNet init",
+   "best_val_dice": 0.789, "verdict": "undertrained: teacher started polyp-pretrained, student did not; Dice still climbing at stop"},
+  {"run": 2, "recipe": "training regime: 30 ep, lr 1e-4 cosine, distill weight 0.5",
+   "best_val_dice": 0.880, "control_fire": 0.0,
+   "verdict": "converged but data-limited: train loss 0.09 (fits the 800 images) while val stalls"},
+  {"run": 3, "recipe": "run 2 + strong augmentation (flip/rotate/scale/color) + 1000 unlabeled C3VD colon frames labeled by the teacher on the fly (distill-only loss); HyperKvasir frames deliberately excluded because the untouched test clips live there",
+   "best_val_dice": 0.888, "control_fire": 0.025,
+   "verdict": "augmentation + in-domain unlabeled distillation buys +0.008; student saturates ~0.89"}
+ ],
+ "speed": {
+  "teacher_ms": 23, "student_ms": 10, "speedup": 2.29,
+  "protocol": "median of 50 CPU runs, quiet machine, ONE ort session alive at a time; replicated (2.29x, 2.28x)",
+  "invalid_readings": [
+   {"value": "0.80x", "cause": "benchmarked while the training job was decoding video on all cores"},
+   {"value": "2.82x", "cause": "busy-machine screen inflated the teacher more than the student"},
+   {"value": "0.87x then 48-71 ms both models", "cause": "two live ort sessions: each holds a spin-waiting full-core thread pool and they fight; timings inflate 2-5x"}
+  ]
+ },
+ "scoreboard": {"G1": "FAIL 0.888", "G2": "PASS 2.5%", "G3": "FAIL 2.29x"},
+ "verdict": "REJECTED by pre-stated gates; the B4 teacher stays deployed. A ~0.89-Dice, 2.3x-faster student exists (models/polyp_student/) if a future use case accepts that tradeoff; it is not Argus.",
+ "method_note": "three timing traps in one experiment produced 0.80x, 2.82x and 2.29x for the same two models; only the controlled single-session quiet-machine number is reportable. Same lesson as the NNAPI reversal: a speed claim is only as good as its measurement conditions.",
+ "artifacts": "speqslam/train_student.py (full run history in header), speqslam/bench_student.py, models/polyp_student/{run1_teacher_recipe,run2_no_aug,metrics.csv,student_best.pth,student.onnx}"
+}

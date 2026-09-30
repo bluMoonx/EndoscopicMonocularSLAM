@@ -33,17 +33,20 @@ diff = np.abs(ref - s_sess.run(None, {"pixels": x})[0][0, 1]).max()
 print(f"parity: max |pytorch - onnx| = {diff:.2e} {'OK' if diff < 1e-3 else 'FAIL'}",
       flush=True)
 
-t_sess = ort.InferenceSession(TEACHER_ONNX, providers=["CPUExecutionProvider"])
-for sess in (t_sess, s_sess):          # warmup
-    for _ in range(3):
+# One session alive at a time: two live ORT sessions each hold a spin-waiting
+# full-core thread pool and inflate BOTH timings 2-5x (measured).
+def med_ms(path, n=50):
+    sess = ort.InferenceSession(path, providers=["CPUExecutionProvider"])
+    for _ in range(5):
         sess.run(None, {"pixels": x})
-def med_ms(sess, n=20):
     ts = []
     for _ in range(n):
         t0 = time.perf_counter()
         sess.run(None, {"pixels": x})
         ts.append((time.perf_counter() - t0) * 1000)
+    del sess
     return float(np.median(ts))
-tt, ts_ = med_ms(t_sess), med_ms(s_sess)
+del s_sess
+tt, ts_ = med_ms(TEACHER_ONNX), med_ms(OUT)
 print(f"teacher {tt:.0f} ms | student {ts_:.0f} ms | speedup {tt/ts_:.2f}x | "
       f"gate >=2.5x: {'PASS' if tt/ts_ >= 2.5 else 'FAIL'}", flush=True)
