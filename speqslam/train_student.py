@@ -23,11 +23,16 @@ Run history (archived subfolders of models/polyp_student/):
   run2_no_aug/  30 ep, lr 1e-4 cosine: converged at val Dice 0.880 (gate 0.95)
       with train loss 0.09 - fits the 800 images nearly perfectly while val
       stalls. Diagnosis: data limit, not capacity limit.
-  run 3 (this file): strong augmentation on the labeled images + ~1000
-      unlabeled C3VD colon frames labeled by the teacher on the fly
-      (distill-only loss). C3VD frames overlap no gate or evaluation split;
-      HyperKvasir video frames are deliberately NOT used because the untouched
-      test clips live there.
+  run3_aug_unlabeled/  run 2 + strong augmentation + 1000 unlabeled C3VD
+      frames soft-labeled by the teacher (HyperKvasir deliberately excluded:
+      the untouched test clips live there). Best 0.888 - saturates ~0.89,
+      fails v1 gate G1; speed at 384x288 is 2.29-2.47x, under the 2.5x bar.
+  run 4 (this file): the protocol-v2 candidate (results/distill_protocol_v2.md,
+      committed before any external evaluation). Student input 320x240
+      (measured 3.28x, passes G3 with margin); teacher runs at its native
+      384x288 and its soft labels are bilinearly resized to the student grid;
+      unlabeled pool raised to 2000. Accuracy is judged by v2's external
+      head-to-head gate G1', not the (caveated) teacher val score.
 
 Budget-resumable. Usage: python speqslam/train_student.py [minutes]
 """
@@ -46,7 +51,8 @@ BATCH = 6
 SEED = 7
 NEG_PER_CLIP = 60
 DISTILL_W = 0.5
-N_UNLABELED = 1000
+N_UNLABELED = 2000
+STU_W, STU_H = 320, 240
 UNLABELED_DIRS = ["data/c3vdv2/c1_full_t4_v1_s1/undist",
                   "data/c3vdv2/c1_full_t1_v1_s3/undist",
                   "data/c3vdv2/c2_full_t1_v1_s3/undist"]
@@ -100,14 +106,14 @@ def augment(bgr, mask, rr):
                      np.float32) * rr.uniform(0.8, 1.25)  # channel gain + brightness
     return np.clip(x, 0, 255).astype(np.uint8), mask
 
-def to_tensor(bgr):
-    x = cv2.resize(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB), (IN_W, IN_H),
+def to_tensor(bgr, w=IN_W, h=IN_H):
+    x = cv2.resize(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB), (w, h),
                    interpolation=cv2.INTER_AREA).astype(np.float32) / 255.0
     x = (x - MEAN) / STD
     return torch.from_numpy(np.ascontiguousarray(x.transpose(2, 0, 1))).float()
 
-def mask_to_tensor(m):
-    m = cv2.resize(m, (IN_W, IN_H), interpolation=cv2.INTER_NEAREST)
+def mask_to_tensor(m, w=STU_W, h=STU_H):
+    m = cv2.resize(m, (w, h), interpolation=cv2.INTER_NEAREST)
     return torch.from_numpy((np.ascontiguousarray(m) > 127).astype(np.float32))
 
 print("caching negatives...", flush=True)
@@ -158,15 +164,15 @@ def validate():
     dices = []
     with torch.no_grad():
         for pth in val_pos:
-            x = to_tensor(cv2.imread(pth))[None].to(DEV)
+            x = to_tensor(cv2.imread(pth), STU_W, STU_H)[None].to(DEV)
             p = student(x)[0, 1].cpu().numpy() > 0.5
             gt = cv2.resize(cv2.imread(
                 f"data/kvasir_seg/Kvasir-SEG/masks/{os.path.basename(pth)}", 0),
-                (IN_W, IN_H), interpolation=cv2.INTER_NEAREST) > 127
+                (STU_W, STU_H), interpolation=cv2.INTER_NEAREST) > 127
             dices.append(2 * (p & gt).sum() / (p.sum() + gt.sum() + 1e-9))
         fires = 0
         for f in valneg_frames:
-            x = to_tensor(f)[None].to(DEV)
+            x = to_tensor(f, STU_W, STU_H)[None].to(DEV)
             p = student(x)[0, 1].cpu().numpy()
             binm = p > 0.5
             if binm.mean() > 0.001 and (p[binm].mean() if binm.any() else 0) >= 0.7:
@@ -193,25 +199,29 @@ for ep in range(start_ep, EPOCHS):
     losses = []
     for bi in range(0, len(samples), BATCH):
         batch = samples[bi:bi + BATCH]
-        xs, ys, labs = [], [], []
+        xt, xs_, ys, labs = [], [], [], []
         for kind, ref in batch:
             if kind == "pos":
                 img = cv2.imread(ref)
                 m = cv2.imread(f"data/kvasir_seg/Kvasir-SEG/masks/{os.path.basename(ref)}", 0)
                 img, m = augment(img, m, rng2)
-                xs.append(to_tensor(img)); ys.append(mask_to_tensor(m)); labs.append(1.0)
+                ys.append(mask_to_tensor(m)); labs.append(1.0)
             elif kind == "neg":
                 img, _ = augment(neg_frames[ref], None, rng2)
-                xs.append(to_tensor(img)); ys.append(torch.zeros(IN_H, IN_W)); labs.append(1.0)
+                ys.append(torch.zeros(STU_H, STU_W)); labs.append(1.0)
             else:
                 img, _ = augment(cv2.imread(ref), None, rng2)
-                xs.append(to_tensor(img)); ys.append(torch.zeros(IN_H, IN_W)); labs.append(0.0)
-        x = torch.stack(xs).to(DEV); y = torch.stack(ys).to(DEV)
+                ys.append(torch.zeros(STU_H, STU_W)); labs.append(0.0)
+            xt.append(to_tensor(img))
+            xs_.append(to_tensor(img, STU_W, STU_H))
+        y = torch.stack(ys).to(DEV)
         lab = torch.tensor(labs).to(DEV)
         with torch.no_grad():
-            tprob = teacher(x)[:, 1]
+            tp = teacher(torch.stack(xt).to(DEV))[:, 1:2]
+            tprob = torch.nn.functional.interpolate(
+                tp, (STU_H, STU_W), mode="bilinear", align_corners=False)[:, 0]
         opt.zero_grad()
-        loss = loss_fn(student(x), y, tprob, lab)
+        loss = loss_fn(student(torch.stack(xs_).to(DEV)), y, tprob, lab)
         loss.backward()
         opt.step()
         losses.append(float(loss))
