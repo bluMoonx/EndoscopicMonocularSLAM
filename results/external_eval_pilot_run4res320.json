@@ -1,0 +1,44 @@
+{
+ "student": "models/polyp_student/run4_res320/student_ep26.pth",
+ "student_res": [
+  320,
+  240
+ ],
+ "sets": {
+  "CVC-ClinicDB": {
+   "n": 62,
+   "teacher_dice": 0.2475,
+   "student_dice": 0.2253,
+   "gap": 0.0222
+  },
+  "CVC-ColonDB": {
+   "n": 380,
+   "teacher_dice": 0.1338,
+   "student_dice": 0.1587,
+   "gap": -0.0248
+  },
+  "ETIS-LaribPolypDB": {
+   "n": 196,
+   "teacher_dice": 0.1209,
+   "student_dice": 0.1028,
+   "gap": 0.0181
+  },
+  "CVC-300": {
+   "n": 60,
+   "teacher_dice": 0.124,
+   "student_dice": 0.1301,
+   "gap": -0.0062
+  }
+ },
+ "pooled": {
+  "n": 698,
+  "teacher_dice": 0.1395,
+  "student_dice": 0.1464,
+  "gap": -0.007
+ },
+ "gate_G1prime": {
+  "pooled_gap_le_0.03": true,
+  "per_set_gap_le_0.05": true,
+  "verdict": "PASS"
+ }
+}

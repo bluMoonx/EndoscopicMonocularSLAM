@@ -27,12 +27,16 @@ Run history (archived subfolders of models/polyp_student/):
       frames soft-labeled by the teacher (HyperKvasir deliberately excluded:
       the untouched test clips live there). Best 0.888 - saturates ~0.89,
       fails v1 gate G1; speed at 384x288 is 2.29-2.47x, under the 2.5x bar.
-  run 4 (this file): the protocol-v2 candidate (results/distill_protocol_v2.md,
-      committed before any external evaluation). Student input 320x240
-      (measured 3.28x, passes G3 with margin); teacher runs at its native
-      384x288 and its soft labels are bilinearly resized to the student grid;
-      unlabeled pool raised to 2000. Accuracy is judged by v2's external
-      head-to-head gate G1', not the (caveated) teacher val score.
+  run4_res320/  first 320x240 candidate: best Dice 0.8913 (ep 26) but the
+      control fire rate is noisy across epochs at this resolution and the
+      best-Dice epoch fired at 11.2% (bar: 7.5%); the qualifying epochs'
+      weights were not kept. Outcome: no adoptable checkpoint, by bookkeeping
+      rather than by capability.
+  run 5 (this file): identical training, with the selection rule formalized
+      BEFORE the run: the candidate checkpoint is the epoch with the highest
+      val Dice among epochs whose control fire rate is <= 7.5% (selection
+      uses only val/control data - the external gate sets and the test split
+      are never touched by selection). Saved as student_best.pth.
 
 Budget-resumable. Usage: python speqslam/train_student.py [minutes]
 """
@@ -231,11 +235,13 @@ for ep in range(start_ep, EPOCHS):
     d, fr = validate()
     torch.save({"model": student.state_dict(), "opt": opt.state_dict(),
                 "epoch": ep + 1}, ck_path)
-    best = max([0.0] + [float(r["val_dice"]) for r in csv.DictReader(open(mcsv))])
-    if d >= best:
+    FIRE_BAR = 0.075
+    qual = [float(r["val_dice"]) for r in csv.DictReader(open(mcsv))
+            if float(r["valneg_fire_rate"]) <= FIRE_BAR]
+    if fr <= FIRE_BAR and d >= max([0.0] + qual):
         torch.save(student.state_dict(), f"{OUT}/student_best.pth")
         with open(f"{OUT}/best.txt", "w") as f:
-            f.write(f"epoch {ep+1} val_dice {d:.4f} fire {fr:.3f}\n")
+            f.write(f"epoch {ep+1} val_dice {d:.4f} fire {fr:.3f} (qualifying best)\n")
     with open(mcsv, "a", newline="") as f:
         csv.writer(f).writerow([ep + 1, f"{d:.4f}", f"{fr:.3f}"])
     print(f"epoch {ep+1}/{EPOCHS}: loss {np.mean(losses):.4f} | val Dice {d:.4f} | "

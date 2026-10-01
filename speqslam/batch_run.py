@@ -36,10 +36,21 @@ else:
         csv.writer(f).writerow(COLS)
 
 net = demo_app.DepthNet()
-model = load_model()
-if ALT_WEIGHTS:
+if ALT_WEIGHTS and "student" in ALT_WEIGHTS:
+    # distilled B0 student runs at its trained 320x240 input; segment() reads
+    # polyp_detect's module globals, so point them at the student resolution
+    import segmentation_models_pytorch as smp
+    import polyp_detect
+    model = smp.DeepLabV3Plus("efficientnet-b0", encoder_weights=None,
+                              classes=2, activation="sigmoid").to(DEV).eval()
     model.load_state_dict(torch.load(ALT_WEIGHTS, map_location=DEV, weights_only=True))
-    print(f"detector weights: {ALT_WEIGHTS}", flush=True)
+    polyp_detect.IN_W, polyp_detect.IN_H = 320, 240
+    print(f"STUDENT detector: {ALT_WEIGHTS} @320x240", flush=True)
+else:
+    model = load_model()
+    if ALT_WEIGHTS:
+        model.load_state_dict(torch.load(ALT_WEIGHTS, map_location=DEV, weights_only=True))
+        print(f"detector weights: {ALT_WEIGHTS}", flush=True)
 t_start = time.time()
 
 def biggest(positions, radius):
