@@ -1,0 +1,31 @@
+{
+ "candidate": "run-5 ep19 student (DLV3+/EfficientNet-B0 @320x240), selected by the pre-stated rule: best val Dice among epochs with control fire <= 7.5%",
+ "gates_v2": {
+  "G1_external": {"pooled_gap": -0.0028, "worst_set_gap": 0.0213, "bounds": [0.03, 0.05], "verdict": "PASS",
+   "note": "the teacher's 0.071 val advantage does not exist on any of 4 external benchmarks (698 images); its base model almost certainly trained on our val images (documented caveat, now with direct evidence)"},
+  "G2_control_fire": {"value": 0.062, "bar": 0.075, "teacher": 0.05, "verdict": "PASS"},
+  "G3_speed": {"replicates": [4.77, 3.39], "bar": 2.5, "protocol": "quiet machine, one ORT session alive, median of 50", "verdict": "PASS"}
+ },
+ "adoption_trial": {
+  "procedure": "full batch-study pipeline rerun with the student on all 60 clips; operating point derived on calib only by the same pre-stated zero-false-alarm criterion as the teacher's; test population opened once",
+  "frozen_rule": "camera-frame clustering, support >= 11 (calib: 4/9 polyp clips, 0 false alarms)",
+  "test_read": {
+   "detections": "12/21 polyp clips (57%); teacher 11/21 (52%)",
+   "false_alarms": "4/20 control clips (20%); teacher 3/20 (15%)",
+   "fisher_two_sided": {"student": 0.0247, "teacher": 0.0203},
+   "flagged_controls": [
+    {"clip": "nopolyp_5b18133d", "annotation": "cavity of anastomotic leak", "also_teacher": true},
+    {"clip": "nopolyp_4bd5623b", "annotation": "EMR", "also_teacher": true},
+    {"clip": "nopolyp_a47dce89", "annotation": "cancer", "also_teacher": true},
+    {"clip": "nopolyp_6cdbccf0", "annotation": "human hand", "also_teacher": false,
+     "note": "teacher maxC=1 on this clip; student maxC=39 - a persistent out-of-body false alarm and a qualitatively new failure mode"}
+   ]
+  }
+ },
+ "verdict": {
+  "gates": "all three PASS",
+  "replacement": "NOT ADOPTED, by the strict reading of the pre-stated bar: the teacher's documented claim ('every flagged control is genuine non-polyp pathology; zero fires on normal mucosa') is broken by the hand clip. Detection and discrimination are equivalent-or-better, and 'zero on normal mucosa' still holds, but a hand pinned as a polyp with support 39 is outside the teacher's band.",
+  "deployment": "CASCADE adopted as the design consequence: the student (3.4-4.8x faster) screens every frame during live operation; any frame it fires on is re-checked by the teacher before entering persistence clustering. Findings on the map remain teacher-grade by construction; the hand failure mode is filtered by the confirming teacher (maxC=1 on that clip). Per-frame cost on non-firing footage drops to the student's.",
+  "method_note": "the v1 rejection (results/distill_student.json) and this v2 arc are both kept: v1's accuracy gate compared against a number the external evaluation showed to be inflated by base-model train-on-test; v2 re-stated the gates before any external number existed (results/distill_protocol_v2.md, commit e70c6b8) and the candidate passed them - then still did not earn full replacement, because the adoption bar caught a failure mode no aggregate gate measured. Three layers of pre-stated criteria, each catching something the previous one could not."
+ }
+}
