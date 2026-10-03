@@ -35,6 +35,9 @@ def eval_traj(gt, est):
     return ate, base
 
 def nums_of(base):
+    if os.path.exists(f"{base}/nums.json"):
+        import json
+        return json.load(open(f"{base}/nums.json"))
     fr = sorted(glob.glob(f"{base}/rgb/*.png"),
                 key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))
     return [int(os.path.splitext(os.path.basename(p))[0]) for p in fr]
@@ -115,10 +118,11 @@ T = np.frombuffer(bts, np.int32, 3 * nt, 8 + 28 * nv)
 ok_mesh = (len(bts) == 8 + 28 * nv + 12 * nt and T.max() < nv and T.min() >= 0
            and not np.isnan(V).any())
 check("app mesh_full.bin integrity (1=ok)", 1, int(ok_mesh), 0)
-check("app mesh under-seen % (views<3)", 36.9, 100 * (W < 3).mean(), 0.2)
+# app bundle is the c2 flagship since commit 5d7e7a6 (was c1_t4: 36.9%, 2800 pts)
+check("app mesh under-seen % (views<3)", 49.1, 100 * (W < 3).mean(), 0.2)
 span = float((V.max(0) - V.min(0)).max() / 2)
 check("app mesh span mm (sane 100-400)", 1, int(100 <= span <= 400), 0)
-for name, npts in (("traj_full.bin", 2800), ("gt_full.bin", 2800)):
+for name, npts in (("traj_full.bin", 3667), ("gt_full.bin", 3667)):
     tb = open(f"{A}/{name}", "rb").read()
     tn = struct.unpack_from("<i", tb, 0)[0]
     P = np.frombuffer(tb, np.float32, 3 * tn, 4)
@@ -129,7 +133,7 @@ bb = open(f"{A}/born_full.bin", "rb").read()
 bn = struct.unpack_from("<i", bb, 0)[0]
 born = np.frombuffer(bb, np.uint16, bn, 4)
 check("app born_full.bin per-vertex", nv, bn, 0)
-check("app born indices < traj length", 1, int(born.max() < 2800), 0)
+check("app born indices < traj length", 1, int(born.max() < 3667), 0)
 
 # batch detection stats from the frozen CSVs
 import csv as csvmod

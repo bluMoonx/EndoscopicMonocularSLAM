@@ -103,7 +103,11 @@ if start < n:
 poses = list(np.load(POSE_CK))
 rejected = list(np.load(REJ_CK)) if os.path.exists(REJ_CK) else []
 est = np.array([p[:3, 3] for p in poses])
-gt = np.array([gt_all[k][1] for k in nums[:len(poses)]])
+# native-rate sets carry 1-based GT frame numbers in their filenames; the
+# constant one-frame (~40 ms) offset is immaterial at ~0.25 mm/frame motion
+# and absorbed by Sim(3) alignment (disclosed in results)
+off = 1 if max(nums[:len(poses)]) >= len(gt_all) else 0
+gt = np.array([gt_all[k - off][1] for k in nums[:len(poses)]])
 gt = gt - gt[0]
 path = float((np.linalg.norm(np.diff(gt, axis=0), axis=1) * 1000).sum())
 ate = umeyama_ate(gt, est) * 1000

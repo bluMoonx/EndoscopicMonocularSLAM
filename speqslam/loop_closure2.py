@@ -407,9 +407,12 @@ elif STAGE == 13:
 
 elif STAGE == 14:
     from c3vdv2_deform import load_poses, umeyama_ate
-    frames_raw = sorted(glob.glob(f"{BASE}/rgb/*.png"),
-                        key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))
-    nums = [int(os.path.splitext(os.path.basename(p))[0]) for p in frames_raw]
+    if os.path.exists(f"{BASE}/nums.json"):
+        nums = json.load(open(f"{BASE}/nums.json"))
+    else:
+        nums = [int(os.path.splitext(os.path.basename(p))[0]) for p in
+                sorted(glob.glob(f"{BASE}/rgb/*.png"),
+                       key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))]
     gt_all = load_poses(f"{BASE}/pose.txt")
     gt = np.array([gt_all[k][1] for k in nums[:n]])
     gt = gt - gt[0]
@@ -437,9 +440,12 @@ elif STAGE == 5:
     from c3vdv2_deform import load_poses, umeyama_ate
     poses = list(np.load(f"{BASE}/poses_est.npy"))
     verified = json.load(open(f"{OUTD}/verified2.json"))
-    frames_raw = sorted(glob.glob(f"{BASE}/rgb/*.png"),
-                        key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))
-    nums = [int(os.path.splitext(os.path.basename(p))[0]) for p in frames_raw]
+    if os.path.exists(f"{BASE}/nums.json"):
+        nums = json.load(open(f"{BASE}/nums.json"))
+    else:
+        nums = [int(os.path.splitext(os.path.basename(p))[0]) for p in
+                sorted(glob.glob(f"{BASE}/rgb/*.png"),
+                       key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))]
     gt_all = load_poses(f"{BASE}/pose.txt")
     gt_T = {}
     for k in nums[:n]:
@@ -532,9 +538,12 @@ elif STAGE == 5:
 
 elif STAGE == 4:
     from c3vdv2_deform import load_poses, umeyama_ate
-    frames_raw = sorted(glob.glob(f"{BASE}/rgb/*.png"),
-                        key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))
-    nums = [int(os.path.splitext(os.path.basename(p))[0]) for p in frames_raw]
+    if os.path.exists(f"{BASE}/nums.json"):
+        nums = json.load(open(f"{BASE}/nums.json"))
+    else:
+        nums = [int(os.path.splitext(os.path.basename(p))[0]) for p in
+                sorted(glob.glob(f"{BASE}/rgb/*.png"),
+                       key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))]
     gt_all = load_poses(f"{BASE}/pose.txt")
     gt = np.array([gt_all[k][1] for k in nums[:n]])
     gt = gt - gt[0]
