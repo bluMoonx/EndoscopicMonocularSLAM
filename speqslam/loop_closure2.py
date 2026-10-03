@@ -27,6 +27,26 @@ the two other withdrawals untouched. PASS iff BOTH frozen-test ATEs improve
 by >= 10%; any frozen test worsening by > 2% is a FAIL regardless of the
 other. Native-rate application only follows a PASS.
 
+V2 VERDICT (recorded after its frozen tests): FAIL - c2 +16.6%, c1_t1 +2.9%.
+Post-hoc audit: the PnP translations are accurate (median closure error
+5.2 mm vs 31.5 mm odometry drift at the same pairs on c2); the harm came
+from the rotation and scale terms v2 newly enabled on closure edges (post-hoc
+ablation on c2: same closures translation-only = -9.2%, vs oracle -13.5%).
+The oracle run on all three withdrawals bounds ANY closure method at
+-4.6% / -13.5% / -7.5%: screening withdrawals are near-linear, so most drift
+accumulates on wall seen exactly once.
+
+V3 (stage 13 below), frozen before its test data was even downloaded:
+stages 1 and 2 bit-identical to v2's frozen versions; the pose graph uses
+TRANSLATION-ONLY closure edges (rotation and scale sigmas 10.0, i.e. off)
+with each closure's own parallax-aware sig_t - the one combination neither
+v1 (biased translations) nor v2 (good translations, poisoned rotation/scale)
+tested. Test sequences: c1_full_t2_v1 and c2_full_t2_v1, untouched by every
+prior stage of this project. PASS iff both improve, mean improvement >= 5%
+(the oracle showed the achievable ceiling is sequence-dependent, 5-14%);
+any worsening > 2% is a FAIL. The two v2-burned sequences are reported as
+development evidence only.
+
 Usage: python speqslam/loop_closure2.py <base_dir> <stage> [minutes]
 """
 import os, sys, glob, time, json
@@ -307,6 +327,102 @@ elif STAGE == 3:
         frames_out[f] = (Rg @ (sg * (p - anchor))) + (Rg @ anchor + tg)
     np.save(f"{OUTD}/traj_optimized2.npy", frames_out)
     print("stage 3 (v2): corrected trajectory saved", flush=True)
+
+elif STAGE == 13:
+    # v3 pose graph: translation-only closures, parallax-aware sigmas.
+    from scipy.optimize import least_squares
+    from scipy.sparse import lil_matrix
+    from scipy.spatial.transform import Rotation as Rot
+    poses = list(np.load(f"{BASE}/poses_est.npy"))
+    verified = json.load(open(f"{OUTD}/verified2.json"))
+    nodes = sorted(set(KFS) | {0, n - 1})
+    nid = {f: i for i, f in enumerate(nodes)}
+    nn = len(nodes)
+    x0 = np.zeros(nn * 7)
+    for f, i in nid.items():
+        T = poses[f]
+        x0[7*i:7*i+3] = Rot.from_matrix(T[:3, :3]).as_rotvec()
+        x0[7*i+3:7*i+6] = T[:3, 3]
+    edges = []
+    for a, b in zip(nodes[:-1], nodes[1:]):
+        Trel = np.linalg.inv(poses[a]) @ poses[b]
+        edges.append((nid[a], nid[b], Trel, 0.0, 1.0, 0.02, 0.02, 0.05))
+    steps = np.array([np.linalg.norm((np.linalg.inv(poses[i-1]) @ poses[i])[:3, 3])
+                      for i in range(1, len(poses))])
+    cum = np.concatenate([[0.0], np.cumsum(steps)])
+    kept, dropped = 0, 0
+    for a, b, sim, T_ab_l, med_a, med_b, inl, rms, sig_t in verified:
+        T_ab = np.array(T_ab_l)
+        Trel = np.linalg.inv(T_ab)
+        odo_rel = (np.linalg.inv(poses[a]) @ poses[b])[:3, 3]
+        if np.linalg.norm(odo_rel - Trel[:3, 3]) > \
+           max(DRIFT_FLOOR, DRIFT_BUDGET * max(cum[b] - cum[a], 1e-6)):
+            dropped += 1
+            continue
+        kept += 1
+        edges.append((nid[a], nid[b], Trel, 0.0, 1.0, 10.0, sig_t, 10.0))
+    print(f"stage 13 (v3): alias gate kept {kept}, dropped {dropped}", flush=True)
+    def unpack(x, i):
+        R = Rot.from_rotvec(x[7*i:7*i+3]).as_matrix()
+        return R, x[7*i+3:7*i+6], np.exp(x[7*i+6])
+    def residuals(x):
+        res = np.zeros(len(edges) * 7 + 7)
+        for e, (i, j, Tij, dls, w, sr, stt, ss) in enumerate(edges):
+            Ri, ti, si = unpack(x, i)
+            Rj, tj, sj = unpack(x, j)
+            Rrel = Ri.T @ Rj
+            trel = Ri.T @ (tj - ti) / si
+            res[7*e:7*e+3] = w * (Rot.from_matrix(
+                Tij[:3, :3].T @ Rrel).as_rotvec()) / sr
+            res[7*e+3:7*e+6] = w * (trel - Tij[:3, 3]) / stt
+            res[7*e+6] = w * ((x[7*j+6] - x[7*i+6]) - dls) / ss
+        res[-7:] = 50.0 * (x[:7] - x0[:7])
+        return res
+    sp = lil_matrix((len(edges) * 7 + 7, nn * 7), dtype=int)
+    for e, (i, j, *_r) in enumerate(edges):
+        sp[7*e:7*e+7, 7*i:7*i+7] = 1
+        sp[7*e:7*e+7, 7*j:7*j+7] = 1
+    sp[-7:, :7] = 1
+    t0 = time.time()
+    sol = least_squares(residuals, x0, jac_sparsity=sp, method="trf",
+                        loss="soft_l1", f_scale=3.0, max_nfev=60)
+    print(f"stage 13 (v3): {nn} nodes, {len(edges)} edges in {time.time()-t0:.0f}s",
+          flush=True)
+    xs = sol.x
+    corr = {}
+    for f, i in nid.items():
+        R0, t0_, _ = unpack(x0, i)
+        R1, t1, s1 = unpack(xs, i)
+        corr[f] = (R1 @ R0.T, t1 - (R1 @ R0.T) @ t0_, s1)
+    frames_out = np.zeros((n, 3))
+    node_arr = np.array(nodes)
+    for f in range(n):
+        k = node_arr[np.searchsorted(node_arr, f, side="right") - 1]
+        Rg, tg, sg = corr[k]
+        p = poses[f][:3, 3]
+        anchor = poses[k][:3, 3]
+        frames_out[f] = (Rg @ (sg * (p - anchor))) + (Rg @ anchor + tg)
+    np.save(f"{OUTD}/traj_optimized3.npy", frames_out)
+    print("stage 13 (v3): corrected trajectory saved", flush=True)
+
+elif STAGE == 14:
+    from c3vdv2_deform import load_poses, umeyama_ate
+    frames_raw = sorted(glob.glob(f"{BASE}/rgb/*.png"),
+                        key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))
+    nums = [int(os.path.splitext(os.path.basename(p))[0]) for p in frames_raw]
+    gt_all = load_poses(f"{BASE}/pose.txt")
+    gt = np.array([gt_all[k][1] for k in nums[:n]])
+    gt = gt - gt[0]
+    est0 = np.array([p[:3, 3] for p in np.load(f"{BASE}/poses_est.npy")])[:n]
+    est1 = np.load(f"{OUTD}/traj_optimized3.npy")[:n]
+    base = float(np.sqrt(((gt - gt.mean(0)) ** 2).sum(1).mean())) * 1000
+    a0 = umeyama_ate(gt, est0) * 1000
+    a1 = umeyama_ate(gt, est1) * 1000
+    print(f"stage 14 (v3) [{os.path.basename(BASE)}]:", flush=True)
+    print(f"  odometry only : ATE {a0:.1f} mm ({a0/base:.2f}x baseline {base:.0f} mm)",
+          flush=True)
+    print(f"  + v3 closure  : ATE {a1:.1f} mm ({a1/base:.2f}x baseline)", flush=True)
+    print(f"  change: {100*(a1-a0)/a0:+.1f}%", flush=True)
 
 elif STAGE == 5:
     # ORACLE (dev diagnostic only, disclosed): rerun stage 3 with each kept
