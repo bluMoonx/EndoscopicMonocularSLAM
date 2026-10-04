@@ -88,6 +88,7 @@ und = sorted(glob.glob(f"{BASE}/undist/*.jpg"))
 n = len(und)
 KFS = list(range(0, n, KF_STRIDE))
 OUTD = f"{BASE}/loopclosure"
+os.makedirs(OUTD, exist_ok=True)
 K = np.array([[250.0, 0, 320.0], [0, 250.0, 256.0], [0, 0, 1]])
 
 if STAGE == 1:
@@ -414,7 +415,8 @@ elif STAGE == 14:
                 sorted(glob.glob(f"{BASE}/rgb/*.png"),
                        key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))]
     gt_all = load_poses(f"{BASE}/pose.txt")
-    gt = np.array([gt_all[k][1] for k in nums[:n]])
+    off = 1 if max(nums[:n]) >= len(gt_all) else 0
+    gt = np.array([gt_all[k - off][1] for k in nums[:n]])
     gt = gt - gt[0]
     est0 = np.array([p[:3, 3] for p in np.load(f"{BASE}/poses_est.npy")])[:n]
     est1 = np.load(f"{OUTD}/traj_optimized3.npy")[:n]
@@ -447,18 +449,12 @@ elif STAGE == 5:
                 sorted(glob.glob(f"{BASE}/rgb/*.png"),
                        key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))]
     gt_all = load_poses(f"{BASE}/pose.txt")
-    gt_T = {}
-    for k in nums[:n]:
-        q = gt_all[k]
-        T = np.eye(4); T[:3, 3] = q[1]
-        T[:3, :3] = Rot.from_quat(q[0]).as_matrix() if len(q) > 1 and \
-            hasattr(q[0], "__len__") and len(q[0]) == 4 else np.eye(3)
-        gt_T[nums.index(k)] = T
+    off = 1 if max(nums[:n]) >= len(gt_all) else 0
     # GT scale differs from depth-network scale; estimate one global scale from
     # path lengths so oracle closures live in the odometry's units
     est_steps = sum(np.linalg.norm((np.linalg.inv(poses[i-1]) @ poses[i])[:3, 3])
                     for i in range(1, n))
-    gt_pos = np.array([gt_all[k][1] for k in nums[:n]])
+    gt_pos = np.array([gt_all[k - off][1] for k in nums[:n]])
     gt_steps = np.linalg.norm(np.diff(gt_pos, axis=0), axis=1).sum()
     s_gt2est = est_steps / max(gt_steps, 1e-9)
     nodes = sorted(set(KFS) | {0, n - 1})
@@ -545,7 +541,8 @@ elif STAGE == 4:
                 sorted(glob.glob(f"{BASE}/rgb/*.png"),
                        key=lambda p: int(os.path.splitext(os.path.basename(p))[0]))]
     gt_all = load_poses(f"{BASE}/pose.txt")
-    gt = np.array([gt_all[k][1] for k in nums[:n]])
+    off = 1 if max(nums[:n]) >= len(gt_all) else 0
+    gt = np.array([gt_all[k - off][1] for k in nums[:n]])
     gt = gt - gt[0]
     est0 = np.array([p[:3, 3] for p in np.load(f"{BASE}/poses_est.npy")])[:n]
     est1 = np.load(f"{OUTD}/traj_optimized2.npy")[:n]

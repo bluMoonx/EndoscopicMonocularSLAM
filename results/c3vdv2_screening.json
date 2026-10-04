@@ -66,7 +66,7 @@
    "ate_over_baseline": 0.65
   }
  ],
- "framerate_note": "guard rate is the primary metric; ATE/baseline is meaningful only when the guard is quiet (at stride 24, 40% of the path is coasting, so its ATE reflects dead-reckoning, not tracking). Native rate closes the curve: guard 0.9%, ATE 110 mm (0.65x baseline) - frame rate fully solves trackability, and the residual error is accumulation drift, the loop-closure problem. GT frame indexing is 1-based in the source filenames; all associations carry a constant one-frame (~40 ms) offset, immaterial at ~0.25 mm median motion per frame and absorbed by Sim(3) alignment.",
+ "framerate_note": "guard rate is the primary metric; ATE/baseline is meaningful only when the guard is quiet (at stride 24, 40% of the path is coasting, so its ATE reflects dead-reckoning, not tracking). Native rate closes the curve: guard 0.9%, ATE 110 mm (0.65x baseline) - frame rate fully solves trackability, and the residual error is accumulation drift. (Loop closure was subsequently shown NOT to be the remedy: the oracle experiment in results/loop_closure_v3.json bounds even perfect closures at 5-14% of ATE on these near-linear screening paths.) GT frame indexing is 1-based in the source filenames; all associations carry a constant one-frame (~40 ms) offset, immaterial at ~0.25 mm median motion per frame and absorbed by Sim(3) alignment.",
  "replication_c2_full_t1_v1": {
   "frames_s3": 3667,
   "gt_path_mm": 7003,
