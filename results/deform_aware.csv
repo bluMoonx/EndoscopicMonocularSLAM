@@ -1,0 +1,11 @@
+seq,kind,frames,ate_base_mm,ate_huber_mm,ate_smooth_mm
+c1_cecum_t1_v4,deform,101,13.43,13.28,13.43
+c1_cecum_t1_v1,control,109,25.17,22.69,25.17
+c1_descending_t4_v4,deform,91,12.08,5.26,12.08
+c1_descending_t4_v1,control,96,1.37,1.04,1.37
+c1_transverse1_t1_v4,deform,104,9.98,7.93,9.97
+c1_transverse1_t1_v2,control,117,3.97,1.73,3.97
+c2_cecum_t1_v4,deform,106,9.27,9.09,9.27
+c2_cecum_t1_v1,control,102,18.92,18.46,18.84
+c1_ascending_t4_v4,deform,112,10.35,9.39,10.35
+c1_sigmoid2_t4_v4,deform,96,2.90,3.68,2.89
