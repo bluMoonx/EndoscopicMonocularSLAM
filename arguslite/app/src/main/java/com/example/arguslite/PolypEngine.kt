@@ -10,30 +10,36 @@ import android.graphics.Color
 import android.graphics.Paint
 import java.nio.FloatBuffer
 
-class PolypEngine(context: Context) {
+class PolypEngine(context: Context, useStudent: Boolean = true) {
     private val env = OrtEnvironment.getEnvironment()
     // CPU only: the NNAPI attempt measured ~3x slower than plain CPU on-device
-    // (143s of detection in an 80-frame study) - reverted on evidence. Prefers
-    // the accuracy-gated int8 model when shipped (same gate recipe as depth).
-    private val session = env.createSession(
+    // (143s of detection in an 80-frame study) - reverted on evidence.
+    // CASCADE: the distilled student (polyp_s.onnx, 320x240, 3.4-4.8x faster,
+    // all protocol-v2 gates passed) screens every frame; any frame it fires on
+    // is re-run through the teacher, whose result is the one reported. Findings
+    // stay teacher-grade by construction - the adoption trial showed the student
+    // alone pins a human hand as a polyp (support 39 vs the teacher's 1), so the
+    // student proposes and the teacher decides. Without polyp_s.onnx the engine
+    // is teacher-only, exactly as before.
+    private val teacher = env.createSession(
         runCatching { context.assets.open("polyp_q.onnx").readBytes() }
             .getOrElse { context.assets.open("polyp.onnx").readBytes() },
         OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
+    private val student: OrtSession? = if (!useStudent) null else
+        runCatching {
+            env.createSession(context.assets.open("polyp_s.onnx").readBytes(),
+                OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
+        }.getOrNull()
 
     data class Result(val overlay: Bitmap, val found: Boolean, val areaPct: Float,
                       val avgConf: Float, val peakConf: Float, val boxW: Int, val boxH: Int,
                       val cx: Float = 0.5f, val cy: Float = 0.5f, val outW: Int = 1,
                       val outH: Int = 1, val maskGrid: BooleanArray? = null)
 
-    // exclude126: static-overlay mask on a 126x126 grid — burned-in scope UI is not tissue
-    // and must not count as a detection. gridN > 0 additionally returns the segmentation
-    // mask resampled to gridN x gridN, for depth lookups over the whole mask.
-    fun run(src: Bitmap, exclude126: BooleanArray? = null, gridN: Int = 0): Result {
-        val inW = 384; val inH = 288
+    private fun infer(session: OrtSession, src: Bitmap, inW: Int, inH: Int): Array<FloatArray> {
         val s = Bitmap.createScaledBitmap(src, inW, inH, true)
         val px = IntArray(inW * inH)
         s.getPixels(px, 0, inW, 0, 0, inW, inH)
-
         val mean = floatArrayOf(0.485f, 0.456f, 0.406f)
         val std = floatArrayOf(0.229f, 0.224f, 0.225f)
         val buf = FloatBuffer.allocate(3 * inW * inH)
@@ -46,11 +52,44 @@ class PolypEngine(context: Context) {
             buf.put(((v / 255f) - mean[c]) / std[c])
         }
         buf.rewind()
-
         val input = OnnxTensor.createTensor(env, buf, longArrayOf(1L, 3L, inH.toLong(), inW.toLong()))
-        val prob = session.run(mapOf("pixels" to input)).use { out ->
+        return session.run(mapOf("pixels" to input)).use { out ->
             @Suppress("UNCHECKED_CAST")
             (out[0].value as Array<Array<Array<FloatArray>>>)[0][1]   // channel 1 = polyp
+        }
+    }
+
+    // Fraction of the student grid above threshold, outside the static-overlay mask.
+    private fun firedFrac(prob: Array<FloatArray>, inW: Int, inH: Int,
+                          exclude126: BooleanArray?): Float {
+        var hit = 0; var tot = 0
+        for (y in 0 until inH) for (x in 0 until inW) {
+            if (exclude126 != null &&
+                exclude126[(y * 126 / inH) * 126 + (x * 126 / inW)]) continue
+            tot++
+            if (prob[y][x] > 0.5f) hit++
+        }
+        return if (tot > 0) hit.toFloat() / tot else 0f
+    }
+
+    // exclude126: static-overlay mask on a 126x126 grid — burned-in scope UI is not tissue
+    // and must not count as a detection. gridN > 0 additionally returns the segmentation
+    // mask resampled to gridN x gridN, for depth lookups over the whole mask.
+    fun run(src: Bitmap, exclude126: BooleanArray? = null, gridN: Int = 0): Result {
+        var inW = 384; var inH = 288
+        var prob: Array<FloatArray>
+        if (student != null) {
+            // student screens at 320x240 against HALF the found-floor (0.05% vs the
+            // 0.1% `found` bar), so no borderline frame can reach `found` unconfirmed
+            val sProb = infer(student, src, 320, 240)
+            if (firedFrac(sProb, 320, 240, exclude126) <= 0.0005f) {
+                inW = 320; inH = 240
+                prob = sProb                      // quiet frame: student's word is final
+            } else {
+                prob = infer(teacher, src, inW, inH)   // fired: teacher decides
+            }
+        } else {
+            prob = infer(teacher, src, inW, inH)
         }
 
         val scale = minOf(1f, 1024f / src.width)

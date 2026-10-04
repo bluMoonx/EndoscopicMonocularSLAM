@@ -668,28 +668,51 @@ class MainActivity : ComponentActivity() {
                 Column(Modifier.padding(16.dp)) {
                     Text("Measure this phone", style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary)
-                    Text("Every number above was measured; this one is measured right " +
-                            "now, on this device. The button runs the quantized depth " +
-                            "network twelve times on a colonoscopy frame and reports the " +
-                            "median.", style = MaterialTheme.typography.bodySmall)
+                    Text("Every number above was measured; these are measured right " +
+                            "now, on this device: the quantized depth network, the " +
+                            "full-size polyp detector, and the screen-then-confirm " +
+                            "detector cascade, twelve runs each on a colonoscopy frame, " +
+                            "median reported.", style = MaterialTheme.typography.bodySmall)
                     var bench by remember { mutableStateOf<String?>(null) }
                     var running by remember { mutableStateOf(false) }
                     FilledTonalButton(enabled = !running, onClick = {
                         running = true; bench = "loading model…"
                         kotlin.concurrent.thread {
                             try {
-                                val eng = DepthEngine(this@MainActivity)
                                 val frame = BitmapFactory.decodeStream(
                                     assets.open("fullreplay/f000.jpg"))
-                                repeat(2) { eng.infer(frame) }   // warm-up
-                                val times = LongArray(12) {
-                                    val t0 = android.os.SystemClock.elapsedRealtime()
-                                    eng.infer(frame)
-                                    android.os.SystemClock.elapsedRealtime() - t0
-                                }.sorted()
-                                bench = "depth: ${times[6]} ms/frame (int8, " +
-                                        (if (eng.accelerated) "NNAPI accelerated" else
-                                            "CPU") + ") — measured just now"
+                                fun median(warm: () -> Unit, run: () -> Unit): Long {
+                                    repeat(2) { warm() }
+                                    return LongArray(12) {
+                                        val t0 = android.os.SystemClock.elapsedRealtime()
+                                        run()
+                                        android.os.SystemClock.elapsedRealtime() - t0
+                                    }.sorted()[6]
+                                }
+                                val eng = DepthEngine(this@MainActivity)
+                                val dMs = median({ eng.infer(frame) }, { eng.infer(frame) })
+                                bench = "depth: $dMs ms (int8, " +
+                                        (if (eng.accelerated) "NNAPI" else "CPU") +
+                                        ") — measuring detector…"
+                                val teacher = PolypEngine(this@MainActivity,
+                                    useStudent = false)
+                                val tMs = median({ teacher.run(frame) },
+                                    { teacher.run(frame) })
+                                val casc = PolypEngine(this@MainActivity)
+                                val cMs = median({ casc.run(frame) }, { casc.run(frame) })
+                                val quiet = cMs < tMs
+                                bench = "depth: $dMs ms (int8) · detector full-size: " +
+                                        "$tMs ms · cascade: $cMs ms — " +
+                                        (if (quiet) "the screener cleared this frame " +
+                                            "alone (${"%.1f".format(
+                                                tMs.toFloat() / cMs)}× faster; a frame " +
+                                            "it fires on costs both stages)"
+                                        else "the screener fired on this frame, so both " +
+                                            "stages ran (quiet frames cost only the " +
+                                            "screener)") +
+                                        " — measured just now, on this phone"
+                                android.util.Log.i("ArgusBench",
+                                    "depth=$dMs teacher=$tMs cascade=$cMs")
                             } catch (e: Exception) {
                                 bench = "benchmark failed: ${e.message}"
                             }

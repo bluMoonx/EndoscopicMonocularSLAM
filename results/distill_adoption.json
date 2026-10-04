@@ -22,6 +22,14 @@
    ]
   }
  },
+ "on_device": {
+  "measured": "2026-10-03, in-app benchmark card (12 runs, median), Pixel-class phone, CPU",
+  "depth_int8_ms": 113,
+  "teacher_ms": 280,
+  "cascade_quiet_frame_ms": 87,
+  "speedup_quiet": 3.2,
+  "note": "quiet frames (the screener does not fire) cost only the student; fired frames cost both stages and are re-decided by the teacher. The in-app card re-measures this live on any device."
+ },
  "verdict": {
   "gates": "all three PASS",
   "replacement": "NOT ADOPTED, by the strict reading of the pre-stated bar: the teacher's documented claim ('every flagged control is genuine non-polyp pathology; zero fires on normal mucosa') is broken by the hand clip. Detection and discrimination are equivalent-or-better, and 'zero on normal mucosa' still holds, but a hand pinned as a polyp with support 39 is outside the teacher's band.",
