@@ -1,18 +1,22 @@
 """Deformation attempt 4: an EXPLICIT deformation model, estimated jointly
 with camera pose (the first remaining candidate named since 4.13).
 
-Model: each reference-frame point may move along its viewing ray by a
-fractional depth perturbation b(x), parameterized on a coarse GX x GY
-bilinear grid (wall "breathing" is radial at colon scale). The photometric
-Gauss-Newton state becomes [xi (6) | b (GX*GY)] and both are optimized
-together on the half-resolution level after the standard rigid pyramid
-initializes the pose. Two priors resolve the camera-vs-wall gauge ambiguity
-(the stationary-camera sequence proved a rigid tracker absorbs wall motion
-into pose; here the ridge makes pose the cheaper explanation wherever both
-fit): LAM * ||b||^2 pulls deformation to zero, MU * ||L b||^2 (grid
-Laplacian) keeps it spatially smooth. The pose is then read out and the
-deformation discarded - b is a nuisance parameter that exists to keep wall
-motion OUT of the pose.
+Model (v2): each reference-frame point may be displaced by a 3D vector
+field D(x), parameterized on a coarse GX x GY bilinear grid (3 components
+per node). v1 parameterized displacement ALONG THE VIEWING RAY, and a
+synthetic recovery test exposed that as projectively invisible: scaling a
+point along its own ray does not move its projection, so the model spanned
+almost exactly the motion subspace a monocular camera cannot see, and
+correctly absorbed nothing. Real wall motion appears as tangential flow,
+which needs the full 3D field. The state is [xi (6) | D (3*GX*GY)], solved
+jointly at the half-resolution level after a COARSE-levels-only rigid init
+(a fully converged rigid init leaves zero pose gradient and re-imports the
+4.13 failure - learned in dev round 1). Gauge handling: a uniform field is
+exactly a camera translation, so the per-axis MEAN of D is constrained to
+zero (heavy quadratic penalty), pushing global motion into the pose;
+LAM * ||D||^2 (scaled to the data term) pulls residual deformation to zero
+and MU * ||L D||^2 keeps it smooth. The pose is read out; D is discarded -
+a nuisance parameter that exists to keep non-rigid motion OUT of the pose.
 
 Mechanism vs the three excluded families: masking (4.13) and Huber (4.17)
 could only REMOVE pixels, which fails when most of the image deforms;
@@ -91,11 +95,10 @@ def grid_laplacian():
 LTL = grid_laplacian().T @ grid_laplacian()
 
 def joint_refine(ref, dep, cur, K, T, glare, lam, mu):
-    """One joint [pose | deformation] Gauss-Newton at this level. Returns T."""
+    """One joint [pose | 3D deformation field] Gauss-Newton at this level."""
     h, w = ref.shape
     fx, fy, cx, cy = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
     valid = (dep > 0) & (glare == 0)
-    valid[::PX_STRIDE, :] = valid[::PX_STRIDE, :]
     sub = np.zeros_like(valid)
     sub[::PX_STRIDE, ::PX_STRIDE] = True
     valid &= sub
@@ -109,11 +112,12 @@ def joint_refine(ref, dep, cur, K, T, glare, lam, mu):
     gxi = cv2.Sobel(cur, cv2.CV_32F, 1, 0, ksize=3) * 0.125
     gyi = cv2.Sobel(cur, cv2.CV_32F, 0, 1, ksize=3) * 0.125
     nb = GX * GY
-    b = np.zeros(nb, np.float32)
-    Aprior = None          # built on first iteration, scaled to the data term
+    nd = 3 * nb                       # D stored axis-major: [Dx(nb), Dy(nb), Dz(nb)]
+    D = np.zeros(nd, np.float32)
+    Aprior = None
     for _ in range(JOINT_ITERS):
-        bp = Phi @ b                            # per-pixel fractional depth
-        P = P0 * (1.0 + bp)[:, None]
+        disp = np.stack([Phi @ D[0:nb], Phi @ D[nb:2*nb], Phi @ D[2*nb:]], 1)
+        P = P0 + disp
         R, t = T[:3, :3], T[:3, 3]
         Pc = P @ R.T + t
         Zc = Pc[:, 2]
@@ -142,26 +146,33 @@ def joint_refine(ref, dep, cur, K, T, glare, lam, mu):
         dP[:, 0, 4] = Zv;        dP[:, 0, 5] = -Pcv[:, 1]
         dP[:, 1, 3] = -Zv;       dP[:, 1, 5] = Pcv[:, 0]
         dP[:, 2, 3] = Pcv[:, 1]; dP[:, 2, 4] = -Pcv[:, 0]
-        Jxi = np.einsum('nk,nkj->nj', Jpp, dP)
-        # dPc/db_k = R @ P0 * phi_k  ->  scalar s = Jpp . (P0 R^T), Jb = s * Phi
-        w3 = (P0[m] @ R.T)
-        s = np.einsum('nk,nk->n', Jpp, w3)
-        Jb = s[:, None] * Phi[m]
-        J = np.concatenate([Jxi, Jb], 1)        # (N, 6+nb)
-        H = J.T @ J
-        g = J.T @ r
+        Jxi = np.einsum('nk,nkj->nj', Jpp, dP).astype(np.float32)
+        # dPc/dD_(k,axis) = R[:,axis] * phi_k  ->  Jd_axis = (Jpp @ R)[:,axis] * Phi
+        JR = (Jpp @ R).astype(np.float32)     # (N,3)
+        Phim = Phi[m]
+        J = np.concatenate([Jxi,
+                            JR[:, 0:1] * Phim,
+                            JR[:, 1:2] * Phim,
+                            JR[:, 2:3] * Phim], 1)   # (N, 6+nd)
+        H = (J.T @ J).astype(np.float64)
+        g = (J.T @ r).astype(np.float64)
         if Aprior is None:
-            scale = float(np.trace(H[6:, 6:]) / nb)   # data-term magnitude
-            Aprior = (lam * scale) * np.eye(nb, dtype=np.float32) \
-                + (mu * scale) * LTL
+            scale = float(np.trace(H[6:, 6:]) / nd)
+            Aprior = np.zeros((nd, nd))
+            ones = np.ones((nb, nb)) / nb
+            for a in range(3):
+                s_, e_ = a * nb, (a + 1) * nb
+                Aprior[s_:e_, s_:e_] = (lam * scale) * np.eye(nb) \
+                    + (mu * scale) * LTL \
+                    + (1e3 * scale) * ones   # zero-mean gauge: uniform D = camera translation
         H[6:, 6:] += Aprior
-        g[6:] += Aprior @ b
+        g[6:] += Aprior @ D
         try:
-            delta = -np.linalg.solve(H + 1e-6 * np.eye(6 + nb), g)
+            delta = -np.linalg.solve(H + 1e-6 * np.eye(6 + nd), g)
         except np.linalg.LinAlgError:
             break
         T = se3_exp(delta[:6]) @ T
-        b = b + delta[6:].astype(np.float32)
+        D = (D + delta[6:]).astype(np.float32)
         if np.linalg.norm(delta) < 1e-6:
             break
     return T
@@ -229,12 +240,23 @@ if MODE in ("dev", "run"):
 
 if MODE == "dev":
     t0 = time.time()
-    with open("results/deform_model_dev.txt", "a") as f:
+    devlog = "results/deform_model_dev.txt"
+    have = set()
+    if os.path.exists(devlog):
+        for ln in open(devlog):
+            if ln.startswith("lam"):
+                have.add(ln.split(":")[0])
+    with open(devlog, "a") as f:
         for lam in (0.03, 0.3, 3.0):
             for seq in ("c1_cecum_t1_v4", "c1_cecum_t1_v1"):
+                key = f"lam=mu={lam:g} {seq}"
+                if key in have:
+                    continue
+                if time.time() - t0 > BUDGET_S:
+                    print("budget reached; resume me", flush=True)
+                    sys.exit(0)
                 r = run_seq(seq, net, mapu, mapv, K, lam, lam)
-                line = (f"lam=mu={lam:g} {seq}: base {r['base']:.2f} "
-                        f"dm {r['dm']:.2f} mm")
+                line = f"{key}: base {r['base']:.2f} dm {r['dm']:.2f} mm"
                 print(line, flush=True)
                 f.write(line + "\n")
                 f.flush()
