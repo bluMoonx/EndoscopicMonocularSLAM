@@ -43,8 +43,17 @@ import scaramuzza_undistort as su
 from c3vdv2_deform import V2CAL, SEQS, load_poses, umeyama_ate
 
 GX, GY = 8, 6
-# FROZEN after the dev sweep (values recorded by `dev` mode; see results/deform_model_dev.txt)
-LAM, MU = 3000.0, 3000.0
+# LAM/MU are RELATIVE prior strengths: the solver scales them by the data
+# term's own magnitude (mean diagonal of H_bb), so "1.0" means prior and data
+# compete at parity. The first dev sweep used absolute values (300-30000) that
+# turned out to be numerically negligible against H_bb ~ 1e5, AND initialized
+# the joint solve from the fully rigid-converged pose - where the pose
+# gradient is already zero, so wall motion absorbed during init stayed in the
+# pose (the 4.13 "too late" failure, rediscovered inside attempt 4). Fixed:
+# rigid init uses only the coarse pyramid levels; the joint solve runs at the
+# two finer levels while the pose is still rough.
+# FROZEN after the dev re-sweep (see results/deform_model_dev.txt)
+LAM, MU = 0.3, 0.3
 PX_STRIDE = 2          # pixel subsampling at the joint level (half resolution)
 JOINT_ITERS = 12
 DEV_PAIR = {"c1_cecum_t1_v4", "c1_cecum_t1_v1"}
@@ -101,7 +110,7 @@ def joint_refine(ref, dep, cur, K, T, glare, lam, mu):
     gyi = cv2.Sobel(cur, cv2.CV_32F, 0, 1, ksize=3) * 0.125
     nb = GX * GY
     b = np.zeros(nb, np.float32)
-    Aprior = lam * np.eye(nb, dtype=np.float32) + mu * LTL
+    Aprior = None          # built on first iteration, scaled to the data term
     for _ in range(JOINT_ITERS):
         bp = Phi @ b                            # per-pixel fractional depth
         P = P0 * (1.0 + bp)[:, None]
@@ -141,6 +150,10 @@ def joint_refine(ref, dep, cur, K, T, glare, lam, mu):
         J = np.concatenate([Jxi, Jb], 1)        # (N, 6+nb)
         H = J.T @ J
         g = J.T @ r
+        if Aprior is None:
+            scale = float(np.trace(H[6:, 6:]) / nb)   # data-term magnitude
+            Aprior = (lam * scale) * np.eye(nb, dtype=np.float32) \
+                + (mu * scale) * LTL
         H[6:, 6:] += Aprior
         g[6:] += Aprior @ b
         try:
@@ -154,15 +167,24 @@ def joint_refine(ref, dep, cur, K, T, glare, lam, mu):
     return T
 
 def track_pair_dm(g0, dep0, g1, K, glare, lam=LAM, mu=MU):
-    T = dv.track_pair(g0, dep0, g1, K, 4, robust=False, depth_scale=1.0,
-                      glare=glare, illum=True)
-    half = lambda im: cv2.pyrDown(im)
-    K1 = K.copy(); K1[:2, :] *= 0.5
-    dep1 = cv2.resize(dep0, (g0.shape[1] // 2, g0.shape[0] // 2),
-                      interpolation=cv2.INTER_NEAREST)
-    gl1 = cv2.resize(glare, (g0.shape[1] // 2, g0.shape[0] // 2),
-                     interpolation=cv2.INTER_NEAREST)
-    return joint_refine(half(g0), dep1, half(g1), K1, T, gl1, lam, mu)
+    # rigid init from the COARSE pyramid levels only (quarter res and below),
+    # so the joint solve sees a pose that has not yet absorbed wall motion
+    grefs, gcurs, gdeps, gls, Ks = [g0], [g1], [dep0], [glare], [K]
+    for _ in range(1, 4):
+        grefs.append(cv2.pyrDown(grefs[-1]))
+        gcurs.append(cv2.pyrDown(gcurs[-1]))
+        gdeps.append(cv2.resize(gdeps[-1], (grefs[-1].shape[1], grefs[-1].shape[0]),
+                                interpolation=cv2.INTER_NEAREST))
+        gls.append(cv2.resize(gls[-1], (grefs[-1].shape[1], grefs[-1].shape[0]),
+                              interpolation=cv2.INTER_NEAREST))
+        Kl = Ks[-1].copy(); Kl[:2, :] *= 0.5; Ks.append(Kl)
+    T = np.eye(4)
+    for l in (3, 2):
+        T = dv._align_level(grefs[l], gdeps[l], gcurs[l], Ks[l], T, 15,
+                            False, 1.0, glare=gls[l], illum=True)
+    for l in (1,):
+        T = joint_refine(grefs[l], gdeps[l], gcurs[l], Ks[l], T, gls[l], lam, mu)
+    return T
 
 def run_seq(seq, net, mapu, mapv, K, lam, mu):
     base = f"data/c3vdv2/{seq}"
@@ -198,13 +220,17 @@ def run_seq(seq, net, mapu, mapv, K, lam, mu):
         out[name] = umeyama_ate(gt, np.array(traj)) * 1000
     return out
 
-mapu, mapv, K = su.build_map(V2CAL)
-net = demo_app.DepthNet()
+if __name__ != "__main__":
+    MODE = "imported"      # importing this module must never run the experiment
+
+if MODE in ("dev", "run"):
+    mapu, mapv, K = su.build_map(V2CAL)
+    net = demo_app.DepthNet()
 
 if MODE == "dev":
     t0 = time.time()
     with open("results/deform_model_dev.txt", "a") as f:
-        for lam in (300.0, 3000.0, 30000.0):
+        for lam in (0.03, 0.3, 3.0):
             for seq in ("c1_cecum_t1_v4", "c1_cecum_t1_v1"):
                 r = run_seq(seq, net, mapu, mapv, K, lam, lam)
                 line = (f"lam=mu={lam:g} {seq}: base {r['base']:.2f} "
@@ -213,7 +239,7 @@ if MODE == "dev":
                 f.write(line + "\n")
                 f.flush()
     print(f"dev sweep done ({time.time()-t0:.0f}s)", flush=True)
-else:
+elif MODE == "run":
     done = set()
     if os.path.exists(RES):
         done = {r["seq"] for r in csv.DictReader(open(RES))}
