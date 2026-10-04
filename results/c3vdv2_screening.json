@@ -121,5 +121,15 @@
   "c2_full_t2_v1_s3": {"ate_mm": 107.6, "gt_path_mm": 7493, "baseline_mm": 127.4, "ate_over_baseline": 0.84, "guarded": "113 of 4133 (2.7%)"},
   "note": "fetched as untouched loop-closure-v3 test sequences; their guarded stride-3 runs extend the holding-end family to n=5"
  },
- "replication_summary": "n=5 complete withdrawals at stride 3 (2 colon models, ~43 m combined GT path): guard 1.5-4.2%, ATE 0.60-0.84x baseline. Native rate n=2 (one per colon model): guard 0.9% and 1.6%, ATE 0.65x and 0.82x baseline - frame rate solves trackability on both models; the residual is the drift plateau"
+ "replication_c1t1_native": {
+  "frames": 11000,
+  "gt_path_mm": 10222,
+  "ate_mm": 102.5,
+  "ate_pct": 1.00,
+  "baseline_mm": 157.6,
+  "ate_over_baseline": 0.65,
+  "guarded": "235 of 10999 (2.1%)",
+  "verdict": "third native-rate withdrawal: guard 2.1% vs 23.0% at 1/12 on the same video"
+ },
+ "replication_summary": "n=5 complete withdrawals at stride 3 (2 colon models, ~43 m combined GT path): guard 1.5-4.2%, ATE 0.60-0.84x baseline. NATIVE RATE n=3 (both colon models, 28 m combined GT path, 30,400 tracked pairs): guard 0.9% / 1.6% / 2.1% vs 16-23% at 1/12 of native rate; ATE 102-110 mm (0.65-0.82x baseline, 1.0-1.2% of path) - frame rate fully solves trackability on every withdrawal tested, and the residual is the drift plateau that the loop-closure oracle (results/loop_closure_v3.json) showed no closure method can remove on near-linear screening paths"
 }
