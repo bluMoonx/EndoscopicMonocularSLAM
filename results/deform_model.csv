@@ -1,0 +1,9 @@
+seq,kind,ate_base_mm,ate_dm_mm
+c1_descending_t4_v4,deform,12.08,7.63
+c1_descending_t4_v1,control,1.37,1.22
+c1_transverse1_t1_v4,deform,9.98,9.87
+c1_transverse1_t1_v2,control,3.97,1.42
+c2_cecum_t1_v4,deform,9.27,7.60
+c2_cecum_t1_v1,control,18.92,18.03
+c1_ascending_t4_v4,deform,10.35,5.27
+c1_sigmoid2_t4_v4,deform,2.90,3.82

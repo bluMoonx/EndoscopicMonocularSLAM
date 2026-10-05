@@ -1,0 +1,3 @@
+lam=mu=300 c1_cecum_t1_v4: base 13.43 dm 13.45 mm
+lam=mu=300 c1_cecum_t1_v1: base 25.17 dm 25.48 mm
+lam=mu=3000 c1_cecum_t1_v4: base 13.43 dm 13.45 mm

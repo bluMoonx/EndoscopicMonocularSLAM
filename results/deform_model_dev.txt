@@ -1,0 +1,6 @@
+lam=mu=0.03 c1_cecum_t1_v4: base 13.43 dm 13.16 mm
+lam=mu=0.03 c1_cecum_t1_v1: base 25.17 dm 23.91 mm
+lam=mu=0.3 c1_cecum_t1_v4: base 13.43 dm 13.30 mm
+lam=mu=0.3 c1_cecum_t1_v1: base 25.17 dm 24.51 mm
+lam=mu=3 c1_cecum_t1_v4: base 13.43 dm 13.36 mm
+lam=mu=3 c1_cecum_t1_v1: base 25.17 dm 24.95 mm
