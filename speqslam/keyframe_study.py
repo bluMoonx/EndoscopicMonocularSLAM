@@ -45,7 +45,11 @@ from c3vdv2_deform import umeyama_ate
 KF_ROT_DEG = 6.0
 KF_MAX_GAP = 30
 KF_TRANS_DEV = (0.002, 0.004, 0.008)   # swept on dev only
-KF_TRANS = 0.004                        # FROZEN after dev (results/keyframe_dev.txt)
+# FROZEN after dev (results/keyframe_dev.txt): 2mm -11.2% / 4mm +12% / 8mm +8%
+# on c1_t4 - small gaps win; wider baselines cost more per track than the
+# drift they save. Dev improvement is below the 15% test bar; the frozen
+# test runs regardless and the verdict is whatever the rule says.
+KF_TRANS = 0.002
 MAX_STEP_M = 0.060
 MAX_ROT_DEG = 35.0
 DS = 100.0 / 65535.0 / 1000.0
