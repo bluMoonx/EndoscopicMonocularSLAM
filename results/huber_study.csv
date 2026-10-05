@@ -1,0 +1,6 @@
+seq,ate_recorded_mm,ate_base_mm,ate_huber_mm
+trans_t1_a,1.593,1.543,0.153
+trans_t2_a,0.674,0.750,0.620
+trans_t2_b,1.466,1.366,0.274
+desc_t4_a,0.173,0.170,0.155
+cecum_t1_a,0.645,0.683,0.893
