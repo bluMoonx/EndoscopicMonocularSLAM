@@ -56,8 +56,10 @@ GX, GY = 8, 6
 # pose (the 4.13 "too late" failure, rediscovered inside attempt 4). Fixed:
 # rigid init uses only the coarse pyramid levels; the joint solve runs at the
 # two finer levels while the pose is still rough.
-# FROZEN after the dev re-sweep (see results/deform_model_dev.txt)
-LAM, MU = 0.3, 0.3
+# FROZEN after the dev re-sweep (see results/deform_model_dev.txt): the
+# loosest prior won on dev (deform 13.43 -> 13.16, control 25.17 -> 23.91),
+# an effect of only -2% on the deforming sequence vs the 20% bar
+LAM, MU = 0.03, 0.03
 PX_STRIDE = 2          # pixel subsampling at the joint level (half resolution)
 JOINT_ITERS = 12
 DEV_PAIR = {"c1_cecum_t1_v4", "c1_cecum_t1_v1"}
