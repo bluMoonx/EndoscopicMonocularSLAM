@@ -1,0 +1,6 @@
+theta 0.05 mm: deform median +10.0% | worst control +4.4% | joint engaged on 82% of pairs
+theta 0.1 mm: deform median +9.5% | worst control +16.5% | joint engaged on 68% of pairs
+theta 0.15 mm: deform median +9.8% | worst control +17.4% | joint engaged on 59% of pairs
+theta 0.25 mm: deform median +10.0% | worst control +6.5% | joint engaged on 45% of pairs
+theta 0.4 mm: deform median +1.9% | worst control +0.0% | joint engaged on 27% of pairs
+theta 1e+09 mm: deform median +0.0% | worst control +0.0% | joint engaged on 0% of pairs
