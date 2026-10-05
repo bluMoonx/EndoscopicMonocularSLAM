@@ -31,8 +31,26 @@ PROTOCOL (develop-freeze-test, stated before any result):
                the 5 judged deforming sequences >= 20%, AND no judged
                control worsened by > 10% (same family as 4.13/4.17).
 
-Usage: python speqslam/deform_model.py dev            (sweep on the dev pair)
-       python speqslam/deform_model.py run [minutes]  (frozen evaluation)
+ATTEMPT 5 (adaptive field) - PROTOCOL, stated before its test data was
+downloaded. Attempt 4 failed its bar at +18.0% with a clean structure: the
+field helps in proportion to deformation present and costs noise where none
+exists. The adaptive variant gates per frame-pair on the recovered field's
+RMS displacement (the field is its own deformation detector: the prior pins
+it near zero on rigid pairs, deformation inflates it): rms < THETA -> use
+the rigid pose, else the joint pose. Because the gate idea exists BECAUSE
+of attempt 4's test results, those eight sequences are burned as a judge
+and become the dev set: THETA is chosen there (mode dev2, from per-pair
+logs produced by mode log). The frozen test runs on sequences untouched by
+every prior attempt: deforming c1_sigmoid1_t4_v4, c1_transverse1_t4_v4,
+c2_transverse1_t1_v4, c2_ascending_t1_v4; rigid controls c1_sigmoid1_t1_v1,
+c1_ascending_t4_v1, c2_transverse1_t1_v1. Criterion unchanged: median
+deforming improvement >= 20%, no control worse than 10%.
+
+Usage: python speqslam/deform_model.py dev             (attempt-4 dev-pair sweep)
+       python speqslam/deform_model.py run [minutes]   (attempt-4 frozen eval)
+       python speqslam/deform_model.py log [minutes]   (attempt-5 dev logging)
+       python speqslam/deform_model.py dev2            (attempt-5 THETA sweep)
+       python speqslam/deform_model.py test2 [minutes] (attempt-5 frozen test)
 """
 import sys, os, csv, glob, time
 import numpy as np, cv2
@@ -65,6 +83,16 @@ JOINT_ITERS = 12
 DEV_PAIR = {"c1_cecum_t1_v4", "c1_cecum_t1_v1"}
 RES = "results/deform_model.csv"
 MAXF = 120
+# ---- attempt 5 ----
+THETA_MM = 0.15        # FROZEN after the dev2 sweep (results/deform_adaptive_dev.txt)
+LOGD = "results/deform_logs"
+TEST2 = [  # fresh sequences, untouched by attempts 1-4 (dirs are *_s1 from fetch_full)
+    ("c1_sigmoid1_t4_v4_s1", "deform"), ("c1_transverse1_t4_v4_s1", "deform"),
+    ("c2_transverse1_t1_v4_s1", "deform"), ("c2_ascending_t1_v4_s1", "deform"),
+    ("c1_sigmoid1_t1_v1_s1", "control"), ("c1_ascending_t4_v1_s1", "control"),
+    ("c2_transverse1_t1_v1_s1", "control"),
+]
+RES2 = "results/deform_adaptive.csv"
 
 def grid_basis(xs, ys, w, h):
     """Bilinear basis matrix Phi (N, GX*GY) for pixel coords."""
@@ -106,7 +134,7 @@ def joint_refine(ref, dep, cur, K, T, glare, lam, mu):
     valid &= sub
     ys, xs = np.nonzero(valid)
     if len(xs) < 500:
-        return T
+        return T, 0.0
     d = dep[ys, xs].astype(np.float32)
     P0 = np.stack([(xs - cx) / fx * d, (ys - cy) / fy * d, d], 1)
     Iref = ref[ys, xs].astype(np.float32)
@@ -177,7 +205,9 @@ def joint_refine(ref, dep, cur, K, T, glare, lam, mu):
         D = (D + delta[6:]).astype(np.float32)
         if np.linalg.norm(delta) < 1e-6:
             break
-    return T
+    disp = np.stack([Phi @ D[0:nb], Phi @ D[nb:2*nb], Phi @ D[2*nb:]], 1)
+    rms_mm = float(np.sqrt((disp ** 2).sum(1).mean())) * 1000.0
+    return T, rms_mm
 
 def track_pair_dm(g0, dep0, g1, K, glare, lam=LAM, mu=MU):
     # rigid init from the COARSE pyramid levels only (quarter res and below),
@@ -195,9 +225,8 @@ def track_pair_dm(g0, dep0, g1, K, glare, lam=LAM, mu=MU):
     for l in (3, 2):
         T = dv._align_level(grefs[l], gdeps[l], gcurs[l], Ks[l], T, 15,
                             False, 1.0, glare=gls[l], illum=True)
-    for l in (1,):
-        T = joint_refine(grefs[l], gdeps[l], gcurs[l], Ks[l], T, gls[l], lam, mu)
-    return T
+    T, rms_mm = joint_refine(grefs[1], gdeps[1], gcurs[1], Ks[1], T, gls[1], lam, mu)
+    return T, rms_mm
 
 def run_seq(seq, net, mapu, mapv, K, lam, mu):
     base = f"data/c3vdv2/{seq}"
@@ -227,16 +256,55 @@ def run_seq(seq, net, mapu, mapv, K, lam, mu):
                 T = dv.track_pair(g0, deps[i-1], g1, K, 4, robust=False,
                                   depth_scale=1.0, glare=glare, illum=True)
             else:
-                T = track_pair_dm(g0, deps[i-1], g1, K, glare, *fn)
+                T, _ = track_pair_dm(g0, deps[i-1], g1, K, glare, *fn)
             pose = pose @ np.linalg.inv(T)
             traj.append(pose[:3, 3].copy())
         out[name] = umeyama_ate(gt, np.array(traj)) * 1000
     return out
 
+def run_seq_log(seq, net, mapu, mapv, K):
+    """Track a sequence once, logging per-pair rigid delta, joint delta and
+    the recovered field RMS - the raw material for the theta sweep."""
+    base = f"data/c3vdv2/{seq}"
+    rgbs = sorted(glob.glob(f"{base}/rgb/*.png")) or \
+        sorted(glob.glob(f"{base}/*/rgb/*.png"))
+    pose_candidates = glob.glob(f"{base}/pose.txt") + glob.glob(f"{base}/*/pose.txt")
+    poses_gt = load_poses(pose_candidates[0])
+    n_all = min(len(rgbs), len(poses_gt))
+    stride = max(1, int(np.ceil(n_all / MAXF)))
+    idx = list(range(0, n_all, stride))
+    frames, deps = [], []
+    for i in idx:
+        img = su.undistort(cv2.imread(rgbs[i]), mapu, mapv)
+        frames.append(img)
+        deps.append(net.predict(img))
+    gt = np.array([poses_gt[i][1] for i in idx])
+    rig, joi, rms = [], [], []
+    for i in range(1, len(frames)):
+        g0 = cv2.cvtColor(frames[i-1], cv2.COLOR_BGR2GRAY).astype(np.float32)/255.0
+        g1 = cv2.cvtColor(frames[i], cv2.COLOR_BGR2GRAY).astype(np.float32)/255.0
+        glare = specular_mask(frames[i-1], method="adaptive", k=2.0,
+                              lo=225, hi=245, dilate=1)
+        Tr = dv.track_pair(g0, deps[i-1], g1, K, 4, robust=False,
+                           depth_scale=1.0, glare=glare, illum=True)
+        Tj, r = track_pair_dm(g0, deps[i-1], g1, K, glare)
+        rig.append(Tr); joi.append(Tj); rms.append(r)
+    np.savez(f"{LOGD}/{seq}.npz", rigid=np.array(rig), joint=np.array(joi),
+             rms=np.array(rms), gt=gt - gt[0])
+
+def assemble_ate(log, theta):
+    """ATE of the adaptive trajectory (rigid where rms < theta, else joint)."""
+    pose = np.eye(4); traj = [pose[:3, 3].copy()]
+    for Tr, Tj, r in zip(log["rigid"], log["joint"], log["rms"]):
+        T = Tr if r < theta else Tj
+        pose = pose @ np.linalg.inv(T)
+        traj.append(pose[:3, 3].copy())
+    return umeyama_ate(log["gt"], np.array(traj)) * 1000
+
 if __name__ != "__main__":
     MODE = "imported"      # importing this module must never run the experiment
 
-if MODE in ("dev", "run"):
+if MODE in ("dev", "run", "log", "test2"):
     mapu, mapv, K = su.build_map(V2CAL)
     net = demo_app.DepthNet()
 
@@ -290,5 +358,76 @@ elif MODE == "run":
                  for r in rows if r["kind"] == "control"]
         ok = np.median(d_imp) >= 0.20 and max(c_wor) <= 0.10
         print(f"\nVERDICT (pre-registered): deform median "
+              f"{100*np.median(d_imp):+.1f}% | worst control "
+              f"{100*max(c_wor):+.1f}% -> {'PASS' if ok else 'FAIL'}", flush=True)
+
+elif MODE == "log":
+    os.makedirs(LOGD, exist_ok=True)
+    t0 = time.time()
+    for seq, kind in SEQS:
+        if os.path.exists(f"{LOGD}/{seq}.npz"):
+            continue
+        if time.time() - t0 > BUDGET_S:
+            print("budget reached; resume me", flush=True)
+            break
+        print(f"logging {seq} [{kind}]", flush=True)
+        run_seq_log(seq, net, mapu, mapv, K)
+    print("log session done", flush=True)
+
+elif MODE == "dev2":
+    with open("results/deform_adaptive_dev.txt", "w") as f:
+        for theta in (0.05, 0.10, 0.15, 0.25, 0.40, 1e9):
+            d_imp, c_wor, gates = [], [], []
+            for seq, kind in SEQS:
+                log = np.load(f"{LOGD}/{seq}.npz")
+                base = assemble_ate(log, 1e9)      # always-rigid
+                ada = assemble_ate(log, theta)
+                gates.append(float((log["rms"] >= theta).mean()))
+                if kind == "deform":
+                    d_imp.append(1 - ada / base)
+                else:
+                    c_wor.append(ada / base - 1)
+            line = (f"theta {theta:g} mm: deform median {100*np.median(d_imp):+.1f}% "
+                    f"| worst control {100*max(c_wor):+.1f}% "
+                    f"| joint engaged on {100*np.mean(gates):.0f}% of pairs")
+            print(line, flush=True)
+            f.write(line + "\n")
+
+elif MODE == "test2":
+    done = set()
+    if os.path.exists(RES2):
+        done = {r["seq"] for r in csv.DictReader(open(RES2))}
+    else:
+        with open(RES2, "w", newline="") as f:
+            csv.writer(f).writerow(["seq", "kind", "ate_base_mm", "ate_adaptive_mm",
+                                    "joint_pct"])
+    t0 = time.time()
+    for seq, kind in TEST2:
+        if seq in done:
+            continue
+        if time.time() - t0 > BUDGET_S:
+            print("budget reached; resume me", flush=True)
+            break
+        os.makedirs(LOGD, exist_ok=True)
+        if not os.path.exists(f"{LOGD}/{seq}.npz"):
+            print(f"logging {seq} [{kind}]", flush=True)
+            run_seq_log(seq, net, mapu, mapv, K)
+        log = np.load(f"{LOGD}/{seq}.npz")
+        base = assemble_ate(log, 1e9)
+        ada = assemble_ate(log, THETA_MM)
+        jp = 100 * float((log["rms"] >= THETA_MM).mean())
+        with open(RES2, "a", newline="") as f:
+            csv.writer(f).writerow([seq, kind, f"{base:.2f}", f"{ada:.2f}",
+                                    f"{jp:.0f}"])
+        print(f"{seq} [{kind}]: base {base:.2f} | adaptive {ada:.2f} mm "
+              f"(joint on {jp:.0f}%)", flush=True)
+    rows = list(csv.DictReader(open(RES2)))
+    if len(rows) == len(TEST2):
+        d_imp = [1 - float(r["ate_adaptive_mm"]) / float(r["ate_base_mm"])
+                 for r in rows if r["kind"] == "deform"]
+        c_wor = [float(r["ate_adaptive_mm"]) / float(r["ate_base_mm"]) - 1
+                 for r in rows if r["kind"] == "control"]
+        ok = np.median(d_imp) >= 0.20 and max(c_wor) <= 0.10
+        print(f"\nVERDICT attempt 5 (pre-registered): deform median "
               f"{100*np.median(d_imp):+.1f}% | worst control "
               f"{100*max(c_wor):+.1f}% -> {'PASS' if ok else 'FAIL'}", flush=True)
