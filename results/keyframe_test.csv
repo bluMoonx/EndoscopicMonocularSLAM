@@ -1,0 +1,5 @@
+seq,ate_base_mm,ate_kf_mm,guard_base_pct,guard_kf_pct
+c2_full_t1_v1_s3,92.1,91.7,1.5,1.6
+c1_full_t1_v1_s3,114.5,102.2,3.1,3.3
+c1_full_t2_v1_s3,116.5,122.8,4.2,4.3
+c2_full_t2_v1_s3,107.6,92.9,2.7,2.8
