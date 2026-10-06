@@ -39,7 +39,8 @@ def _bilinear(img, x, y):
             + img[y1, x0] * (1 - wx) * wy + img[y1, x1] * wx * wy)
 
 
-def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale, glare=None, illum=False):
+def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale, glare=None, illum=False,
+                 wmap=None):
     h, w = ref.shape
     fx, fy, cx, cy = K[0, 0], K[1, 1], K[0, 2], K[1, 2]
     valid = dep > 0
@@ -48,6 +49,7 @@ def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale, glare=None, il
     ys, xs = np.nonzero(valid)
     if len(xs) < 50:
         return T
+    wpix = None if wmap is None else wmap[ys, xs].astype(np.float32)
     d = dep[ys, xs].astype(np.float32) * depth_scale
     P = np.stack([(xs - cx) / fx * d, (ys - cy) / fy * d, d], 1)  # ref-frame 3D points (N,3)
     Iref = ref[ys, xs].astype(np.float32)
@@ -94,6 +96,8 @@ def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale, glare=None, il
             wt = np.where(a <= 1, 1.0, 1.0 / np.maximum(a, 1e-6))
         else:
             wt = np.ones_like(r)
+        if wpix is not None:              # learned per-pixel correspondence weights
+            wt = wt * wpix[m]
         H = np.einsum('ni,n,nj->ij', J, wt, J)
         g = np.einsum('ni,n->i', J, wt * r)
         try:
@@ -107,9 +111,10 @@ def _align_level(ref, dep, cur, K, T, iters, robust, depth_scale, glare=None, il
 
 
 def track_pair(ref, dep, cur, K, levels=4, iters=15, robust=True, depth_scale=1.0, glare=None,
-               illum=False):
+               illum=False, wmap=None):
     grefs, gdeps, gcurs, Ks = [ref], [dep], [cur], [K]
     glrs = None if glare is None else [glare]
+    wms = None if wmap is None else [wmap]
     for _ in range(1, levels):
         grefs.append(cv2.pyrDown(grefs[-1]))
         gcurs.append(cv2.pyrDown(gcurs[-1]))
@@ -118,12 +123,16 @@ def track_pair(ref, dep, cur, K, levels=4, iters=15, robust=True, depth_scale=1.
         if glrs is not None:
             glrs.append(cv2.resize(glrs[-1], (grefs[-1].shape[1], grefs[-1].shape[0]),
                                    interpolation=cv2.INTER_NEAREST))
+        if wms is not None:
+            wms.append(cv2.resize(wms[-1], (grefs[-1].shape[1], grefs[-1].shape[0]),
+                                  interpolation=cv2.INTER_LINEAR))
         Kl = Ks[-1].copy(); Kl[:2, :] *= 0.5; Ks.append(Kl)
     T = np.eye(4)
     for l in reversed(range(levels)):
         g = None if glrs is None else glrs[l]
+        wm = None if wms is None else wms[l]
         T = _align_level(grefs[l], gdeps[l], gcurs[l], Ks[l], T, iters, robust, depth_scale,
-                         glare=g, illum=illum)
+                         glare=g, illum=illum, wmap=wm)
     return T
 
 
