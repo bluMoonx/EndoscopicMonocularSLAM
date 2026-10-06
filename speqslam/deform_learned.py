@@ -232,7 +232,10 @@ elif MODE in ("dev", "test"):
                                     map_location=DEV, weights_only=True))
     mapu, mapv, K = su.build_map(V2CAL)
     net = demo_app.DepthNet()
-    ALPHA = 1.2    # FROZEN after dev (results/deform_learned_dev.txt)
+    # FROZEN after dev (results/deform_learned_dev.txt): 0.7 -> deform median
+    # +17.8%, worst control +6.6%; 0.5 pushed gains higher but broke a rigid
+    # control (+31%), disqualified by the clause on dev; 1.2/2.0 weaker.
+    ALPHA = 0.7
 
     def score_map(g0, g1, dep):
         flow = dis_flow(g0, g1)
@@ -293,7 +296,7 @@ elif MODE in ("dev", "test"):
             for ln in open(donelog):
                 have.add(ln.split(":")[0])
         with open(donelog, "a") as f:
-            for alpha in (0.7, 1.2, 2.0):
+            for alpha in (0.5, 0.7, 1.2, 2.0):
                 for seq, kind in SEQS:
                     key = f"a={alpha:g} {seq}"
                     if key in have:
