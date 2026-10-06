@@ -1,0 +1,7 @@
+seq,kind,ate_base_mm,ate_weighted_mm
+c1_sigmoid1_t4_v4_s1,deform,7.23,6.57
+c1_transverse1_t4_v4_s1,deform,10.14,9.35
+c2_transverse1_t1_v4_s1,deform,12.64,12.39
+c1_sigmoid1_t1_v1_s1,control,4.10,5.23
+c1_ascending_t4_v1_s1,control,8.96,2.61
+c2_transverse1_t1_v1_s1,control,17.28,10.67
