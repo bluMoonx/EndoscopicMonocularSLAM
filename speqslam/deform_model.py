@@ -86,9 +86,12 @@ MAXF = 120
 # ---- attempt 5 ----
 THETA_MM = 0.15        # FROZEN after the dev2 sweep (results/deform_adaptive_dev.txt)
 LOGD = "results/deform_logs"
-TEST2 = [  # fresh sequences, untouched by attempts 1-4 (dirs are *_s1 from fetch_full)
+TEST2 = [  # fresh sequences, untouched by attempts 1-5 (dirs are *_s1 from fetch_full)
+    # c2_ascending_t1_v4 was named in the original judge but its archive ships
+    # NO pose file (verified; dataset gap, not a results-based choice) - it is
+    # undownloadable as a judge and dropped, leaving 3 deforming + 3 controls.
     ("c1_sigmoid1_t4_v4_s1", "deform"), ("c1_transverse1_t4_v4_s1", "deform"),
-    ("c2_transverse1_t1_v4_s1", "deform"), ("c2_ascending_t1_v4_s1", "deform"),
+    ("c2_transverse1_t1_v4_s1", "deform"),
     ("c1_sigmoid1_t1_v1_s1", "control"), ("c1_ascending_t4_v1_s1", "control"),
     ("c2_transverse1_t1_v1_s1", "control"),
 ]
