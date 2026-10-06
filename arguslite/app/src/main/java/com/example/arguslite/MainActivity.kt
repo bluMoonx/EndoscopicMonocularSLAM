@@ -574,16 +574,33 @@ class MainActivity : ComponentActivity() {
                         "measures what it finds.")
             ExpandCard("Setbacks",
                 "The original idea was that lens glare was ruining the tracking. Testing " +
-                        "proved that mostly wrong because the original SLAM system used, ORB-SLAM3," +
+                        "proved that mostly wrong because the original SLAM system used, ORB-SLAM3, " +
                         "already accounts for that issue, and adding a secondary glare-filtering layer " +
                         "actually worsened the outcome. Then the whole system broke when it switched to a " +
                         "generic AI depth model, and a controlled experiment traced the failure to " +
-                        "that one part: the model had never seen the inside of a body.")
+                        "that one part: the model had never seen the inside of a body.\n\n" +
+                        "Every fix since then has faced a pass-or-fail rule written down before the " +
+                        "test ran, and most failed: three generations of loop closure, five attacks " +
+                        "on tissue deformation, two attempts to shrink or speed up the detector, and " +
+                        "two tracker upgrades. Each failure got an autopsy, and several produced the " +
+                        "project's best findings.")
             ExpandCard("Discoveries",
                 "After training the depth model on colon images, agreement with ground truth " +
-                        "went from 74 percent to 98.6 percent. The takeaway is bigger than one app: " +
-                        "AI vision cannot be trusted on territory it was never taught, and one " +
-                        "targeted fix in the right place can rescue a whole system.")
+                        "went from 74 percent to 98.6 percent. The same disease and the same cure " +
+                        "appeared again in the polyp detector: zero detections on unseen footage " +
+                        "before fine-tuning, half of polyp videos found after. The takeaway is bigger " +
+                        "than one app: AI vision cannot be trusted on territory it was never taught, " +
+                        "and one targeted fix in the right place can rescue a whole system.\n\n" +
+                        "Three more discoveries came from failures. Feeding the tracker every frame " +
+                        "instead of every twelfth takes it from drowning (one in five frames " +
+                        "untrackable) to nearly flawless, measured across five complete withdrawals. " +
+                        "Loop closure, the textbook fix for drift, provably cannot work here: a " +
+                        "screening withdrawal is a line, not a loop, so even perfect place " +
+                        "recognition recovers almost nothing. And wall motion toward the camera is " +
+                        "literally invisible to a single camera, part of why a colon that moves " +
+                        "fools any monocular tracker. On the detection side, a fast screener model " +
+                        "now checks every frame and anything suspicious is confirmed by the " +
+                        "accurate model, so the map only ever shows verified findings.")
         }
     }
 
