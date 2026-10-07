@@ -114,7 +114,9 @@ for row in manifest:
         g1 = cv2.cvtColor(frames[i], cv2.COLOR_BGR2GRAY).astype(np.float32)/255.0
         glare = specular_mask(frames[i-1], method="adaptive", k=2.0, lo=225, hi=245, dilate=1)
         bad = np.maximum(glare, static)
-        T = dv.track_pair(g0, deps[i-1], g1, K, 4, robust=False, depth_scale=1.0,
+        # PIPELINE V2 (Oct 2026): robust=True adopted after the staged Huber
+        # re-validation (speqslam/huber_v2.py, results/pipeline_v2.json)
+        T = dv.track_pair(g0, deps[i-1], g1, K, 4, robust=True, depth_scale=1.0,
                           glare=bad, illum=True)
         pose = pose @ np.linalg.inv(T)
         poses.append(pose.copy())

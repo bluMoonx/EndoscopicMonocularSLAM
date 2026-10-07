@@ -75,7 +75,10 @@ if start < n:
         g1 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).astype(np.float32) / 255.0
         glare = specular_mask(prev_img, method="adaptive", k=2.0, lo=225, hi=245,
                               dilate=1)
-        T = dv.track_pair(g0, prev_dep, g1, K, 4, robust=False, depth_scale=1.0,
+        # PIPELINE V2 (Oct 2026): robust=True adopted after the staged Huber
+        # re-validation (speqslam/huber_v2.py, results/pipeline_v2.json).
+        # All v1 (robust=False) numbers remain on record beside their v2 values.
+        T = dv.track_pair(g0, prev_dep, g1, K, 4, robust=True, depth_scale=1.0,
                           glare=glare, illum=True)
         step = float(np.linalg.norm(T[:3, 3]))
         ang = float(np.degrees(np.arccos(

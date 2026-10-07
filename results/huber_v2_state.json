@@ -1,0 +1,70 @@
+{
+ "stage": "B",
+ "A": {
+  "mean_base": 0.9024000000000001,
+  "mean_hub": 0.41900000000000004
+ },
+ "D": {
+  "worst_control": -0.024312896405919715
+ },
+ "C": {
+  "traj1": {
+   "ate_mm": 27.2,
+   "ratio": 0.636,
+   "recorded_ratio": 0.62
+  },
+  "traj2": {
+   "ate_mm": 32.4,
+   "ratio": 0.9,
+   "recorded_ratio": 0.89
+  },
+  "traj3": {
+   "ate_mm": 47.0,
+   "ratio": 0.758,
+   "recorded_ratio": 0.76
+  },
+  "traj4": {
+   "ate_mm": 25.4,
+   "ratio": 0.602,
+   "recorded_ratio": 0.63
+  },
+  "traj5": {
+   "ate_mm": 67.5,
+   "ratio": 0.955,
+   "recorded_ratio": 0.98
+  }
+ },
+ "B": {
+  "c1_full_t4_v1_s3": {
+   "ate_mm": 101.7,
+   "guard_pct": 2.6,
+   "base_ate": 101.4,
+   "base_guard": 3.0
+  },
+  "c2_full_t1_v1_s3": {
+   "ate_mm": 91.5,
+   "guard_pct": 1.4,
+   "base_ate": 92.1,
+   "base_guard": 1.5
+  },
+  "c1_full_t1_v1_s3": {
+   "ate_mm": 90.8,
+   "guard_pct": 3.0,
+   "base_ate": 114.5,
+   "base_guard": 3.1
+  },
+  "c1_full_t2_v1_s3": {
+   "ate_mm": 83.1,
+   "guard_pct": 4.3,
+   "base_ate": 116.5,
+   "base_guard": 4.2
+  },
+  "c2_full_t2_v1_s3": {
+   "ate_mm": 109.9,
+   "guard_pct": 2.6,
+   "base_ate": 107.6,
+   "base_guard": 2.7
+  }
+ },
+ "verdict": "PASS: all four stages - pipeline v2 (Huber) ADOPTABLE"
+}
