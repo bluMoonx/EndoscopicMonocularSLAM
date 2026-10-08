@@ -66,5 +66,39 @@
    "base_guard": 2.7
   }
  },
- "verdict": "PASS: all four stages - pipeline v2 (Huber) ADOPTABLE"
+ "verdict": "PASS: all four stages - pipeline v2 (Huber) ADOPTABLE",
+ "native_postscript": {
+  "obligation": "the three native-rate endpoints re-run under v2 after adoption; v1 trajectories preserved as poses_est_v1.npy",
+  "results": {
+   "c1_full_t4": {
+    "v1_ate_mm": 110.0,
+    "v2_ate_mm": 147.1,
+    "change_pct": 33.7,
+    "v1_ratio": 0.65,
+    "v2_ratio": 0.87,
+    "v1_guard": 0.9,
+    "v2_guard": 0.7
+   },
+   "c2_full_t1": {
+    "v1_ate_mm": 109.1,
+    "v2_ate_mm": 94.5,
+    "change_pct": -13.4,
+    "v1_ratio": 0.82,
+    "v2_ratio": 0.71,
+    "v1_guard": 1.6,
+    "v2_guard": 1.5
+   },
+   "c1_full_t1": {
+    "v1_ate_mm": 102.5,
+    "v2_ate_mm": 98.6,
+    "change_pct": -3.8,
+    "v1_ratio": 0.65,
+    "v2_ratio": 0.63,
+    "v1_guard": 2.1,
+    "v2_guard": 2.0
+   }
+  },
+  "decision": "stated rule before the tiebreaker: revert only if the c1_t4 regression replicated on both remaining withdrawals. It replicated on neither (both improved). Adoption STANDS; the c1_t4 native regression is published as a disclosed, sequence-specific caveat.",
+  "mechanism_hypothesis": "at native rate per-pair motion is ~0.25 mm (sub-pixel residual signal); Huber's median-based scale can down-weight signal pixels in that regime, and the interaction is sequence-dependent - c1_t4 was also the only stride-3 withdrawal where Huber was neutral rather than helpful"
+ }
 }
