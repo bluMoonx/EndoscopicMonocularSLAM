@@ -25,11 +25,19 @@ class PolypEngine(context: Context, useStudent: Boolean = true) {
         runCatching { context.assets.open("polyp_q.onnx").readBytes() }
             .getOrElse { context.assets.open("polyp.onnx").readBytes() },
         OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
-    private val student: OrtSession? = if (!useStudent) null else
-        runCatching {
-            env.createSession(context.assets.open("polyp_s.onnx").readBytes(),
-                OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
-        }.getOrNull()
+    // the student loads LAZILY on a background thread: session parsing is the
+    // expensive part of engine construction, and loading it inline stalled the
+    // live-study "calibrating" screen. Until it is ready, run() takes the
+    // teacher-only path - identical behavior to the pre-cascade app.
+    @Volatile private var student: OrtSession? = null
+    init {
+        if (useStudent) Thread {
+            student = runCatching {
+                env.createSession(context.assets.open("polyp_s.onnx").readBytes(),
+                    OrtSession.SessionOptions().apply { setIntraOpNumThreads(4) })
+            }.getOrNull()
+        }.apply { isDaemon = true }.start()
+    }
 
     data class Result(val overlay: Bitmap, val found: Boolean, val areaPct: Float,
                       val avgConf: Float, val peakConf: Float, val boxW: Int, val boxH: Int,
@@ -78,10 +86,11 @@ class PolypEngine(context: Context, useStudent: Boolean = true) {
     fun run(src: Bitmap, exclude126: BooleanArray? = null, gridN: Int = 0): Result {
         var inW = 384; var inH = 288
         var prob: Array<FloatArray>
-        if (student != null) {
+        val stu = student
+        if (stu != null) {
             // student screens at 320x240 against HALF the found-floor (0.05% vs the
             // 0.1% `found` bar), so no borderline frame can reach `found` unconfirmed
-            val sProb = infer(student, src, 320, 240)
+            val sProb = infer(stu, src, 320, 240)
             if (firedFrac(sProb, 320, 240, exclude126) <= 0.0005f) {
                 inW = 320; inH = 240
                 prob = sProb                      // quiet frame: student's word is final

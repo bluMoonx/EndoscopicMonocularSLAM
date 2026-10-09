@@ -26,24 +26,43 @@ raw endoscope video → learned depth → direct visual odometry → TSDF fusion
 Every stage is validated independently against the C3VD phantom's 6-DOF ground truth via a staged
 ablation (swap each estimated input for ground truth to isolate error sources).
 
-## Headline results (all vs. ground truth; depth numbers on held-out sequences)
+## Headline results (all vs. ground truth; every ATE printed beside its constant-point baseline)
 
 | what | result |
 |---|---|
-| Tracking (fully monocular) | **0.91 mm** mean ATE across 5 sequences (0.17–1.59) |
-| Blind-spot map agreement | **98.6 %** mean (97.6–99.5) after depth fine-tuning — was 74.5 % before |
+| Tracking (fully monocular, pipeline v2) | **0.42 mm** mean ATE across 5 GT sequences (v1: 0.91; v2 = in-loop Huber, adopted after a four-stage re-validation of every tracking benchmark) |
+| False blind-spot alarms | **7–41 % of wall → 0.5–3.9 %** after depth fine-tuning (the headline: generic AI fails in-body, targeted fine-tuning rescues it) |
 | Depth accuracy (δ<1.25, LOSO held-out) | 68 % off-the-shelf → **92–99.7 %** fine-tuned |
 | 3D reconstruction (median Chamfer) | **1.3–2.4 mm** on 4/5 sequences, from video alone |
-| Monocular measurement (click-to-measure) | **0.4–1.3 mm** median error on 4–30 mm distances |
-| Polyp segmentation (pre-trained, Kvasir-SEG) | Dice **0.96** (in-distribution; see docstring caveats) |
-| Robustness | blur/frame-drop tolerant; flicker weakness found (7–16×) and **fixed** with illumination compensation |
-| Cost of rushing | blind spots grow monotonically with withdrawal speed on all 5 sequences (e.g. 2.9 %→14.9 % at 6×) |
+| Frame-rate requirement (complete withdrawals) | tracking **fails at ~2 effective fps** (guard 16–23 %), **holds at ~9** (1.5–4.2 %, n=5, ~43 m GT path), **solved at native rate** (0.7–2.1 %, n=3) — real scopes stream 25+ |
+| Coverage at screening pace | **~40 % of mapped wall genuinely under-seen**, validated against a perfect-tracking twin instrument (×3 withdrawals) |
+| Unseen clinical footage (frozen protocol, n=41) | **11/21 polyp clips detected · 3/20 controls flagged, all real pathology** (Fisher two-sided p=0.020) |
+| Polyp detection on-device | screen-then-confirm **cascade**: student screens every frame **3.2–3.7× faster** (measured in-app), teacher confirms — findings stay teacher-grade |
+| Monocular measurement | **0.60 mm** median sizing error on 3–30 mm targets |
+| Loop closure | **closed as a question**: a ground-truth oracle proves even perfect closures recover ≤14 % on screening paths — a withdrawal is topologically a line |
+| Deformation | 9× cost measured; **six fixes attempted under pre-registered pass bars, six rejected with mechanisms** (best miss: −18 % vs a 20 % bar) |
 
-The scientific arc: the original hypothesis (specular glare breaks SLAM; removing it helps) was
-**tested and largely disproven** (Act I — feature-based SLAM is RANSAC-robust; naive inpainting
-hurts). The investigation produced an accurate from-scratch tracker, the project pivoted to
-coverage mapping, a controlled ablation identified learned depth as the sole bottleneck, and
-domain fine-tuning (leave-one-sequence-out validated) closed it.
+**Method before results:** every experiment since the mid-project reboot carries a pass/fail
+criterion committed to git *before* the test runs; failures are published with autopsies (see the
+manuscript's twenty-iteration design sequence). Twenty iterations, **one adoption** (pipeline v2,
+the only change that improved every benchmark at once — and whose one post-adoption regression is
+disclosed beside it), two self-caught retractions, a 35-figure audit that reproduces every
+published number from raw artifacts.
+
+The scientific arc: the original hypothesis (glare breaks SLAM; removing it helps) was **tested
+and largely disproven** (feature-based SLAM is RANSAC-robust; naive inpainting hurts). The
+investigation produced an accurate from-scratch tracker, the project pivoted to coverage mapping,
+a controlled ablation identified learned depth as the sole bottleneck, domain fine-tuning closed
+it — and the same disease-and-cure then repeated in the polyp detector on unseen clinical footage,
+making "competence ends at the edge of the training data" the project's central, twice-demonstrated
+finding.
+
+## Argus Lite — the whole lab on an Android phone
+
+The complete pipeline (quantized depth, guarded tracking, fusion, cascade polyp detection, the 3D
+map viewer with blind-spot and vs-ground-truth overlays) runs on-device in `arguslite/`. The app's
+**"Measure this phone"** card re-benchmarks the models live on whatever device it's running on —
+no number is quoted that the judge can't re-measure in hand.
 
 ## Argus Studio — every demo in one place
 
@@ -90,12 +109,15 @@ A local web console with ten stations, fully offline once models are on disk:
 
 ## Honest limitations
 
-Validated on the C3VD phantom (the only place trajectory ground truth exists); blind-spot
-localization is region-level (65 % recall / 53 % precision at 5 mm), not vertex-level; very short
-camera motions sit at the tracker's noise floor and drift in scale; depth fine-tuning generalizes
-across sequences (LOSO-proven) but cross-patient/scope generalization needs broader data.
+Validated on the C3VD phantom (the only place trajectory ground truth exists); residual
+whole-colon drift (~100 mm) is proven unfixable by loop closure and resists the per-meter levers
+tested; tissue deformation costs ~9× and six candidate fixes are excluded by their own pre-stated
+criteria; blind-spot localization is region-level, not vertex-level; processing is near-real-time
+on-device but not yet at video rate (the ViT depth network is the measured bottleneck, and the
+resolution lever was evaluated and rejected); cross-patient/scope generalization needs data that
+doesn't publicly exist. Each limitation ships with its mechanism — that's the point.
 
 ---
 
-*Everything runs on one Windows workstation with a single RTX A1000 (8 GB) — including the
-neural-network fine-tuning. GSDSEF 2026.*
+*Everything runs on one Windows workstation with a single RTX A1000 (8 GB) — including all
+neural-network fine-tuning — plus one ordinary Android phone. GSDSEF 2027.*
