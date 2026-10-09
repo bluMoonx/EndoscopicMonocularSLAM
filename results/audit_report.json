@@ -128,8 +128,8 @@
   },
   {
    "name": "app mesh under-seen % (views<3)",
-   "expected": 36.9,
-   "actual": 36.894,
+   "expected": 49.1,
+   "actual": 49.093,
    "ok": true
   },
   {
@@ -140,8 +140,8 @@
   },
   {
    "name": "app traj_full.bin points",
-   "expected": 2800,
-   "actual": 2800.0,
+   "expected": 3667,
+   "actual": 3667.0,
    "ok": true
   },
   {
@@ -152,8 +152,8 @@
   },
   {
    "name": "app gt_full.bin points",
-   "expected": 2800,
-   "actual": 2800.0,
+   "expected": 3667,
+   "actual": 3667.0,
    "ok": true
   },
   {
@@ -164,8 +164,8 @@
   },
   {
    "name": "app born_full.bin per-vertex",
-   "expected": 31840,
-   "actual": 31840.0,
+   "expected": 31630,
+   "actual": 31630.0,
    "ok": true
   },
   {

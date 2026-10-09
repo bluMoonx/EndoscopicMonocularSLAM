@@ -8,8 +8,9 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
-import androidx.camera.view.CameraController
-import androidx.camera.view.LifecycleCameraController
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -115,10 +116,17 @@ object StreamRunner {
 
     fun startCamera(context: Context) {
         if (running) return
-        ensureEngine(context)
         running = true; stopFlag = false; mode = "camera"
-        status = "live camera study"
+        status = "loading models…"
         startedAt = System.currentTimeMillis()
+        // model-session parsing takes seconds - keep it off the main thread so the
+        // screen (and the camera bind) are never blocked behind it. The analyzer
+        // simply skips frames until the engine exists.
+        val app = context.applicationContext
+        thread {
+            ensureEngine(app)
+            status = "live camera study"
+        }
     }
 
     fun stop(context: Context, label: String) {
@@ -164,14 +172,17 @@ fun StreamScreen() {
         }
     }
 
-    // camera feed while this screen is open in camera mode
+    // camera feed while this screen is open in camera mode. Bound directly through
+    // ProcessCameraProvider: a CameraController with no PreviewView attached never
+    // starts its use cases (CameraX logs "PreviewView not attached" and returns no
+    // frames), which left the warm-up stuck at 0 of 12 forever.
     val camExec = remember { Executors.newSingleThreadExecutor() }
     if (StreamRunner.running && StreamRunner.mode == "camera") {
         DisposableEffect(Unit) {
-            val ctl = LifecycleCameraController(context)
-            ctl.cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-            ctl.setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
-            ctl.setImageAnalysisAnalyzer(camExec) { proxy ->
+            val analysis = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+            analysis.setAnalyzer(camExec) { proxy ->
                 val e = StreamRunner.engine
                 if (e != null && !e.busy) {
                     val bmp = proxy.toBitmap()
@@ -182,8 +193,17 @@ fun StreamScreen() {
                 }
                 proxy.close()
             }
-            ctl.bindToLifecycle(lifecycle)
-            onDispose { ctl.unbind() }
+            val future = ProcessCameraProvider.getInstance(context)
+            var provider: ProcessCameraProvider? = null
+            future.addListener({
+                runCatching {
+                    provider = future.get().also {
+                        it.bindToLifecycle(lifecycle,
+                            CameraSelector.DEFAULT_BACK_CAMERA, analysis)
+                    }
+                }.onFailure { StreamRunner.status = "camera failed: ${it.message}" }
+            }, ContextCompat.getMainExecutor(context))
+            onDispose { provider?.unbind(analysis) }
         }
     }
 
