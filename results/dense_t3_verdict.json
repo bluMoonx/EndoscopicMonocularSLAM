@@ -1,0 +1,48 @@
+{
+ "thr": 14,
+ "n_polyp": 25,
+ "n_ctl": 23,
+ "p80": 13,
+ "pdense": 19,
+ "c80": 2,
+ "cdense": 6,
+ "c80_clean": 0,
+ "cdense_clean": 2,
+ "flagged_dense": [
+  {
+   "file": "data/hyperkvasir/batch/proc/nopolyp_226ad7b7.mp4",
+   "annotation": "anastomotic leak cavity",
+   "clean": false
+  },
+  {
+   "file": "data/hyperkvasir/batch/proc/nopolyp_59b48a78.mp4",
+   "annotation": "cancer",
+   "clean": false
+  },
+  {
+   "file": "data/hyperkvasir/batch/proc/nopolyp_654acacf.mp4",
+   "annotation": "duodenum",
+   "clean": true
+  },
+  {
+   "file": "data/hyperkvasir/batch/proc/nopolyp_679e59c9.mp4",
+   "annotation": "tumor",
+   "clean": false
+  },
+  {
+   "file": "data/hyperkvasir/batch/proc/nopolyp_7940116d.mp4",
+   "annotation": "z-line distal oesophagus",
+   "clean": true
+  },
+  {
+   "file": "data/hyperkvasir/batch/proc/nopolyp_9b7b0ef2.mp4",
+   "annotation": "dued resection margins piece meal EMR",
+   "clean": false
+  }
+ ],
+ "fisher_p": 0.0012152806196895482,
+ "G1": true,
+ "G2": true,
+ "G3": true,
+ "verdict": "ADOPT dense-400 as published screening protocol"
+}

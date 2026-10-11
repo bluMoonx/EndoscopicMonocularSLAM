@@ -28,11 +28,13 @@ from polyp_measure import diameter_mm
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 BUDGET_S = (float(sys.argv[1]) if len(sys.argv) > 1 else 27.0) * 60
-RES = "results/detect_dense.csv"
+RES = sys.argv[2] if len(sys.argv) > 2 else "results/detect_dense.csv"
 NFR = 400
 
+MANIFESTS = sys.argv[3].split(",") if len(sys.argv) > 3 else [
+    "results/batch_study/manifest.csv", "results/batch_study/manifest_ext.csv"]
 rows = []
-for f in ["results/batch_study/manifest.csv", "results/batch_study/manifest_ext.csv"]:
+for f in MANIFESTS:
     rows += list(csv.DictReader(open(f)))
 
 done = set()
