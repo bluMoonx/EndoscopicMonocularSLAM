@@ -47,7 +47,11 @@ criterion committed to git *before* the test runs; failures are published with a
 manuscript's twenty-one-iteration design sequence). Twenty-one iterations, **one adoption**
 (pipeline v2, the only change that improved every benchmark at once — and whose one post-adoption
 regression is disclosed beside it), two self-caught retractions, a 35-figure audit that reproduces
-every published number from raw artifacts. The final iteration tested whether the adopted tracker
+every published number from raw artifacts, and a red-team audit (`speqslam/redteam_audit.py`, 15/15)
+that re-derives the headline results with independently written code — a different alignment
+algorithm (Horn, not Umeyama) matches every tracking ATE to 0.0005 mm, the clinical operating
+point/tally/Fisher p re-derive from the frozen CSVs, and a fresh end-to-end re-track reproduces
+the 0.42 mm headline mean exactly. The final iteration tested whether the adopted tracker
 upgrade transfers to the phone's own tracker: it does not (−24% on one of two pre-registered
 windows), so the phone keeps its fixed-threshold kernel — the adoption was validated per
 configuration, never blindly generalized.
