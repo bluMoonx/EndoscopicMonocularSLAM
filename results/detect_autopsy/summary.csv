@@ -1,0 +1,11 @@
+file,batch_fired,total_frames,dense_n,dense_fired,fire_frac,max_area_pct,max_conf,verdict
+data/hyperkvasir/batch/proc/polyp_73bad003.mp4,4,387,387,15,0.039,1.99,0.94,weak_recognition
+data/hyperkvasir/batch/proc/polyp_b0ec04ba.mp4,0,533,533,0,0.000,0.00,0.00,recognition_dead
+data/hyperkvasir/batch/proc/polyp_b8262217.mp4,5,394,394,33,0.084,23.78,0.81,weak_recognition
+data/hyperkvasir/batch/proc/polyp_fe683132.mp4,1,370,370,4,0.011,0.76,0.87,weak_recognition
+data/hyperkvasir/batch/proc/polyp_1f17e901.mp4,5,399,399,22,0.055,5.55,0.83,weak_recognition
+data/hyperkvasir/batch/proc/polyp_4c0cae22.mp4,0,776,776,0,0.000,0.36,0.61,recognition_dead
+data/hyperkvasir/batch/proc/polyp_5af764dc.mp4,7,489,489,23,0.047,1.59,0.88,weak_recognition
+data/hyperkvasir/batch/proc/polyp_6ab427b7.mp4,16,811,406,86,0.212,27.69,0.95,weak_recognition
+data/hyperkvasir/batch/proc/polyp_a2c5a1b0.mp4,1,803,402,5,0.012,2.31,0.94,weak_recognition
+data/hyperkvasir/batch/proc/polyp_a5b1fd4d.mp4,20,625,625,134,0.214,29.56,0.88,weak_recognition

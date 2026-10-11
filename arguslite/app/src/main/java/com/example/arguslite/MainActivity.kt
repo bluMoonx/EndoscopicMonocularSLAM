@@ -155,6 +155,7 @@ class MainActivity : ComponentActivity() {
                     7 -> TrajScreen()
                     8 -> XRayScreen()
                     9 -> GlareLabScreen()
+                    11 -> Surface3DScreen()
                     else -> StreamScreen()
                 }
                 // Showcase is a moment, not a tab: tapping the Home model zooms it in,
@@ -193,6 +194,8 @@ class MainActivity : ComponentActivity() {
                                 modifier = Modifier.clickable { tab = 8; showMore = false })
                             ListItem(headlineContent = { Text("Glare Lab") },
                                 modifier = Modifier.clickable { tab = 9; showMore = false })
+                            ListItem(headlineContent = { Text("3D Surfaces") },
+                                modifier = Modifier.clickable { tab = 11; showMore = false })
                         }
                     }
                 }
