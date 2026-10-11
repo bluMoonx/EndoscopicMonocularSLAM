@@ -448,8 +448,15 @@ HTML = """<!doctype html><html><head><meta charset="utf-8">
 
  <h2 id="models"><span class="num">08</span>Interactive 3D models</h2>
  <div class="card">
-  <a class="chip" href="/results/colon_3d_cecum_t1_a.html" target="_blank">3D colon + blind spots (cecum)</a>
-  <a class="chip" href="/results/colon_3d_desc_t4_a.html" target="_blank">3D colon (descending)</a>
+  <b>Surface viewers</b> — the real fused triangle meshes (0.6&thinsp;mm voxels, lit, vertex-colored;
+  built by speqslam/build_mesh_viewer.py). The point-cloud pages below are kept for comparison:
+  <br>
+  <a class="chip" href="/results/mesh3d_cecum_t1_a_ftmono.html" target="_blank">SURFACE: cecum + coverage/blind overlay</a>
+  <a class="chip" href="/results/mesh3d_desc_t4_a_ftmono.html" target="_blank">SURFACE: descending + coverage</a>
+  <a class="chip" href="/results/mesh3d_trans_t1_a_ftmono.html" target="_blank">SURFACE: transverse</a>
+  <br>
+  <a class="chip" href="/results/colon_3d_cecum_t1_a.html" target="_blank">point cloud: cecum + blind spots</a>
+  <a class="chip" href="/results/colon_3d_desc_t4_a.html" target="_blank">point cloud: descending</a>
   <a class="chip" href="/results/mono_recon_cecum_t1_a.html" target="_blank">monocular vs ground truth</a></div>
 
  <h2 id="reports"><span class="num">09</span>Procedure report cards</h2><div class="card">__REPORTS__</div>

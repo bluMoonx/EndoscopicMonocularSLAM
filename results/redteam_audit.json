@@ -1,0 +1,96 @@
+{
+ "checks": [
+  {
+   "name": "RT1 trans_t1_a v1 ATE (Horn) vs recorded",
+   "expected": 1.593,
+   "actual": 1.5932,
+   "ok": true
+  },
+  {
+   "name": "RT1 trans_t2_a v1 ATE (Horn) vs recorded",
+   "expected": 0.674,
+   "actual": 0.6739,
+   "ok": true
+  },
+  {
+   "name": "RT1 trans_t2_b v1 ATE (Horn) vs recorded",
+   "expected": 1.466,
+   "actual": 1.4657,
+   "ok": true
+  },
+  {
+   "name": "RT1 desc_t4_a v1 ATE (Horn) vs recorded",
+   "expected": 0.173,
+   "actual": 0.1732,
+   "ok": true
+  },
+  {
+   "name": "RT1 cecum_t1_a v1 ATE (Horn) vs recorded",
+   "expected": 0.645,
+   "actual": 0.6447,
+   "ok": true
+  },
+  {
+   "name": "RT1 recorded-trajectory mean (Horn, fresh code)",
+   "expected": 0.9102,
+   "actual": 0.9102,
+   "ok": true
+  },
+  {
+   "name": "RT1 v1 headline mean = mean(ate_base_mm)",
+   "expected": 0.902,
+   "actual": 0.9024,
+   "ok": true
+  },
+  {
+   "name": "RT1b v2 headline mean (CSV re-average)",
+   "expected": 0.419,
+   "actual": 0.419,
+   "ok": true
+  },
+  {
+   "name": "RT3 operating geometry is maxC",
+   "expected": 1,
+   "actual": 1,
+   "ok": true
+  },
+  {
+   "name": "RT3 operating threshold",
+   "expected": 14,
+   "actual": 14,
+   "ok": true
+  },
+  {
+   "name": "RT3 polyp clips in frozen test",
+   "expected": 21,
+   "actual": 21,
+   "ok": true
+  },
+  {
+   "name": "RT3 control clips in frozen test",
+   "expected": 20,
+   "actual": 20,
+   "ok": true
+  },
+  {
+   "name": "RT3 detected polyp clips",
+   "expected": 11,
+   "actual": 11,
+   "ok": true
+  },
+  {
+   "name": "RT3 flagged controls",
+   "expected": 3,
+   "actual": 3,
+   "ok": true
+  },
+  {
+   "name": "RT3 Fisher two-sided p",
+   "expected": 0.02,
+   "actual": 0.0203,
+   "ok": true
+  }
+ ],
+ "pass": 15,
+ "total": 15
+}

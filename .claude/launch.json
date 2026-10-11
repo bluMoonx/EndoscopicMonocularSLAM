@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "argus-studio",
+      "name": "results-static",
       "runtimeExecutable": "C:/Users/moonw/anaconda3/envs/slamfair/python.exe",
-      "runtimeArgs": ["speqslam/argus_studio.py"],
-      "port": 7860
+      "runtimeArgs": ["-m", "http.server", "8765", "--bind", "127.0.0.1", "-d", "results"],
+      "port": 8765
     }
   ]
 }
