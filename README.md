@@ -44,10 +44,13 @@ ablation (swap each estimated input for ground truth to isolate error sources).
 
 **Method before results:** every experiment since the mid-project reboot carries a pass/fail
 criterion committed to git *before* the test runs; failures are published with autopsies (see the
-manuscript's twenty-iteration design sequence). Twenty iterations, **one adoption** (pipeline v2,
-the only change that improved every benchmark at once — and whose one post-adoption regression is
-disclosed beside it), two self-caught retractions, a 35-figure audit that reproduces every
-published number from raw artifacts.
+manuscript's twenty-one-iteration design sequence). Twenty-one iterations, **one adoption**
+(pipeline v2, the only change that improved every benchmark at once — and whose one post-adoption
+regression is disclosed beside it), two self-caught retractions, a 35-figure audit that reproduces
+every published number from raw artifacts. The final iteration tested whether the adopted tracker
+upgrade transfers to the phone's own tracker: it does not (−24% on one of two pre-registered
+windows), so the phone keeps its fixed-threshold kernel — the adoption was validated per
+configuration, never blindly generalized.
 
 The scientific arc: the original hypothesis (glare breaks SLAM; removing it helps) was **tested
 and largely disproven** (feature-based SLAM is RANSAC-robust; naive inpainting hurts). The
