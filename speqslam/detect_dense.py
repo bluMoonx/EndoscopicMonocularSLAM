@@ -98,8 +98,8 @@ for row in rows:
         print(row["file"], "no scene", flush=True)
         continue
 
-    fired = 0; posC = []
-    for f in frames:
+    fired = 0; posC = []; fidx = []
+    for fi, f in enumerate(frames):
         mask = segment(f, model)
         mask[static > 0] = 0
         binm = mask > 0.5
@@ -123,7 +123,15 @@ for row in rows:
             continue
         posC.append(np.array([(u0 - K[0, 2]) / K[0, 0] * z,
                               (v0 - K[1, 2]) / K[1, 1] * z, z]))
+        fidx.append(fi)
     mc = biggest(posC, 0.010)
+    # every gated fire, for offline support-rule analysis (time-binned variants etc.)
+    os.makedirs("results/detect_dense_fires", exist_ok=True)
+    stem = os.path.splitext(os.path.basename(row["file"]))[0]
+    np.savez(f"results/detect_dense_fires/{stem}.npz",
+             fidx=np.array(fidx, np.int32),
+             pos=np.array(posC) if posC else np.zeros((0, 3)),
+             sampled=len(frames))
     with open(RES, "a", newline="") as f:
         csv.writer(f).writerow([row["file"], row["label"], row["split"], len(frames),
                                 fired, len(posC), mc, round(time.time() - t0, 1)])
