@@ -36,7 +36,8 @@ ablation (swap each estimated input for ground truth to isolate error sources).
 | 3D reconstruction (median Chamfer) | **1.3–2.4 mm** on 4/5 sequences, from video alone |
 | Frame-rate requirement (complete withdrawals) | tracking **fails at ~2 effective fps** (guard 16–23 %), **holds at ~9** (1.5–4.2 %, n=5, ~43 m GT path), **solved at native rate** (0.7–2.1 %, n=3) — real scopes stream 25+ |
 | Coverage at screening pace | **~40 % of mapped wall genuinely under-seen**, validated against a perfect-tracking twin instrument (×3 withdrawals) |
-| Unseen clinical footage (frozen protocol, n=41) | **11/21 polyp clips detected · 3/20 controls flagged, all real pathology** (Fisher two-sided p=0.020) |
+| Unseen clinical footage, first frozen test (n=41) | **11/21 polyp clips · 3/20 controls flagged, all real pathology** (p=0.020) — the miss autopsy traced 8/10 misses to sparse frame sampling, not blind detection |
+| Unseen clinical footage, second frozen test (n=48, fresh clips) | dense-sampling protocol **adopted**: **19/25 polyp clips (76%) vs 13/25 (52%)** for the old protocol, paired on identical clips (p=0.0012); 2 clean false alarms (pre-stated allowance), and the other flagged "controls" contained a labeled **cancer, tumor, anastomotic-leak cavity, and EMR site** |
 | Polyp detection on-device | screen-then-confirm **cascade**: student screens every frame **3.2–3.7× faster** (measured in-app), teacher confirms — findings stay teacher-grade |
 | Monocular measurement | **0.60 mm** median sizing error on 3–30 mm targets |
 | Loop closure | **closed as a question**: a ground-truth oracle proves even perfect closures recover ≤14 % on screening paths — a withdrawal is topologically a line |
@@ -44,14 +45,15 @@ ablation (swap each estimated input for ground truth to isolate error sources).
 
 **Method before results:** every experiment since the mid-project reboot carries a pass/fail
 criterion committed to git *before* the test runs; failures are published with autopsies (see the
-manuscript's twenty-one-iteration design sequence). Twenty-one iterations, **one adoption**
-(pipeline v2, the only change that improved every benchmark at once — and whose one post-adoption
-regression is disclosed beside it), two self-caught retractions, a 35-figure audit that reproduces
+manuscript's twenty-two-iteration design sequence). Twenty-two iterations, **two adoptions** —
+pipeline v2 (in-loop Huber, four-stage re-validation, one disclosed post-adoption regression) and
+the dense screening protocol (adopted only after a second frozen test on 48 fresh clips passed
+three pre-registered gates) — two self-caught retractions, a 35-figure audit that reproduces
 every published number from raw artifacts, and a red-team audit (`speqslam/redteam_audit.py`, 15/15)
 that re-derives the headline results with independently written code — a different alignment
 algorithm (Horn, not Umeyama) matches every tracking ATE to 0.0005 mm, the clinical operating
 point/tally/Fisher p re-derive from the frozen CSVs, and a fresh end-to-end re-track reproduces
-the 0.42 mm headline mean exactly. The final iteration tested whether the adopted tracker
+the 0.42 mm headline mean exactly. Iteration 21 tested whether the adopted tracker
 upgrade transfers to the phone's own tracker: it does not (−24% on one of two pre-registered
 windows), so the phone keeps its fixed-threshold kernel — the adoption was validated per
 configuration, never blindly generalized.
