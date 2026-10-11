@@ -51,3 +51,30 @@ resampling mismatch cancels in the A/B.
 - Gate S fails → no adoption regardless of Gate A; cost documented.
 - n=2 windows is small; requiring BOTH to improve is the conservative direction and is
   stated before any number exists.
+
+---
+
+## VERDICT (added after the trial ran — results section, Oct 10 2026)
+
+- **Gate P: PASS.** Max weight difference Kotlin vs Python reference: 1.2e-7 (< 1e-5).
+- **Gate A: FAIL.** Sim(3) Umeyama ATE on the two windows (constant-point baseline beside
+  each, per project rule):
+  - c1_ascending_t4_v1_s1: fixed-k **7.34 mm** vs median-scaled 9.09 mm
+    (constant 15.36 mm) — gain **−23.8%**
+  - c1_sigmoid1_t1_v1_s1: fixed-k **12.32 mm** vs median-scaled 12.18 mm
+    (constant 12.76 mm) — gain +1.2%, below the 5% bar
+- Gate S not run: the decision rule requires all three gates, so Gate A's failure ends
+  the trial. **FIXED_K remains the shipped default**; MEDIAN_SCALED ships implemented but
+  off (Vo.Mode), exactly as pre-stated.
+- Tracker health identical in both arms (0 bails / 720 solves, ~5000 px/iteration), so
+  the loss is in the weighting, not in starvation.
+- Reading: consistent with the c1_t4 native-rate regression mechanism recorded in
+  §4.20's postscript — at the app's 126 px / 3-level / small-motion operating point,
+  residuals sit near the noise floor and a median-derived scale down-weights signal;
+  the app's fixed 0.08 threshold is calibrated to that regime and keeps its job. The
+  workstation adoption stands where it was validated; it does not transfer here, and
+  the port trial is what caught that. Note the sigmoid window's honest footnote: at
+  this short length the tracker only narrowly beats the constant-point baseline.
+- Fixture caveat (stated pre-hoc): windows are 30 pairs each, n=2, exporter resampling
+  approximates Android's; both arms shared identical inputs so the A/B comparison is
+  unaffected, but the absolute mm values are not comparable to the workstation benchmarks.

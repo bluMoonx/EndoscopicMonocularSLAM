@@ -1,0 +1,23 @@
+{
+ "gate": "A",
+ "rule": ">=5% ATE improvement on BOTH windows",
+ "windows": [
+  {
+   "seq": "c1_ascending_t4_v1_s1",
+   "ate_fixed_mm": 7.343560321040682,
+   "ate_median_mm": 9.092007333595689,
+   "ate_constant_mm": 15.36026850952494,
+   "improvement_pct": -23.809255131266188,
+   "passes": false
+  },
+  {
+   "seq": "c1_sigmoid1_t1_v1_s1",
+   "ate_fixed_mm": 12.32145845751986,
+   "ate_median_mm": 12.178383109662464,
+   "ate_constant_mm": 12.757012468272475,
+   "improvement_pct": 1.1611884124811223,
+   "passes": false
+  }
+ ],
+ "gate_A_pass": false
+}

@@ -117,7 +117,7 @@ class StreamEngine(depthEngine: DepthEngine, private val polyp: PolypEngine) {
         t0 = System.nanoTime()
         val pg = prevGray; val pd = prevDepth
         if (pg != null && pd != null) {
-            val rel = study.trackPair(pg, pd, gray, staticMask)
+            val rel = Vo.trackPair(pg, pd, gray, staticMask)
             val next = pose.compose(rel.inverse())
             val dx = next.t[0] - pose.t[0]; val dy = next.t[1] - pose.t[1]
             val dz = next.t[2] - pose.t[2]
