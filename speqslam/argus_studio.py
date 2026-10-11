@@ -454,6 +454,8 @@ HTML = """<!doctype html><html><head><meta charset="utf-8">
   <a class="chip" href="/results/mesh3d_cecum_t1_a_ftmono.html" target="_blank">SURFACE: cecum + coverage/blind overlay</a>
   <a class="chip" href="/results/mesh3d_desc_t4_a_ftmono.html" target="_blank">SURFACE: descending + coverage</a>
   <a class="chip" href="/results/mesh3d_trans_t1_a_ftmono.html" target="_blank">SURFACE: transverse</a>
+  <a class="chip" href="/results/mesh3d_cecum_t1_a_mono.html" target="_blank">SURFACE: cecum, OFF-THE-SHELF depth (the before)</a>
+  <a class="chip" href="/results/mesh3d_cecum_t1_a_gt.html" target="_blank">SURFACE: cecum, ground-truth depth (the ceiling)</a>
   <br>
   <a class="chip" href="/results/colon_3d_cecum_t1_a.html" target="_blank">point cloud: cecum + blind spots</a>
   <a class="chip" href="/results/colon_3d_desc_t4_a.html" target="_blank">point cloud: descending</a>
