@@ -42,11 +42,12 @@ ablation (swap each estimated input for ground truth to isolate error sources).
 | Monocular measurement | **0.60 mm** median sizing error on 3–30 mm targets |
 | Head-to-head vs ORB-SLAM3, out-of-the-box (pre-registered, `results/orbslam3_baseline_gate.md`) | **a draw on the rigid phantom benchmark**: per-sequence 2–2–1 (means 0.42 vs 0.39 mm, overlapping bootstrap CIs; median of 5 runs, better of two frozen configs per sequence). The baseline tracks 93–99% of each sequence and poses only sparse keyframes; Argus poses **every frame** with zero tracking loss. The from-scratch tracker's case is density, glare/illumination handling, and the measured operating envelope — not beating the standard tool on accuracy, and this is stated because we measured it |
 | Loop closure | **closed as a question**: a ground-truth oracle proves even perfect closures recover ≤14 % on screening paths — a withdrawal is topologically a line |
+| Cross-session site re-identification | **closed as a question**: under oracle registration, a site marked in one procedure lands **~26 mm** (median) away in an independent second procedure's map vs the ~10 mm clinical need — per-session map error, not registration, is the binding constraint |
 | Deformation | 9× cost measured; **six fixes attempted under pre-registered pass bars, six rejected with mechanisms** (best miss: −18 % vs a 20 % bar) |
 
 **Method before results:** every experiment since the mid-project reboot carries a pass/fail
 criterion committed to git *before* the test runs; failures are published with autopsies (see the
-manuscript's twenty-two-iteration design sequence). Twenty-two iterations, **two adoptions** —
+manuscript's twenty-three-iteration design sequence). Twenty-three iterations, **two adoptions** —
 pipeline v2 (in-loop Huber, four-stage re-validation, one disclosed post-adoption regression) and
 the dense screening protocol (adopted only after a second frozen test on 48 fresh clips passed
 three pre-registered gates) — two self-caught retractions, a 35-figure audit that reproduces
