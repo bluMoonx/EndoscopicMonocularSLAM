@@ -60,3 +60,28 @@ defined for them.
   agreement with a mechanism analysis - a negative here is a finding about monocular map
   stability, exactly as the loop-closure oracle was.
 - No site rule, pair list, threshold, or gate changes after this commit.
+
+---
+
+## VERDICT (results section, added after the experiment ran - Oct 17 2026)
+
+**Both gates FAIL; the pre-stated negative outcome applies.** Across 45 sites in 5 pairs:
+median cross-session error **26.3 mm** vs the 10 mm bar (G1 FAIL); nearest-own
+discrimination **29%** vs 80% (G2 FAIL); 10/45 sites never re-found in session B's
+usable view. Per-pair medians 16.1 / 15.9 / 35.4 / 21.3 / 28.5 mm - a uniform
+negative, not one bad pair.
+
+**Mechanism:** cross-session site error is floored by per-session reconstruction error
+at the site. Each session contributes screening-scale trajectory drift (per-run Sim(3)
+alignment residuals 0.9-16 mm RMSE) plus monocular depth error at the marked pixel,
+compounded across two independent sessions and widened by the v1-to-v4 appearance shift
+the depth network must absorb. This is the project's characterized residual-drift
+limitation measured in its clinical costume: with today's per-session maps, a mark made
+in one procedure lands 2-4 cm away in the next procedure's map, an order above the
+polypectomy-scar scale, even when session registration is handed to the system for free.
+
+**Published claim:** the oracle bound on monocular cross-session site re-identification
+for this pipeline is ~26 mm median; the binding constraint is per-session map accuracy,
+not session registration. The route forward is named, not implied: either substantially
+better per-session maps or appearance-based site re-recognition, both beyond this
+project's scope. The negative mirrors the loop-closure oracle in method and in value.
