@@ -1,0 +1,6 @@
+seq,argus_ate_mm,baseline_best_cfg,baseline_completion_med,baseline_runs_with_traj,baseline_ate_med_mm,baseline_ate_range,const_point_mm
+cecum_t1_a,0.893,boost,0.985,5,0.57,0.54-0.66,12.12
+desc_t4_a,0.155,stock,0.973,5,0.24,0.22-0.24,6.28
+trans_t1_a,0.153,stock,0.983,5,0.13,0.13-0.15,8.24
+trans_t2_a,0.620,stock,0.933,5,0.73,0.68-0.82,16.86
+trans_t2_b,0.274,stock,0.990,5,0.27,0.27-0.29,15.85
