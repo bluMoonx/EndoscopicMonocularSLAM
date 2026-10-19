@@ -5,8 +5,9 @@ below is reconstructed from the project's own records — the 160-commit git his
 (2026-07-13 → 2026-10-17), the manuscript draft (`Argus_Manuscript.docx`, §4), and the
 pre-registration documents in `results/*.md` — and nothing has been invented to fill a gap.
 Quantitative claims were verified against the raw artifacts (`results/*.csv`) where they
-exist; where the records are silent, this document says so rather than guessing. The short
-attestation checklist at the end holds the only items that need the author's word.
+exist, and the gate-before-run discipline was checked forensically (artifact creation times
+vs gate commit times — §7); where the records are silent, this document says so rather than
+guessing. The two residuals that artifacts cannot establish are named at the end of §7.
 
 ---
 
@@ -45,8 +46,8 @@ independently written code (Horn alignment vs the pipeline's Umeyama, agreement 
 | Act I — the glare hypothesis | committed 2026-08-15 (repo created 07-13) | original hypothesis tested and rejected with a mechanism; pivot to direct VO |
 | Act II — the monocular instrument | 2026-08-15 → 09-16 | from-scratch tracker, ablation, depth fine-tune, detection loop, deployment |
 | Reboot into frozen protocols | 2026-09-16 → 09-26 | batch study discipline; retraction 2; numbers audit 35/35 |
-| Act III — pre-registration campaigns | 2026-09-26 → 10-11 | 11 campaigns under committed gates; 2 adoptions |
-| Open | 2026-10-17 → | site re-identification experiment pre-registered, not yet run |
+| Act III — pre-registration campaigns | 2026-09-26 → 10-17 | campaigns under committed gates; 2 adoptions; record closed at 23 iterations (`efbd63e`) |
+| Cross-dataset confirmation | 2026-10-17 → | pre-registered ORB-SLAM3 head-to-heads: C3VD (a draw, published) and EndoSLAM (running) |
 
 ## 5. The iteration ledger
 
@@ -223,11 +224,25 @@ vs 0.39 mm (baseline, better config), overlapping bootstrap CIs — with the bas
 gate's outcome statement: the tracking claim is density + glare/illumination handling + the
 measured envelope, not SOTA accuracy.
 
-### Open
+**23 — Cross-session site re-identification, the final experiment** *(pre-registered and run
+2026-10-17; `ed8a3a5` → `c13f13c`; `results/site_reid_gate.md`)* — 5 qualified cross-session
+pairs, oracle registration disclosed, gates G1 (median ≤10 mm) and G2 (80% discrimination)
+committed at 15:58; the results CSV was created at 18:23 and committed at 18:25. **Both gates
+FAIL**, published as the oracle bound: median 26.3 mm vs the 10 mm bar, discrimination 29% —
+per-session map error is the binding constraint, "the residual-drift wall measured in its
+clinical costume."
 
-**23 (open) — Cross-session site re-identification** *(pre-registered 2026-10-17; `ed8a3a5`;
-`results/site_reid_gate.md`)* — 5 qualified cross-session pairs, oracle registration
-disclosed, gates G1 (median ≤10 mm) and G2 (80% discrimination) committed. **Not yet run.**
+**Record closed** *(2026-10-17; `a7ff6eb`, `efbd63e`)* — an outcome-labels inventory
+established that no public dataset ties procedure footage to ADR/withdrawal-quality labels,
+documenting the coverage-vs-outcome study as a data wall rather than an open experiment; the
+README tally closed at **23 iterations / 2 adoptions**.
+
+### Cross-dataset confirmation (opened after the record closed)
+
+**Baseline head-to-head on EndoSLAM** *(pre-registered 2026-10-18, `ceb8833`;
+`results/orbslam3_endoslam_gate.md`)* — ORB-SLAM3 out-of-the-box vs the published zero-shot
+trajectories and the adopted pipeline v2's first cross-dataset run, on real ex-vivo porcine
+tissue. In progress at this writing; results publish per the gate's pre-stated outcomes.
 
 ## 6. What was adopted vs. what the evidence rejected
 
@@ -237,32 +252,59 @@ cascade (Campaign C), depth int8 quantization (iteration 11).
 Rejected by pre-stated criteria (partial list): glare removal as a SLAM aid, naive and AI
 inpainting, six deformation fixes, three loop-closure generations, detector int8, NNAPI,
 distillation v1 as replacement, keyframe tracking, two depth-resolution candidates, Huber
-app-port, synthetic dye augmentation.
+app-port, synthetic dye augmentation, and cross-session site re-identification (both gates,
+published as the oracle bound).
 Retracted by internal audit (2): the padded agreement headline; the collapsed-alignment
 full-withdrawal ATE.
 
-## 7. What was checked, and what still needs the author's word
+## 7. Verification record
 
-Checked against raw artifacts (no action needed): iteration 2's tracker-validation ATEs
+**Checked against raw artifacts:** iteration 2's tracker-validation ATEs
 (`results/ablation.csv` condition B: 0.32–0.99 mm, first sequence 0.38); iteration 6's
 fully-monocular ATEs (`results/huber_study.csv` ate_recorded: 0.17–1.59 mm, mean 0.91);
 the view-threshold sweep (`results/thr_sensitivity.csv`: 97.8%+ agreement at every setting);
 pipeline v2's per-sequence ATEs (`results/redteam_retrack.csv`, red-team reproduced); the
-README tally anchors (20 → 21 → 22 at `51fc3aa`, `afd2c5c`, `331b8c9`). The records contain
-no numbering of campaigns 12–19; this ledger says so instead of inventing one.
+README tally anchors (20 → 21 → 22 → 23 at `51fc3aa`, `afd2c5c`, `331b8c9`, `efbd63e`). The
+records contain no numbering of campaigns 12–19; this ledger says so instead of inventing one.
 
-Author attestation (the only open items):
+**Gate-before-run, checked forensically (2026-10-18):** for every Act III campaign with a
+separate gate commit, the result artifact's filesystem creation time falls AFTER the gate's
+commit time — often strikingly tightly: pipeline v2's run state was created 7 s after its
+gate commit (07:50:50 → 07:50:57), the Huber characterization's CSV 8 s after, deform-2/3's
+8 s after, depth-speed's 12 s after. The full comparison: loop-closure v2/v3 (gate 10-03
+13:02, verdict 20:29), distillation v2 (gate 09-30 20:27, external evals created 20:53–23:38),
+deform-4 (15:18 → artifact 17:09), deform-5 (21:03 → 21:55), huber charact. (22:12:54 →
+22:13:02), keyframe (10-04 22:29 → artifact 10-05 05:21), deform-6 (10-05 19:58 → 23:52),
+depth speed (10-06 00:38:31 → 00:38:43), pipeline v2 (10-06 07:50:50 → 07:50:57), huber
+app-port (10-10 17:01:40 → fixtures 17:07:08), dense-400 (10-10 22:25 → CSV 22:35), site
+re-id (10-17 15:58 → CSV 18:23). Caveats stated plainly: (a) filesystem timestamps are
+weaker evidence than git history (a wrong clock or a touched file could distort them; here
+they are mutually consistent across three months); (b) **deformation attempt 1 (residual
+masking) and loop-closure v1 are single-commit campaigns** — their criteria and results
+landed together, so commit order cannot establish gate-before-run for those two; their
+commit messages claim it, and both were failures published against their own bars, but the
+separate-gate-commit discipline demonstrably begins with loop-closure v2 (10-03) and the
+distillation protocol (09-30).
 
-- [ ] Nothing in Act III ran before its gate commit — the commit order is the evidence
-      offered to judges, and only the author can attest the runs followed it.
-- [ ] Any work done before 2026-08-15 outside git (the repo's first content commit): date it
-      here or confirm there was none.
-- [ ] The manuscript draft (`~/Downloads/Argus_Manuscript.docx`) covers iterations 1–11 only
-      and predates all of Act III; the README cites "the manuscript's twenty-two-iteration
-      design sequence." Update the manuscript or re-point the reference.
-- [ ] Tally wording: the README counts "two adoptions" (pipeline v2, dense-400) while the
-      cascade (Campaign C) and depth int8 (iteration 11) were also shipped — confirm the
-      narrower sense of "adoption" is intentional.
+**Work before 2026-08-15:** the oldest project files on disk (excluding bundled fonts) were
+created 2026-08-15 14:42, minutes before the Act I experiments' own run logs
+(`results/rectified05_baseline/run.log`, 14:43), and creation times then run continuously
+through 2026-10-18 — the signature of live work on this machine, not of a bulk copy. No
+filesystem evidence of pre-Aug-15 project work exists; the Jul 13 commit is repository
+creation only.
+
+**The adoptions counting rule (inferred from the record, consistent with all four cases):**
+the tally counts an adoption when a pre-registered trial changes the deployed system's
+*published results* — pipeline v2 changed every tracking number (0.91 → 0.42 mm); dense-400
+changed the screening protocol's clinical operating characteristics (11/21 → 19/25). The
+screen-then-confirm cascade (adopted 10-01) changed only latency with findings kept
+teacher-grade, and depth int8 was verified accuracy-identical — accuracy-neutral deployment
+changes ship under gates but are not counted as adoptions. Hence "23 iterations / 2
+adoptions."
+
+**Residuals that artifacts cannot establish (user attestation, if anyone asks):** that all
+runs happened on this machine and its clock was right (everything observable is consistent
+with both), and gate-before-run for the two single-commit campaigns named above.
 
 ---
 
