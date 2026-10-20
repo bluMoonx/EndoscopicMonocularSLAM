@@ -46,7 +46,7 @@ independently written code (Horn alignment vs the pipeline's Umeyama, agreement 
 | Act I — the glare hypothesis | committed 2026-08-15 (repo created 07-13) | original hypothesis tested and rejected with a mechanism; pivot to direct VO |
 | Act II — the monocular instrument | 2026-08-15 → 09-16 | from-scratch tracker, ablation, depth fine-tune, detection loop, deployment |
 | Reboot into frozen protocols | 2026-09-16 → 09-26 | batch study discipline; retraction 2; numbers audit 35/35 |
-| Act III — pre-registration campaigns | 2026-09-26 → 10-17 | campaigns under committed gates; 2 adoptions; record closed at 23 iterations (`efbd63e`) |
+| Act III — pre-registration campaigns | 2026-09-26 → 10-17 | campaigns under committed gates; 2 adoptions; record closed at 23 iterations (`c858b34`) |
 | Cross-dataset confirmation | 2026-10-17 → | pre-registered ORB-SLAM3 head-to-heads: C3VD (a draw, published) and EndoSLAM (running) |
 
 ## 5. The iteration ledger
@@ -214,7 +214,7 @@ other flagged "controls" containing labeled real pathology — **ADOPTED**.
   under independently written code; a fresh end-to-end v2 re-track reproduces all five headline
   ATEs and the 0.419 mm mean exactly.
 
-**Baseline head-to-head characterization** *(pre-registered and run 2026-10-17; `e0e3117`;
+**Baseline head-to-head characterization** *(pre-registered and run 2026-10-17; `348b1e0`;
 `results/orbslam3_baseline_gate.md`)* — out-of-the-box ORB-SLAM3 (monocular, two frozen
 configs, 5 runs each) vs the adopted pipeline v2 on the five C3VD headline sequences, answering
 the judge question "why not just use the standard tool?" with a measurement. Result (the
@@ -225,21 +225,21 @@ gate's outcome statement: the tracking claim is density + glare/illumination han
 measured envelope, not SOTA accuracy.
 
 **23 — Cross-session site re-identification, the final experiment** *(pre-registered and run
-2026-10-17; `ed8a3a5` → `c13f13c`; `results/site_reid_gate.md`)* — 5 qualified cross-session
+2026-10-17; `ed8a3a5` → `3080613`; `results/site_reid_gate.md`)* — 5 qualified cross-session
 pairs, oracle registration disclosed, gates G1 (median ≤10 mm) and G2 (80% discrimination)
 committed at 15:58; the results CSV was created at 18:23 and committed at 18:25. **Both gates
 FAIL**, published as the oracle bound: median 26.3 mm vs the 10 mm bar, discrimination 29% —
 per-session map error is the binding constraint, "the residual-drift wall measured in its
 clinical costume."
 
-**Record closed** *(2026-10-17; `a7ff6eb`, `efbd63e`)* — an outcome-labels inventory
+**Record closed** *(2026-10-17; `3c490a5`, `c858b34`)* — an outcome-labels inventory
 established that no public dataset ties procedure footage to ADR/withdrawal-quality labels,
 documenting the coverage-vs-outcome study as a data wall rather than an open experiment; the
 README tally closed at **23 iterations / 2 adoptions**.
 
 ### Cross-dataset confirmation (opened after the record closed)
 
-**Baseline head-to-head on EndoSLAM** *(pre-registered 2026-10-18, `ceb8833`;
+**Baseline head-to-head on EndoSLAM** *(pre-registered 2026-10-18, `9903d5c`;
 `results/orbslam3_endoslam_gate.md`)* — ORB-SLAM3 out-of-the-box vs the published zero-shot
 trajectories and the adopted pipeline v2's first cross-dataset run, on real ex-vivo porcine
 tissue. In progress at this writing; results publish per the gate's pre-stated outcomes.
@@ -264,7 +264,7 @@ full-withdrawal ATE.
 fully-monocular ATEs (`results/huber_study.csv` ate_recorded: 0.17–1.59 mm, mean 0.91);
 the view-threshold sweep (`results/thr_sensitivity.csv`: 97.8%+ agreement at every setting);
 pipeline v2's per-sequence ATEs (`results/redteam_retrack.csv`, red-team reproduced); the
-README tally anchors (20 → 21 → 22 → 23 at `51fc3aa`, `afd2c5c`, `331b8c9`, `efbd63e`). The
+README tally anchors (20 → 21 → 22 → 23 at `51fc3aa`, `afd2c5c`, `331b8c9`, `c858b34`). The
 records contain no numbering of campaigns 12–19; this ledger says so instead of inventing one.
 
 **Gate-before-run, checked forensically (2026-10-18):** for every Act III campaign with a
