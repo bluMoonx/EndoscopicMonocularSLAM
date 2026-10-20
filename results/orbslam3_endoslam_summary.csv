@@ -1,0 +1,6 @@
+traj,argus_plain_ate_rmse_mm,argus_invivo_ate_rmse_mm(published),argus_v2_ate_rmse_mm,const_point_rmse_mm,baseline_best_cfg,baseline_completion_med,baseline_runs_with_traj,baseline_ate_rmse_med_mm,baseline_ate_rmse_range_mm
+1,30.9,26.6,28.3,42.8,boost,0.954,5,27.8,13.7-34.3
+2,31.7,32.0,32.4,36.0,boost,0.849,5,34.3,31.1-37.7
+3,45.5,47.1,47.8,62.0,stock,0.912,5,48.9,44.6-71.9
+4,24.6,26.5,25.1,42.1,stock,0.651,5,27.0,15.3-37.5
+5,65.4,69.2,68.7,70.7,stock,0.954,5,69.3,62.9-78.7

@@ -242,7 +242,11 @@ README tally closed at **23 iterations / 2 adoptions**.
 **Baseline head-to-head on EndoSLAM** *(pre-registered 2026-10-18, `9903d5c`;
 `results/orbslam3_endoslam_gate.md`)* — ORB-SLAM3 out-of-the-box vs the published zero-shot
 trajectories and the adopted pipeline v2's first cross-dataset run, on real ex-vivo porcine
-tissue. In progress at this writing; results publish per the gate's pre-stated outcomes.
+tissue. Run Oct 18–20; pre-stated outcome 2 published: **the standard tool transfers too — a
+four-way statistical tie on accuracy** (means 39.6–41.4 mm, overlapping CIs), with completion
+the differentiator (ORB-SLAM3 tracks 65–95% of each sequence on sparse keyframes; Argus poses
+every frame). v2's phantom gain does not transfer (neutral, mirroring iteration 21). Gate
+before run verified from artifact times (gate 23:01:22, first artifact 23:03:50).
 
 ## 6. What was adopted vs. what the evidence rejected
 

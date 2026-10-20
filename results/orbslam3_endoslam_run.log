@@ -1,0 +1,97 @@
+﻿traj1 v2 100/568
+traj1 v2 200/568
+traj1 v2 300/568
+traj1 v2 400/568
+traj1 v2 500/568
+traj1: v2 written -> results/endoslam/colon4_traj1_v2.txt
+traj2 v2 100/850
+traj2 v2 200/850
+traj2 v2 300/850
+traj2 v2 400/850
+traj2 v2 500/850
+traj2 v2 600/850
+traj2 v2 700/850
+traj2 v2 800/850
+traj2: v2 written -> results/endoslam/colon4_traj2_v2.txt
+traj3 v2 100/885
+traj3 v2 200/885
+traj3 v2 300/885
+traj3 v2 400/885
+traj3 v2 500/885
+traj3 v2 600/885
+traj3 v2 700/885
+traj3 v2 800/885
+traj3: v2 written -> results/endoslam/colon4_traj3_v2.txt
+traj4 v2 100/457
+traj4 v2 200/457
+traj4 v2 300/457
+traj4 v2 400/457
+traj4: v2 written -> results/endoslam/colon4_traj4_v2.txt
+traj5 v2 100/942
+traj5 v2 200/942
+traj5 v2 300/942
+traj5 v2 400/942
+traj5 v2 500/942
+traj5 v2 600/942
+traj5 v2 700/942
+traj5 v2 800/942
+traj5 v2 900/942
+traj5: v2 written -> results/endoslam/colon4_traj5_v2.txt
+warm-up (discarded, not scored): cached
+traj1 stock run1: cached
+traj1 stock run2: cached
+traj1 stock run3: cached
+traj1 stock run4: cached
+traj1 stock run5: cached
+traj2 stock run1: cached
+traj2 stock run2: cached
+traj2 stock run3: cached
+traj2 stock run4: cached
+traj2 stock run5: cached
+traj3 stock run1: cached
+traj3 stock run2: cached
+traj3 stock run3: cached
+traj3 stock run4: cached
+traj3 stock run5: cached
+traj4 stock run1: cached
+traj4 stock run2: cached
+traj4 stock run3: cached
+traj4 stock run4: cached
+traj4 stock run5: cached
+traj5 stock run1: cached
+traj5 stock run2: cached
+traj5 stock run3: cached
+traj5 stock run4: cached
+traj5 stock run5: cached
+traj1 boost run1: ok
+traj1 boost run2: ok
+traj1 boost run3: ok
+traj1 boost run4: ok
+traj1 boost run5: ok
+traj2 boost run1: ok
+traj2 boost run2: ok
+traj2 boost run3: ok
+traj2 boost run4: ok
+traj2 boost run5: ok
+traj3 boost run1: ok
+traj3 boost run2: ok
+traj3 boost run3: ok
+traj3 boost run4: ok
+traj3 boost run5: ok
+traj4 boost run1: ok
+traj4 boost run2: ok
+traj4 boost run3: ok
+traj4 boost run4: ok
+traj4 boost run5: ok
+traj5 boost run1: ok
+traj5 boost run2: ok
+traj5 boost run3: ok
+traj5 boost run4: ok
+traj5 boost run5: ok
+
+Argus plain (published) mean ATE 39.6 mm, CI (28.689813861059804, 53.29090236198289)
+Argus invivo (published) mean ATE 40.3 mm, CI (27.648376673765256, 56.271074055578765)
+Argus v2 (adopted, first cross-dataset) mean ATE 40.4 mm, CI (28.01662801464007, 55.760911932516684)
+ORB-SLAM3 (best cfg, completed trajs, n=5) mean ATE 41.4 mm, CI (28.75150073116969, 56.724693056401726)
+ORB-SLAM3 median completion: traj1=0.95, traj2=0.85, traj3=0.91, traj4=0.65, traj5=0.95
+analyze complete -> results/orbslam3_endoslam_summary.csv

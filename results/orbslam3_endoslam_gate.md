@@ -104,3 +104,39 @@ No re-tuning of any kind on either comparator.
 
 No sequence list, configuration, metric, threshold, or outcome statement changes after this
 commit.
+
+---
+
+## VERDICT (results section, added after the run — Oct 20 2026)
+
+**Pre-stated outcome 2 applies: the baseline completes and matches — "the standard tool
+transfers too," published plainly.** All 50 scored runs produced trajectories (plus the
+discarded warm-up); run provenance: gate committed 23:01:22 Oct 18, warm-up artifact created
+23:03:50, stock runs 23:03–23:20 Oct 18, v2 + boost runs and analysis Oct 19–20 — gate
+before run holds throughout.
+
+**Accuracy is a four-way statistical tie.** Mean Sim(3) ATE RMSE across the five
+trajectories: Argus plain 39.6 mm, Argus in-vivo mode 40.3 mm, Argus v2 40.4 mm, ORB-SLAM3
+(better config per trajectory) 41.4 mm — every bootstrap CI overlapping (roughly 28–57 mm
+for each system). Per-trajectory medians sit within a few mm of one another everywhere
+(e.g. traj1: 28.3 v2 vs 27.8 baseline; traj3: 47.8 vs 48.9; traj4: 25.1 vs 27.0).
+
+**Completion is the differentiator that did appear.** ORB-SLAM3 median tracked span:
+0.95 / 0.85 / 0.91 / 0.65 / 0.95 — it loses a third of trajectory 4 and poses only sparse
+keyframes (63–79 poses on traj1's 568 frames) where Argus poses every frame with no loss.
+Act I's robustness hypothesis gets partial quantitative support: the standard tool does not
+fragment on ex-vivo tissue at these frame rates, but it is not dense and not complete.
+
+**Comparator 2 (v2 transfer) is neutral, published as measured:** v2 vs the published plain
+condition is mixed per trajectory (better on 1, worse by 0.7–3.3 mm on 4), mean 40.4 vs
+39.6 mm — the phantom adoption's 0.91 → 0.42 mm gain does not transfer to this data,
+consistent with iteration 21's finding that the adoption is per-configuration, never generic.
+
+**Informativeness caveat carries over as pre-disclosed:** traj2 and traj5 ATEs sit near
+their constant-point baselines (36.0 and 70.7 mm) for every system including the baseline,
+so cross-dataset accuracy conclusions rest on trajectories 1, 3, 4.
+
+**Mechanism:** on this data, a dense direct tracker and a feature-based tracker with
+fundamentally different machinery land at the same per-trajectory error level — the error
+floor looks data-set, not tracker-set (zero-shot depth quality, OptiTrack ground-truth
+registration, and trajectory geometry), which is itself the cross-dataset finding.
