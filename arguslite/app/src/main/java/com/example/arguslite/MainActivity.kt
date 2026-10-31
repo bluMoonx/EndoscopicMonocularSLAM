@@ -1104,6 +1104,21 @@ class MainActivity : ComponentActivity() {
                         drawMeshLit(map.mesh!!, cmm[0], cmm[1], cmm[2], map.spanMm,
                             yaw, pitch, zoom,
                             if (heatMode) 1 else if (showBlind) 2 else 0, 3)
+                        // The mesh is opaque, so a blind patch on the far interior wall
+                        // is hidden behind the near wall; x-ray the blind points through
+                        // the surface so every flagged patch stays visible.
+                        if (showBlind && !heatMode) {
+                            val xStep = 1 + map.n / 12000
+                            for (i in 0 until map.n step xStep) {
+                                if (!map.blind[i]) continue
+                                val (bx, by, bp) = project(map.xyz[3 * i],
+                                    map.xyz[3 * i + 1], map.xyz[3 * i + 2], cy, sy, cp, sp)
+                                if (bp <= 0f) continue
+                                drawCircle(Color(0xFFE63A46),
+                                    4.5f * bp.coerceIn(0.6f, 1.6f),
+                                    Offset(bx, by), alpha = 0.60f)
+                            }
+                        }
                     }
                     // Painter's order: far wall drawn first so the near wall covers it —
                     // this is what makes the cloud read as a tube instead of a blob.
