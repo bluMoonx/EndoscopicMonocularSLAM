@@ -116,6 +116,7 @@ A local web console with ten stations, fully offline once models are on disk:
 | `speqslam/endoslam_pipeline.py` | Cross-dataset evaluation (EndoSLAM ex-vivo porcine) |
 | `speqslam/glare_removal.py`, `ai_inpaint.py`, `temporal_inpaint.py` | Act I: the glare study |
 | `PROJECT_GUIDE.html` | The two-layer (plain + technical) field guide |
+| `presentation/` | GSDSEF digital deck (built from the official template by `presentation/build_deck.py`) + the five-questions judge map |
 | `LAPTOP_SETUP.md` | Fair-day migration plan |
 | `data/`, `results/`, `models/` | Datasets / outputs / weights — **not tracked** |
 
