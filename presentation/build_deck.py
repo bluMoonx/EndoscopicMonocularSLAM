@@ -219,20 +219,20 @@ drop_autoshapes(s)
 tf, sh = clear_body(s, top=1.55, height=3.95)
 ABSTRACT = ("Colonoscopy prevents cancer only where the colon wall is actually examined, yet roughly one in four "
             "precancerous polyps is missed, largely because parts of the wall are never brought into view and no "
-            "standard instrument tells the endoscopist which parts those were. Argus answers that question from an "
-            "unmodified endoscope's own video. The pipeline chains a domain-fine-tuned monocular depth network, a "
-            "from-scratch direct visual odometry tracker, fusion of the depth maps into a 3D surface, per-patch "
-            "view counting, and a cascaded polyp detector, running end to end on one workstation and on an "
-            "ordinary Android phone. Development followed a strict engineering discipline: twenty-three design "
-            "iterations, each judged against pass or fail criteria committed to a public git record before the test "
-            "ran, with failures published alongside their mechanisms; two upgrades passed their gates and were "
-            "adopted. On phantom ground truth the final pipeline tracks the camera to 0.42 mm mean trajectory "
-            "error, reconstructs the surface to 1.3 to 2.4 mm median error, and cuts false blind-spot alarms from "
-            "7 to 41 percent of wall down to 0.5 to 3.9 percent through depth fine-tuning, the project's "
-            "central finding: generic AI fails inside the body, and targeted fine-tuning rescues it. The same "
-            "finding repeated in detection, where a redesigned dense-sampling protocol raised detection on unseen "
-            "clinical footage from 13 of 25 to 19 of 25 polyp clips (paired, p = 0.0012). Head to head, the "
-            "tracker draws with the standard tool ORB-SLAM3 on accuracy while posing every frame of video.")
+            "standard instrument tells the endoscopist which parts those were. I built Argus to answer that "
+            "question from an unmodified endoscope's own video. The pipeline chains a depth network "
+            "I fine-tuned for the colon, a visual odometry tracker I wrote from scratch, fusion of the depth maps "
+            "into a 3D surface, per-patch view counting, and a cascaded polyp detector, and runs end to end on "
+            "one workstation and an ordinary Android phone. I held myself to a discipline of "
+            "twenty-three design iterations, each judged against pass or fail criteria that I committed to a "
+            "public git record before each test ran, with failures published alongside their mechanisms; two "
+            "upgrades earned adoption. On phantom ground truth the final pipeline tracks the camera to 0.42 mm "
+            "mean error and reconstructs the surface to about 2 mm, and fine-tuning the depth network cut false "
+            "blind-spot alarms from as much as 41 percent of the wall to under 4 percent. That became the "
+            "project's central finding, because the same disease and cure repeated in detection: generic AI fails "
+            "inside the body, and targeted adaptation rescues it, raising detection on unseen clinical footage "
+            "from 13 of 25 to 19 of 25 polyp clips. Head to head, my tracker draws with the "
+            "standard tool ORB-SLAM3 on accuracy while posing every frame of video.")
 para(tf, [(ABSTRACT, False)], size=15, first=True, after=0)
 print("ABSTRACT WORDS:", len(ABSTRACT.split()))
 add_fig(s, ROOT + r"\presentation\shots\app_surface_xray.png", 0.5, 5.55, 2.9, 1.1)
@@ -259,15 +259,16 @@ intro = [
        "reconstruction systems typically need added hardware or offline processing, and the C3VD phantom datasets "
        "are the only public source of trajectory ground truth.", False)], 13),
     ([("Engineering goal. ", True),
-      ("Build and honestly validate a system that turns a standard, unmodified endoscope's video into a 3D "
-       "reconstruction with a per-patch coverage map that shows what was examined, what was only glanced at, and "
-       "where the map has holes, running on consumer hardware, with every stage measured against ground truth and "
-       "every claim carrying its trivial baseline.", False)], 13),
+      ("My goal was to build and honestly validate a system that turns a standard, unmodified endoscope's video "
+       "into a 3D reconstruction with a per-patch coverage map showing what was examined, what was only glanced "
+       "at, and where the map has holes, running on consumer hardware, with every stage measured against ground "
+       "truth and every claim carrying its trivial baseline.", False)], 13),
     ([("Origin and hypothesis evolution. ", True),
-      ("The project began with the hypothesis that specular glare breaks endoscopic SLAM and that removing it "
-       "would help. Controlled experiments largely disproved this: feature-based tracking is already glare-robust, "
-       "and naive glare inpainting actively hurt. That disproof produced a from-scratch dense tracker and a pivot "
-       "to the coverage question, where a staged ablation isolated learned depth as the true bottleneck.", False)], 13),
+      ("I began with the hypothesis that specular glare breaks endoscopic SLAM and that removing it would help. "
+       "My controlled experiments largely disproved this, since feature-based tracking turned out to be already "
+       "glare-robust and naive glare inpainting actively hurt. That disproof left me with a from-scratch dense "
+       "tracker and pivoted the project to the coverage question, where a staged ablation isolated learned depth "
+       "as the true bottleneck.", False)], 13),
 ]
 first = True
 total = 0
@@ -282,23 +283,23 @@ s = slides[3]
 tf, sh = clear_body(s, top=1.55, height=5.3)
 mats = [
     [("Datasets. ", True),
-     ("C3VD and C3VDv2: silicone colon phantoms filmed with a real endoscope, with 6-degree-of-freedom camera "
-      "ground truth, the basis of all trajectory and reconstruction validation (5 headline sequences plus full "
-      "screening withdrawals). EndoSLAM: ex-vivo porcine colon with OptiTrack camera ground truth, used for "
-      "cross-dataset tests on real tissue (5 trajectories, 457 to 942 frames each). HyperKvasir and public "
-      "clinical endoscopy clips: unseen human footage for the two frozen detection tests (n = 41 and n = 48 clips).", False)],
+     ("I validated all trajectories and reconstructions on C3VD and C3VDv2, silicone colon phantoms filmed with "
+      "a real endoscope that come with 6-degree-of-freedom camera ground truth, using 5 headline sequences plus "
+      "full screening withdrawals. For real tissue I used EndoSLAM, an ex-vivo porcine colon with OptiTrack "
+      "camera ground truth, across 5 trajectories of 457 to 942 frames. The two frozen detection tests used "
+      "unseen human footage from HyperKvasir and public clinical clips (n = 41 and n = 48).", False)],
     [("Hardware. ", True),
-     ("One Windows workstation with a single NVIDIA RTX A1000 (8 GB) graphics card, which also performed all "
-      "neural-network fine-tuning, and one ordinary Android phone that runs the complete pipeline on-device, "
-      "including from its own live camera.", False)],
+     ("Everything ran on one Windows workstation with a single NVIDIA RTX A1000 graphics card (8 GB), which also "
+      "performed all of the neural-network fine-tuning, plus one ordinary Android phone that runs the complete "
+      "pipeline on-device, including from its own live camera.", False)],
     [("Software and models. ", True),
-     ("Python with PyTorch, OpenCV, and Open3D for the pipeline; Depth Anything V2 (fine-tuned on phantom data) "
-      "for depth; a visual odometry tracker written from scratch for this project; DeepLabV3+ with an "
-      "EfficientNet-B4 backbone (fine-tuned) for polyp segmentation; Kotlin and Android Studio for the phone "
-      "application; a containerized ORB-SLAM3 build as the comparison baseline.", False)],
+     ("I wrote the pipeline in Python with PyTorch, OpenCV, and Open3D. Depth comes from Depth Anything V2, "
+      "which I fine-tuned on phantom data; tracking comes from a visual odometry tracker I wrote from scratch; "
+      "polyp segmentation uses a DeepLabV3+ model (EfficientNet-B4 backbone) that I fine-tuned; the phone app is "
+      "written in Kotlin; and a containerized ORB-SLAM3 build served as the comparison baseline.", False)],
     [("The record. ", True),
-     ("A public git repository holds every pre-registered pass or fail criterion (committed before each test ran), "
-      "all raw result artifacts, and the audit scripts that reproduce every published number.", False)],
+     ("A public git repository holds every pre-registered pass or fail criterion, committed before each test "
+      "ran, along with all raw result artifacts and the audit scripts that reproduce every published number.", False)],
 ]
 first = True
 for runs in mats:
@@ -368,14 +369,15 @@ box(s, 1.10, BY + BH + 0.30, 3.9, 0.78,
 caption_box(s, "Block diagram of the full program, drawn by me.", 5.3, BY + BH + 0.55, 4.0)
 meth = [
     [("Validation by staged ablation. ", True),
-     ("On phantom ground truth, each estimated input is swapped for its ground-truth version to isolate error "
-      "sources (ground-truth depth with estimated poses, estimated depth with ground-truth poses, and so on), so "
-      "every error is attributed to a stage, not guessed at. All measurements are metric (millimeters).", False)],
+     ("On phantom ground truth I swapped each estimated input for its ground-truth version to isolate error "
+      "sources, running ground-truth depth with estimated poses, estimated depth with ground-truth poses, and so "
+      "on, so that every error is attributed to a stage instead of guessed at. All measurements are metric, in "
+      "millimeters.", False)],
     [("Pre-registration. ", True),
-     ("Every experiment's pass or fail criteria, data lists, and planned outcomes were committed to the public git "
-      "record before the test ran, then never changed; testing stops at the first failed gate, and failures are "
-      "published with their mechanisms. Every trajectory error is printed beside the same sequence's trivial "
-      "constant-point baseline so a flattering but meaningless number cannot hide.", False)],
+     ("Before each test ran I committed its pass or fail criteria, data lists, and planned outcomes to the "
+      "public git record, and never changed them afterward; testing stops at the first failed gate, and failures "
+      "are published with their mechanisms. I also print every trajectory error beside the same sequence's "
+      "trivial constant-point baseline so a flattering but meaningless number cannot hide.", False)],
 ]
 first = True
 for runs in meth:
@@ -388,34 +390,35 @@ caption_box(s, "Left: a pass-or-fail gate committed to GitHub before the experim
 
 # ================= SLIDE 6: METHODS con'd (design -> test -> redesign) =================
 s = slides[5]
-tf, sh = clear_body(s, top=1.45, height=3.1)
+tf, sh = clear_body(s, top=1.45, height=3.35)
 m2 = [
     [("Design, test, redesign. ", True),
-     ("The project ran 23 pre-registered design iterations; 2 passed their gates and were adopted, and the rest "
-      "were rejected by their own pre-stated criteria and published anyway. Adoption 1: an improved tracking "
-      "kernel (robust in-loop weighting), adopted only after a staged re-validation of every tracking benchmark, "
-      "cut mean trajectory error from 0.91 to 0.42 mm. Adoption 2: a dense frame-sampling protocol for detection, "
-      "adopted only after passing three gates on a second frozen test of 48 fresh clinical clips.", False)],
-    [("Redesigns the evidence rejected ", True),
-     ("(each against its own committed bar): glare removal as a tracking aid, two inpainting methods, six "
-      "deformation compensations, three generations of loop closure, keyframe tracking, two depth-resolution "
-      "speedups, and porting Adoption 1 to the phone's tracker, which failed its gate on one of two "
-      "pre-registered windows and was kept off the phone: an adoption is validated per configuration, never "
-      "assumed to generalize.", False)],
+     ("I ran 23 pre-registered design iterations, and only 2 passed their gates and were adopted; the rest were "
+      "rejected by their own pre-stated criteria and published anyway. The first adoption was an improved "
+      "tracking kernel with robust in-loop weighting, which I adopted only after re-validating every tracking "
+      "benchmark in stages, and it cut mean trajectory error from 0.91 to 0.42 mm. The second was a dense "
+      "frame-sampling protocol for detection, adopted only after it passed three gates on a second frozen test "
+      "of 48 fresh clinical clips.", False)],
+    [("Redesigns the evidence rejected. ", True),
+     ("The failures outnumber the successes, and each was judged against its own committed bar: glare removal as "
+      "a tracking aid, two inpainting methods, six deformation compensations, three generations of loop closure, "
+      "keyframe tracking, two depth-resolution speedups, and the attempt to port the first adoption to the "
+      "phone's tracker, which failed its gate and taught me that an adoption is validated per configuration and "
+      "never assumed to generalize.", False)],
     [("Self-audit. ", True),
-     ("A 35-figure audit reproduces every published number from raw artifacts; a red-team audit re-derives the "
-      "headline results with independently written code (15 of 15 checks, including an exact re-track of the "
-      "0.42 mm mean); two self-caught metric errors were retracted and are reported as results.", False)],
+     ("A 35-figure audit reproduces every published number from raw artifacts, and a red-team audit re-derives "
+      "the headline results with independently written code, passing 15 of 15 checks. I also caught two of my "
+      "own metrics flattering the system and retracted them; the retractions are reported as results.", False)],
 ]
 first = True
 for runs in m2:
     para(tf, runs, size=13, first=first, after=6)
     first = False
-y_fig = 4.75
-w1, h1 = fit(ROOT + r"\results\poster\fig13_path_overlay.png", 4.35, 1.95)
-add_fig(s, ROOT + r"\results\poster\fig13_path_overlay.png", 0.5, y_fig, 4.35, 1.95)
-add_fig(s, ROOT + r"\results\poster\fig2_depth_fix.png", 5.15, y_fig, 4.35, 1.95)
-caption_box(s, "Left: estimated camera path against phantom ground truth. Right: off-the-shelf vs fine-tuned depth, the central redesign. Figures produced by me.", 0.5, y_fig + max(h1, fit(ROOT + r"\results\poster\fig2_depth_fix.png", 4.35, 1.95)[1]) + 0.04, 9.0)
+y_fig = 4.95
+w1, h1 = fit(ROOT + r"\results\poster\fig13_path_overlay.png", 4.35, 1.80)
+add_fig(s, ROOT + r"\results\poster\fig13_path_overlay.png", 0.5, y_fig, 4.35, 1.80)
+add_fig(s, ROOT + r"\results\poster\fig2_depth_fix.png", 5.15, y_fig, 4.35, 1.80)
+caption_box(s, "Left: estimated camera path against phantom ground truth. Right: off-the-shelf vs fine-tuned depth, the central redesign. Figures produced by me.", 0.5, y_fig + max(h1, fit(ROOT + r"\results\poster\fig2_depth_fix.png", 4.35, 1.80)[1]) + 0.04, 9.0)
 
 # ================= SLIDE 7: RESULTS (core accuracy) =================
 s = slides[6]
@@ -490,11 +493,10 @@ disc = [
       "all appears as visible holes in the reconstruction rather than in the percentage, so the figure is stated "
       "as a fraction of the mapped wall. The threshold was sensitivity-tested and does not drive the conclusions.", False)],
     [("Errors and surprises. ", True),
-     ("Two metrics flattered the system while measuring nothing and were self-caught and retracted: an agreement "
-      "score inflated by class imbalance, and an aligned trajectory error that collapses under divergence. Both "
-      "produced standing safeguards (trivial baselines beside every number; the guard-rejection rate as the "
-      "primary metric under guarding). The original glare hypothesis was itself largely disproven, which redirected "
-      "the whole project.", False)],
+     ("Two of my metrics flattered the system while measuring nothing, an agreement score inflated by class "
+      "imbalance and an aligned trajectory error that collapses under divergence; I caught and retracted both, "
+      "and each produced a standing safeguard, which is why a trivial baseline now sits beside every number. My "
+      "original glare hypothesis was itself largely disproven, which redirected the whole project.", False)],
     [("Why the redesigns happened. ", True),
      ("Each redesign was forced by a measured mechanism, not taste: the detection miss autopsy traced misses to "
       "frame sampling, so the protocol was redesigned and re-frozen; the tracker upgrade failed its phone gate, so "
@@ -526,15 +528,15 @@ conc = [
       "frame with zero tracking loss; the honest tracking claim is density, glare handling, and a measured "
       "operating envelope, not accuracy supremacy.", False)],
     [("Honest limits. ", True),
-     ("Validated where ground truth exists (phantom; real-tissue cross-checks); whole-colon drift of roughly "
-      "100 mm is proven unfixable by loop closure here; the phone runs near real time at about 3 fps, below the "
-      "measured 9 fps needed for live guidance; cross-patient generalization needs data that does not publicly "
-      "exist. Each limit ships with its mechanism.", False)],
+     ("The system is validated only where ground truth exists, on the phantom and in real-tissue cross-checks. "
+      "Whole-colon drift of roughly 100 mm is proven unfixable by loop closure here, the phone runs near real "
+      "time at about 3 fps against the measured 9 fps needed for live guidance, and cross-patient generalization "
+      "needs data that does not publicly exist. Each limit ships with its mechanism.", False)],
     [("Applications and next steps. ", True),
-     ("Today: a retrospective procedure report card (coverage grade, blind regions in square millimeters, camera "
-      "speed) for quality review and training, a stratification signal rather than a diagnosis. Next: reaching the "
-      "measured 9 fps target for live guidance, and a clinical study tying measured coverage to outcomes, which "
-      "this project showed requires data that must be collected prospectively.", False)],
+     ("Today the system produces a retrospective procedure report card with a coverage grade, blind regions in "
+      "square millimeters, and camera speed, a stratification signal for quality review rather than a diagnosis. "
+      "The next steps are reaching the measured 9 fps target for live guidance and a clinical study tying "
+      "measured coverage to outcomes, which this project showed requires prospectively collected data.", False)],
 ]
 first = True
 for runs in conc:
