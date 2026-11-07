@@ -203,7 +203,7 @@ title_ph.height = Inches(2.6)
 tf = title_ph.text_frame
 tf.clear()
 tf.word_wrap = True
-para(tf, [("Argus: Monocular 3D Coverage Mapping to Reveal Blind Spots in Colonoscopy", True)], size=30, first=True, after=14, align=PP_ALIGN.CENTER)
+para(tf, [("Argus: A 3d Domain-Adapted Monocular Depth and Odometry Pipeline for Blind-Spot Quantification in Colonoscopy", True)], size=30, first=True, after=14, align=PP_ALIGN.CENTER)
 para(tf, [("Biomedical/Health Sciences, and Biomedical Engineering", False)], size=20, after=8, align=PP_ALIGN.CENTER)
 para(tf, [("Kathleen Wang, 11th Grade", False)], size=20, after=0, align=PP_ALIGN.CENTER)
 w, h = fit(ROOT + r"\results\blindspot_map.png", 6.0, 3.2)
