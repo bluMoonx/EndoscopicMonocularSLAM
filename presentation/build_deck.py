@@ -145,13 +145,14 @@ def fit(path, max_w, max_h):
 
 def add_fig(slide, path, x, y, max_w, max_h, caption=None, cap_w=None):
     w, h = fit(path, max_w, max_h)
-    x = x + (max_w - w) / 2  # center within the allotted cell
-    slide.shapes.add_picture(path, Inches(x), Inches(y), Inches(w), Inches(h))
+    cx = x + (max_w - w) / 2  # center within the allotted cell
+    slide.shapes.add_picture(path, Inches(cx), Inches(y), Inches(w), Inches(h))
     if caption:
+        # caption spans the CELL, centered, directly under the image
         tb = slide.shapes.add_textbox(Inches(x), Inches(y + h + 0.02), Inches(cap_w or max_w), Inches(0.3))
         tf = tb.text_frame
         tf.word_wrap = True
-        para(tf, [(caption, False, True)], size=12, first=True, after=0)
+        para(tf, [(caption, False, True)], size=12, first=True, after=0, align=PP_ALIGN.CENTER)
     return w, h
 
 def placeholder_box(slide, x, y, w, h, label):
@@ -235,10 +236,12 @@ ABSTRACT = ("Colonoscopy misses roughly one in four precancerous polyps, largely
             "to it.")
 para(tf, [(ABSTRACT, False)], size=15, first=True, after=0)
 print("ABSTRACT WORDS:", len(ABSTRACT.split()))
-add_fig(s, ROOT + r"\presentation\shots\app_surface_xray.png", 0.5, 5.42, 2.9, 1.25)
-add_fig(s, ROOT + r"\results\polyp_find_size_demo.png", 3.55, 5.42, 2.9, 1.25)
-add_fig(s, ROOT + r"\results\polyp_examples\good_detection_dice0.99.png", 6.6, 5.42, 2.9, 1.25)
-caption_box(s, "Left: the app's 3D map, blind spots shown through the surface (my screenshot). Center: automatic polyp find-and-size. Right: segmentation vs expert outline.", 0.5, 6.72, 9.0)
+add_fig(s, ROOT + r"\presentation\shots\app_surface_xray.png", 0.5, 5.42, 2.9, 1.30,
+        caption="the app's 3D map with blind spots (my screenshot)")
+add_fig(s, ROOT + r"\results\polyp_find_size_demo.png", 3.55, 5.42, 2.9, 1.30,
+        caption="automatic polyp find-and-size (my figure)")
+add_fig(s, ROOT + r"\results\polyp_examples\good_detection_dice0.99.png", 6.6, 5.42, 2.9, 1.30,
+        caption="segmentation vs expert outline (my figure)")
 
 # ================= SLIDE 3: INTRODUCTION =================
 s = slides[2]
@@ -309,11 +312,13 @@ first = True
 for runs in mats:
     para(tf, runs, size=13, bullet=True, first=first, after=8)
     first = False
-y_m = 5.58
-add_fig(s, ROOT + r"\results\c3vd_undistort.png", 0.5, y_m, 2.9, 1.10)
-add_fig(s, ROOT + r"\results\screening_polyp\c0_0_f0318.jpg", 3.55, y_m, 2.9, 1.10)
-add_fig(s, ROOT + r"\results\hk_clip1_sample.jpg", 6.6, y_m, 2.9, 1.10)
-caption_box(s, "The three data domains: ground-truth phantom, screening-pace withdrawal, unseen clinical footage.", 0.5, y_m + 1.13, 8.9)
+y_m = 5.56
+add_fig(s, ROOT + r"\results\c3vd_undistort.png", 0.5, y_m, 2.9, 1.18,
+        caption="the ground-truth phantom (C3VD)")
+add_fig(s, ROOT + r"\results\screening_polyp\c0_0_f0318.jpg", 3.55, y_m, 2.9, 1.18,
+        caption="a screening-pace withdrawal frame")
+add_fig(s, ROOT + r"\results\hk_clip1_sample.jpg", 6.6, y_m, 2.9, 1.18,
+        caption="unseen clinical footage")
 
 # ================= SLIDE 5: METHODS (block diagram + validation) =================
 s = slides[4]
@@ -387,10 +392,12 @@ first = True
 for runs in meth:
     para(tf, runs, size=13, first=first, after=6)
     first = False
-add_fig(s, ROOT + r"\presentation\shots\gate_commit.png", 0.5, 5.80, 2.9, 1.10)
-add_fig(s, ROOT + r"\presentation\shots\studio_console.png", 3.55, 5.80, 2.9, 1.10)
-add_fig(s, ROOT + r"\presentation\shots\workstation.jpg", 6.6, 5.80, 2.9, 1.10)
-caption_box(s, "Left: a pass-or-fail gate committed to GitHub before the experiment ran. Center: the Argus Studio demo console. Right: the live pipeline at my workstation. My screenshots.", 0.5, 6.93, 9.0)
+add_fig(s, ROOT + r"\presentation\shots\gate_commit.png", 0.5, 5.78, 2.9, 1.12,
+        caption="a gate committed to GitHub before the run (my screenshot)")
+add_fig(s, ROOT + r"\presentation\shots\studio_console.png", 3.55, 5.78, 2.9, 1.12,
+        caption="the Argus Studio console (my screenshot)")
+add_fig(s, ROOT + r"\presentation\shots\workstation.jpg", 6.6, 5.78, 2.9, 1.12,
+        caption="the live pipeline at my workstation (my photo)")
 
 # ================= SLIDE 6: METHODS con'd (design -> test -> redesign) =================
 s = slides[5]
@@ -418,11 +425,11 @@ first = True
 for runs in m2:
     para(tf, runs, size=13, first=first, after=6)
     first = False
-y_fig = 4.95
-w1, h1 = fit(ROOT + r"\results\poster\fig13_path_overlay.png", 4.35, 1.80)
-add_fig(s, ROOT + r"\results\poster\fig13_path_overlay.png", 0.5, y_fig, 4.35, 1.80)
-add_fig(s, ROOT + r"\results\poster\fig2_depth_fix.png", 5.15, y_fig, 4.35, 1.80)
-caption_box(s, "Left: estimated camera path against phantom ground truth. Right: off-the-shelf vs fine-tuned depth, the central redesign. Figures produced by me.", 0.5, y_fig + max(h1, fit(ROOT + r"\results\poster\fig2_depth_fix.png", 4.35, 1.80)[1]) + 0.04, 9.0)
+y_fig = 4.92
+add_fig(s, ROOT + r"\results\poster\fig13_path_overlay.png", 0.5, y_fig, 4.35, 1.85,
+        caption="estimated camera path vs phantom ground truth (my figure)")
+add_fig(s, ROOT + r"\results\poster\fig2_depth_fix.png", 5.15, y_fig, 4.35, 1.85,
+        caption="off-the-shelf vs fine-tuned depth, the central redesign (my figure)")
 
 # ================= SLIDE 7: RESULTS (core accuracy) =================
 s = slides[6]
@@ -441,9 +448,10 @@ rows = [
 ]
 add_table(s, rows, 0.5, 2.0, 9.0, col_widths=[3.1, 2.7, 3.2], size=12, row_h=0.42)
 y_fig = 5.05
-hA = add_fig(s, ROOT + r"\results\poster\fig1_ablation.png", 0.5, y_fig, 4.35, 1.65)[1]
-add_fig(s, ROOT + r"\results\poster\fig1b_falsealarm.png", 5.15, y_fig, 4.35, 1.65)
-caption_box(s, "Left: staged ablation isolating depth as the bottleneck. Right: false-alarm rate before and after depth fine-tuning. Figures produced by me.", 0.5, y_fig + 1.68, 9.0)
+add_fig(s, ROOT + r"\results\poster\fig1_ablation.png", 0.5, y_fig, 4.35, 1.70,
+        caption="the staged ablation isolating depth (my figure)")
+add_fig(s, ROOT + r"\results\poster\fig1b_falsealarm.png", 5.15, y_fig, 4.35, 1.70,
+        caption="false alarms before and after fine-tuning (my figure)")
 
 # ================= SLIDE 8: RESULTS con'd (unseen clinical footage + baselines) =================
 s = slides[7]
@@ -459,10 +467,11 @@ rows = [
     ["Cross-dataset check (real porcine tissue)", "four-way statistical tie, 39.6 to 41.4 mm mean; ORB-SLAM3 completes 65 to 95% of each sequence", "n = 5 trajectories, 5 runs per config"],
 ]
 add_table(s, rows, 0.5, 2.25, 9.0, col_widths=[2.6, 4.5, 1.9], size=12, row_h=0.5)
-y_fig = 5.45
-add_fig(s, ROOT + r"\results\poster\fig10_detector_fix.png", 0.5, y_fig, 4.35, 1.28)
-add_fig(s, ROOT + r"\results\figures\orbslam3_endoslam_ate.png", 5.15, y_fig, 4.35, 1.28)
-caption_box(s, "Left: the detector's domain-gap failure and its fix. Right: trajectory error on real tissue, all systems. Figures produced by me.", 0.5, y_fig + 1.31, 9.0)
+y_fig = 5.42
+add_fig(s, ROOT + r"\results\poster\fig10_detector_fix.png", 0.5, y_fig, 4.35, 1.32,
+        caption="the detector's domain-gap failure and fix (my figure)")
+add_fig(s, ROOT + r"\results\figures\orbslam3_endoslam_ate.png", 5.15, y_fig, 4.35, 1.32,
+        caption="trajectory error on real tissue, all systems (my figure)")
 
 # ================= SLIDE 9: RESULTS con'd (negative results, published) =================
 s = slides[8]
@@ -479,9 +488,10 @@ rows = [
 ]
 add_table(s, rows, 0.5, 2.30, 9.0, col_widths=[3.0, 3.3, 2.7], size=12, row_h=0.5)
 y_fig = 5.02
-add_fig(s, ROOT + r"\results\poster\fig12_framerate.png", 0.5, y_fig, 4.35, 1.62)
-add_fig(s, ROOT + r"\results\poster\fig15_loopclosure.png", 5.15, y_fig, 4.35, 1.62)
-caption_box(s, "Left: the frame-rate law from complete withdrawals. Right: the loop-closure oracle bound. Figures produced by me.", 0.5, y_fig + 1.65, 9.0)
+add_fig(s, ROOT + r"\results\poster\fig12_framerate.png", 0.5, y_fig, 4.35, 1.68,
+        caption="the frame-rate law from complete withdrawals (my figure)")
+add_fig(s, ROOT + r"\results\poster\fig15_loopclosure.png", 5.15, y_fig, 4.35, 1.68,
+        caption="the loop-closure oracle bound (my figure)")
 
 # ================= SLIDE 10: DISCUSSION =================
 s = slides[9]
@@ -512,9 +522,10 @@ for runs in disc:
     para(tf, runs, size=13, first=first, after=7)
     first = False
 y_d = 4.90
-add_fig(s, ROOT + r"\results\poster\fig16_coverage_validation.png", 0.5, y_d, 4.35, 1.70)
-add_fig(s, ROOT + r"\results\poster\fig6_crossdataset.png", 5.15, y_d, 4.35, 1.70)
-caption_box(s, "Left: coverage validated against the perfect-tracking twin instrument. Right: cross-dataset transfer to real tissue. Figures produced by me.", 0.5, y_d + 1.73, 9.0)
+add_fig(s, ROOT + r"\results\poster\fig16_coverage_validation.png", 0.5, y_d, 4.35, 1.75,
+        caption="coverage validated against the twin instrument (my figure)")
+add_fig(s, ROOT + r"\results\poster\fig6_crossdataset.png", 5.15, y_d, 4.35, 1.75,
+        caption="cross-dataset transfer to real tissue (my figure)")
 
 # ================= SLIDE 11: CONCLUSION =================
 s = slides[10]
@@ -547,10 +558,12 @@ for runs in conc:
     para(tf, runs, size=13, first=first, after=7)
     first = False
 y_c = 5.22
-add_fig(s, ROOT + r"\results\poster\fig7_measurement.png", 0.5, y_c, 2.9, 1.45)
-add_fig(s, ROOT + r"\presentation\shots\report_card.png", 3.55, y_c, 2.9, 1.45)
-add_fig(s, ROOT + r"\presentation\shots\app_pointcloud.png", 6.6, y_c, 2.9, 1.45)
-caption_box(s, "Left: monocular sizing, 0.60 mm median error on 3 to 30 mm targets (my figure). Center: a procedure report card from Argus Studio. Right: the blind-spot map on the phone.", 0.5, y_c + 1.48, 9.0)
+add_fig(s, ROOT + r"\results\poster\fig7_measurement.png", 0.5, y_c, 2.9, 1.48,
+        caption="monocular sizing, 0.60 mm median error (my figure)")
+add_fig(s, ROOT + r"\presentation\shots\report_card.png", 3.55, y_c, 2.9, 1.48,
+        caption="a procedure report card (my screenshot)")
+add_fig(s, ROOT + r"\presentation\shots\app_pointcloud.png", 6.6, y_c, 2.9, 1.48,
+        caption="the blind-spot map on the phone (my screenshot)")
 
 # ================= SLIDE 12: REFERENCES / ACKNOWLEDGEMENTS =================
 s = slides[11]
