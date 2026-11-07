@@ -205,40 +205,40 @@ tf.word_wrap = True
 para(tf, [("Argus: Monocular 3D Coverage Mapping to Reveal Blind Spots in Colonoscopy", True)], size=30, first=True, after=14, align=PP_ALIGN.CENTER)
 para(tf, [("Biomedical/Health Sciences, and Biomedical Engineering", False)], size=20, after=8, align=PP_ALIGN.CENTER)
 para(tf, [("Kathleen Wang, 11th Grade", False)], size=20, after=0, align=PP_ALIGN.CENTER)
-w, h = fit(ROOT + r"\results\blindspot_map.png", 5.6, 3.1)
-s.shapes.add_picture(ROOT + r"\results\blindspot_map.png", Inches((10 - w) / 2), Inches(3.35), Inches(w), Inches(h))
-caption_box(s, "A reconstructed colon segment with its blind-spot map: patches seen fewer than three times are flagged (my figure).", 2.35, 3.38 + h + 0.03, 5.3)
-add_fig(s, ROOT + r"\presentation\shots\app_home.png", 0.30, 3.55, 1.75, 2.55)
-caption_box(s, "Argus Lite, the phone app (my screenshot)", 0.10, 6.14, 2.15)
-add_fig(s, ROOT + r"\presentation\shots\app_live_study.png", 7.95, 3.55, 1.75, 2.55)
-caption_box(s, "a live camera study in the app (my screenshot)", 7.80, 6.14, 2.15)
+w, h = fit(ROOT + r"\results\blindspot_map.png", 6.0, 3.2)
+s.shapes.add_picture(ROOT + r"\results\blindspot_map.png", Inches((10 - w) / 2), Inches(3.30), Inches(w), Inches(h))
+caption_box(s, "A reconstructed colon segment with its blind-spot map: patches seen fewer than three times are flagged (my figure).", 2.45, 3.33 + h + 0.03, 5.1)
+add_fig(s, ROOT + r"\presentation\shots\app_home.png", 0.22, 3.40, 2.0, 2.95)
+caption_box(s, "Argus Lite, the phone app (my screenshot)", 0.12, 6.44, 2.25)
+add_fig(s, ROOT + r"\presentation\shots\app_live_study.png", 7.78, 3.40, 2.0, 2.95)
+caption_box(s, "a live camera study in the app (my screenshot)", 7.68, 6.44, 2.25)
 
 # ================= SLIDE 2: ABSTRACT =================
 s = slides[1]
 drop_autoshapes(s)
 tf, sh = clear_body(s, top=1.55, height=3.95)
-ABSTRACT = ("Colonoscopy prevents cancer only where the colon wall is actually examined, yet roughly one in four "
-            "precancerous polyps is missed, largely because parts of the wall are never brought into view and no "
-            "standard instrument tells the endoscopist which parts those were. I built Argus to answer that "
-            "question from an unmodified endoscope's own video. The pipeline chains a depth network "
-            "I fine-tuned for the colon, a visual odometry tracker I wrote from scratch, fusion of the depth maps "
-            "into a 3D surface, per-patch view counting, and a cascaded polyp detector, and runs end to end on "
-            "one workstation and an ordinary Android phone. I held myself to a discipline of "
-            "twenty-three design iterations, each judged against pass or fail criteria that I committed to a "
-            "public git record before each test ran, with failures published alongside their mechanisms; two "
-            "upgrades earned adoption. On phantom ground truth the final pipeline tracks the camera to 0.42 mm "
-            "mean error and reconstructs the surface to about 2 mm, and fine-tuning the depth network cut false "
-            "blind-spot alarms from as much as 41 percent of the wall to under 4 percent. That became the "
-            "project's central finding, because the same disease and cure repeated in detection: generic AI fails "
-            "inside the body, and targeted adaptation rescues it, raising detection on unseen clinical footage "
-            "from 13 of 25 to 19 of 25 polyp clips. Head to head, my tracker draws with the "
-            "standard tool ORB-SLAM3 on accuracy while posing every frame of video.")
+ABSTRACT = ("Colonoscopy misses roughly one in four precancerous polyps, largely because parts of the colon wall "
+            "are never brought into view and no standard instrument tells the endoscopist which parts those "
+            "were. This project developed Argus, a system that answers that question using only the video of a "
+            "standard, unmodified endoscope. The pipeline chains a fine-tuned monocular depth network, a visual "
+            "odometry tracker written from scratch, 3D surface fusion, per-patch view counting, and a cascaded "
+            "polyp detector, and the whole system runs on one workstation and an ordinary Android phone. "
+            "Development went through 23 design iterations, each judged against pass or fail criteria committed "
+            "to a public git record before the test ran; only 2 passed their gates and were adopted. Against "
+            "phantom ground truth, the final pipeline tracks the camera to 0.42 mm mean error and reconstructs "
+            "the surface to about 2 mm, and fine-tuning the depth network cut false blind-spot alarms from up "
+            "to 41% of the wall to under 4%. The same pattern repeated in detection, where a redesigned "
+            "sampling protocol raised detection on unseen clinical footage from 13 of 25 to 19 of 25 polyp "
+            "clips. Head to head, the tracker ties the standard tool ORB-SLAM3 on accuracy while posing every "
+            "frame of video. These results show that inspection coverage can be measured from the video a "
+            "doctor already has, and that generic AI fails inside the body until it is specifically adapted "
+            "to it.")
 para(tf, [(ABSTRACT, False)], size=15, first=True, after=0)
 print("ABSTRACT WORDS:", len(ABSTRACT.split()))
-add_fig(s, ROOT + r"\presentation\shots\app_surface_xray.png", 0.5, 5.55, 2.9, 1.1)
-add_fig(s, ROOT + r"\results\polyp_find_size_demo.png", 3.55, 5.55, 2.9, 1.1)
-add_fig(s, ROOT + r"\results\polyp_examples\good_detection_dice0.99.png", 6.6, 5.55, 2.9, 1.1)
-caption_box(s, "Left: the app's 3D map, blind spots shown through the surface (my screenshot). Center: automatic polyp find-and-size. Right: segmentation vs expert outline.", 0.5, 6.70, 9.0)
+add_fig(s, ROOT + r"\presentation\shots\app_surface_xray.png", 0.5, 5.42, 2.9, 1.25)
+add_fig(s, ROOT + r"\results\polyp_find_size_demo.png", 3.55, 5.42, 2.9, 1.25)
+add_fig(s, ROOT + r"\results\polyp_examples\good_detection_dice0.99.png", 6.6, 5.42, 2.9, 1.25)
+caption_box(s, "Left: the app's 3D map, blind spots shown through the surface (my screenshot). Center: automatic polyp find-and-size. Right: segmentation vs expert outline.", 0.5, 6.72, 9.0)
 
 # ================= SLIDE 3: INTRODUCTION =================
 s = slides[2]
@@ -259,16 +259,20 @@ intro = [
        "reconstruction systems typically need added hardware or offline processing, and the C3VD phantom datasets "
        "are the only public source of trajectory ground truth.", False)], 13),
     ([("Engineering goal. ", True),
-      ("My goal was to build and honestly validate a system that turns a standard, unmodified endoscope's video "
+      ("The goal was to build and honestly validate a system that turns a standard, unmodified endoscope's video "
        "into a 3D reconstruction with a per-patch coverage map showing what was examined, what was only glanced "
        "at, and where the map has holes, running on consumer hardware, with every stage measured against ground "
        "truth and every claim carrying its trivial baseline.", False)], 13),
     ([("Origin and hypothesis evolution. ", True),
-      ("I began with the hypothesis that specular glare breaks endoscopic SLAM and that removing it would help. "
-       "My controlled experiments largely disproved this, since feature-based tracking turned out to be already "
-       "glare-robust and naive glare inpainting actively hurt. That disproof left me with a from-scratch dense "
-       "tracker and pivoted the project to the coverage question, where a staged ablation isolated learned depth "
-       "as the true bottleneck.", False)], 13),
+      ("The project began with the hypothesis that specular glare breaks endoscopic SLAM and that removing it "
+       "would help. Controlled experiments largely disproved this: feature-based tracking is already "
+       "glare-robust, and naive glare inpainting actively hurt. That disproof produced the from-scratch tracker "
+       "and pivoted the project to the coverage question.", False)], 13),
+    ([("Research question and hypothesis. ", True),
+      ("The final research question was whether a per-patch inspection coverage map, accurate enough to be "
+       "clinically meaningful, can be computed from monocular endoscope video alone on consumer hardware. The "
+       "working hypothesis was that tracking accuracy would be the limiting factor; a staged ablation proved "
+       "this wrong by isolating learned depth as the actual bottleneck.", False)], 13),
 ]
 first = True
 total = 0
@@ -305,11 +309,11 @@ first = True
 for runs in mats:
     para(tf, runs, size=13, bullet=True, first=first, after=8)
     first = False
-y_m = 5.90
-add_fig(s, ROOT + r"\results\c3vd_undistort.png", 0.5, y_m, 2.9, 0.82)
-add_fig(s, ROOT + r"\results\screening_polyp\c0_0_f0318.jpg", 3.55, y_m, 2.9, 0.82)
-add_fig(s, ROOT + r"\results\hk_clip1_sample.jpg", 6.6, y_m, 2.9, 0.82)
-caption_box(s, "The three data domains: ground-truth phantom, screening-pace withdrawal, unseen clinical footage.", 0.5, y_m + 0.85, 8.9)
+y_m = 5.58
+add_fig(s, ROOT + r"\results\c3vd_undistort.png", 0.5, y_m, 2.9, 1.10)
+add_fig(s, ROOT + r"\results\screening_polyp\c0_0_f0318.jpg", 3.55, y_m, 2.9, 1.10)
+add_fig(s, ROOT + r"\results\hk_clip1_sample.jpg", 6.6, y_m, 2.9, 1.10)
+caption_box(s, "The three data domains: ground-truth phantom, screening-pace withdrawal, unseen clinical footage.", 0.5, y_m + 1.13, 8.9)
 
 # ================= SLIDE 5: METHODS (block diagram + validation) =================
 s = slides[4]
@@ -366,7 +370,7 @@ varr.line.color.rgb = BLACK
 varr.shadow.inherit = False
 box(s, 1.10, BY + BH + 0.30, 3.9, 0.78,
     [("Polyp detection cascade", True), ("fast student screens every frame, teacher confirms; findings pinned and sized in the 3D map", False)])
-caption_box(s, "Block diagram of the full program, drawn by me.", 5.3, BY + BH + 0.55, 4.0)
+caption_box(s, "Block diagram of the full program, drawn by me. The detection branch is a cascade: a fast student screens every frame (3.2 to 3.7x faster on-device) and the teacher confirms what it flags, so findings stay teacher-grade.", 5.25, BY + BH + 0.26, 4.2)
 meth = [
     [("Validation by staged ablation. ", True),
      ("On phantom ground truth I swapped each estimated input for its ground-truth version to isolate error "
@@ -383,10 +387,10 @@ first = True
 for runs in meth:
     para(tf, runs, size=13, first=first, after=6)
     first = False
-add_fig(s, ROOT + r"\presentation\shots\gate_commit.png", 0.5, 5.85, 2.9, 1.0)
-add_fig(s, ROOT + r"\presentation\shots\studio_console.png", 3.55, 5.85, 2.9, 1.0)
-add_fig(s, ROOT + r"\presentation\shots\workstation.jpg", 6.6, 5.85, 2.9, 1.0)
-caption_box(s, "Left: a pass-or-fail gate committed to GitHub before the experiment ran. Center: the Argus Studio demo console. Right: the live pipeline at my workstation. My screenshots.", 0.5, 6.88, 9.0)
+add_fig(s, ROOT + r"\presentation\shots\gate_commit.png", 0.5, 5.80, 2.9, 1.10)
+add_fig(s, ROOT + r"\presentation\shots\studio_console.png", 3.55, 5.80, 2.9, 1.10)
+add_fig(s, ROOT + r"\presentation\shots\workstation.jpg", 6.6, 5.80, 2.9, 1.10)
+caption_box(s, "Left: a pass-or-fail gate committed to GitHub before the experiment ran. Center: the Argus Studio demo console. Right: the live pipeline at my workstation. My screenshots.", 0.5, 6.93, 9.0)
 
 # ================= SLIDE 6: METHODS con'd (design -> test -> redesign) =================
 s = slides[5]
@@ -403,8 +407,8 @@ m2 = [
      ("The failures outnumber the successes, and each was judged against its own committed bar: glare removal as "
       "a tracking aid, two inpainting methods, six deformation compensations, three generations of loop closure, "
       "keyframe tracking, two depth-resolution speedups, and the attempt to port the first adoption to the "
-      "phone's tracker, which failed its gate and taught me that an adoption is validated per configuration and "
-      "never assumed to generalize.", False)],
+      "phone's tracker, which failed its gate, so the phone kept its own kernel. An adoption is validated per "
+      "configuration, never assumed to generalize.", False)],
     [("Self-audit. ", True),
      ("A 35-figure audit reproduces every published number from raw artifacts, and a red-team audit re-derives "
       "the headline results with independently written code, passing 15 of 15 checks. I also caught two of my "
@@ -455,10 +459,10 @@ rows = [
     ["Cross-dataset check (real porcine tissue)", "four-way statistical tie, 39.6 to 41.4 mm mean; ORB-SLAM3 completes 65 to 95% of each sequence", "n = 5 trajectories, 5 runs per config"],
 ]
 add_table(s, rows, 0.5, 2.25, 9.0, col_widths=[2.6, 4.5, 1.9], size=12, row_h=0.5)
-y_fig = 5.55
-add_fig(s, ROOT + r"\results\poster\fig10_detector_fix.png", 0.5, y_fig, 4.35, 1.15)
-add_fig(s, ROOT + r"\results\figures\orbslam3_endoslam_ate.png", 5.15, y_fig, 4.35, 1.15)
-caption_box(s, "Left: the detector's domain-gap failure and its fix. Right: trajectory error on real tissue, all systems. Figures produced by me.", 0.5, y_fig + 1.18, 9.0)
+y_fig = 5.45
+add_fig(s, ROOT + r"\results\poster\fig10_detector_fix.png", 0.5, y_fig, 4.35, 1.28)
+add_fig(s, ROOT + r"\results\figures\orbslam3_endoslam_ate.png", 5.15, y_fig, 4.35, 1.28)
+caption_box(s, "Left: the detector's domain-gap failure and its fix. Right: trajectory error on real tissue, all systems. Figures produced by me.", 0.5, y_fig + 1.31, 9.0)
 
 # ================= SLIDE 9: RESULTS con'd (negative results, published) =================
 s = slides[8]
@@ -474,10 +478,10 @@ rows = [
     ["Is the phone video-rate?", "no: about 3 fps on-device (depth 199 ms, track 25, fuse 50, detect 76)", "depth network is the bottleneck; resolution speedup failed its accuracy gate"],
 ]
 add_table(s, rows, 0.5, 2.30, 9.0, col_widths=[3.0, 3.3, 2.7], size=12, row_h=0.5)
-y_fig = 5.45
-add_fig(s, ROOT + r"\results\poster\fig12_framerate.png", 0.5, y_fig, 4.35, 1.25)
-add_fig(s, ROOT + r"\results\poster\fig15_loopclosure.png", 5.15, y_fig, 4.35, 1.25)
-caption_box(s, "Left: the frame-rate law from complete withdrawals. Right: the loop-closure oracle bound. Figures produced by me.", 0.5, y_fig + 1.28, 9.0)
+y_fig = 5.02
+add_fig(s, ROOT + r"\results\poster\fig12_framerate.png", 0.5, y_fig, 4.35, 1.62)
+add_fig(s, ROOT + r"\results\poster\fig15_loopclosure.png", 5.15, y_fig, 4.35, 1.62)
+caption_box(s, "Left: the frame-rate law from complete withdrawals. Right: the loop-closure oracle bound. Figures produced by me.", 0.5, y_fig + 1.65, 9.0)
 
 # ================= SLIDE 10: DISCUSSION =================
 s = slides[9]
@@ -493,9 +497,9 @@ disc = [
       "all appears as visible holes in the reconstruction rather than in the percentage, so the figure is stated "
       "as a fraction of the mapped wall. The threshold was sensitivity-tested and does not drive the conclusions.", False)],
     [("Errors and surprises. ", True),
-     ("Two of my metrics flattered the system while measuring nothing, an agreement score inflated by class "
-      "imbalance and an aligned trajectory error that collapses under divergence; I caught and retracted both, "
-      "and each produced a standing safeguard, which is why a trivial baseline now sits beside every number. My "
+     ("Two metrics flattered the system while measuring nothing: an agreement score inflated by class imbalance, "
+      "and an aligned trajectory error that collapses under divergence. I caught and retracted both, and each "
+      "produced a standing safeguard, which is why a trivial baseline sits beside every published number. The "
       "original glare hypothesis was itself largely disproven, which redirected the whole project.", False)],
     [("Why the redesigns happened. ", True),
      ("Each redesign was forced by a measured mechanism, not taste: the detection miss autopsy traced misses to "
@@ -542,11 +546,11 @@ first = True
 for runs in conc:
     para(tf, runs, size=13, first=first, after=7)
     first = False
-y_c = 5.30
-add_fig(s, ROOT + r"\results\poster\fig7_measurement.png", 0.5, y_c, 2.9, 1.35)
-add_fig(s, ROOT + r"\presentation\shots\report_card.png", 3.55, y_c, 2.9, 1.35)
-add_fig(s, ROOT + r"\presentation\shots\app_pointcloud.png", 6.6, y_c, 2.9, 1.35)
-caption_box(s, "Left: monocular sizing, 0.60 mm median error on 3 to 30 mm targets (my figure). Center: a procedure report card from Argus Studio. Right: the blind-spot map on the phone.", 0.5, y_c + 1.38, 9.0)
+y_c = 5.22
+add_fig(s, ROOT + r"\results\poster\fig7_measurement.png", 0.5, y_c, 2.9, 1.45)
+add_fig(s, ROOT + r"\presentation\shots\report_card.png", 3.55, y_c, 2.9, 1.45)
+add_fig(s, ROOT + r"\presentation\shots\app_pointcloud.png", 6.6, y_c, 2.9, 1.45)
+caption_box(s, "Left: monocular sizing, 0.60 mm median error on 3 to 30 mm targets (my figure). Center: a procedure report card from Argus Studio. Right: the blind-spot map on the phone.", 0.5, y_c + 1.48, 9.0)
 
 # ================= SLIDE 12: REFERENCES / ACKNOWLEDGEMENTS =================
 s = slides[11]
