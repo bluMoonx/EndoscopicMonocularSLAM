@@ -82,3 +82,72 @@ Each limitation was attacked until it produced a measured verdict. None of them 
 > to break it, comparing it to the standard tool, and proving which of its limits are bugs
 > (frame rate: fixed), which are laws (drift: a withdrawal is a line), and whether anyone
 > should believe me (independent re-derivation says yes)."
+
+---
+
+## Anticipated attacks
+
+*Each attack a sharp judge might raise, with its honest verdict: **measured** (I already ran
+that experiment and published the number), **misreads the claim** (the attack argues against
+something I never said), or **real gap** (concede it, in these words).*
+
+**"Depth networks confuse brightness with distance and hallucinate on wet, textureless walls."**
+Verdict: **measured — it is my central finding.** Off-the-shelf depth scored 68% and falsely
+flagged up to 41% of the wall; domain fine-tuning took it to 92–99.7% and under 4%. The real
+gap inside this attack: I fine-tuned on phantom data, so generalization to diverse real human
+colons is unproven, and the data to prove it does not publicly exist. I say that on the
+limitations slide.
+
+**"Claiming the tracker never loses track is impossible for monocular VO in soft tissue."**
+Verdict: **misreads the claim.** I never claim the pose is always accurate. I claim the tracker
+outputs a pose for every frame and never resets the way a keyframe system does, and when the
+pose becomes unreliable the guard mechanism flags it — the guard-rejection rate is a published
+metric, and the frame-rate experiment exists precisely to quantify where brightness alignment
+fails (16–23% guard coasting at ~2 effective fps, disclosed).
+
+**"Tissue deforms; the colon is not rigid."**
+Verdict: **measured.** Deformation costs ~9× accuracy; six pre-registered fixes all failed
+their own bars (best miss −18% vs a 20% bar) and were published with mechanisms.
+
+**"Drift accumulates over a full withdrawal; the map tears apart."**
+Verdict: **measured.** ~100 mm whole-colon drift, and the loop-closure oracle proves even
+perfect closures recover at most 14%, because a withdrawal path is a line. This is also why
+site re-identification landed at 26 mm vs the 10 mm clinical need.
+
+**"Real-time full-colon fusion on standard hardware is an open problem."**
+Verdict: **measured and agreed.** The phone runs ~3 fps against a measured 9 fps requirement
+for live use, which is why the shipped application is a retrospective report card, not live
+guidance. Live guidance is stated future work.
+
+**"Three video frames does not mean a patch was inspected."**
+Verdict: **partially fair — exposure, not inspection.** View counting measures whether the
+mucosa was exposed to the camera (in frame, unoccluded, repeatedly), which is necessary but
+not sufficient for inspection. The gap between high and low detectors may come from technique
+within the areas that are seen — I said exactly this in correspondence with Dr. Rex. Coverage
+is a stratification signal, not a diagnosis.
+
+**"Constant blind-spot alerts would cause alert fatigue."**
+Verdict: **misreads the claim.** Argus does not fire live alerts. The product is a
+retrospective per-procedure report card for quality review. And if roughly a quarter of the
+wall genuinely goes under-inspected, that is the argument for measuring it, not for ignoring it.
+
+**"Real systems use shape-sensing hardware or live polyp detection instead."**
+Verdict: **different design points, not refutations.** Shape sensors are added hardware — my
+design constraint is none. Live CADe answers a different question and by construction cannot
+see wall that never appears on screen.
+
+## Words to never say
+
+The project's credibility is that every claim is exactly its measured size. These phrasings
+inflate it and will be caught:
+
+- "Never loses track" → *"poses every frame; unreliable stretches are flagged by the guard."*
+- "It caught pathology the doctors missed" → *"every flagged control contained real, labeled
+  pathology, so false alarms on clean tissue were effectively zero."* (The labels were known.)
+- "My tracker beats ORB-SLAM3" → *"a statistical tie on accuracy; mine poses every frame,
+  which the coverage map requires."* Fit, not victory.
+- "11 of 21 polyps" → *"11 of 21 polyp clips."* (Clips, not individual polyps.)
+- "False alarms fell from 41%" → *"from up to 41%, depending on sequence."*
+- "Re-found months later" → *"in a second, independent procedure's map."*
+- "Argus Studio is built for doctors" → *"Studio is my demo and evidence console; the report
+  card is a research output."*
